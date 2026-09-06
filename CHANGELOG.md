@@ -29,4 +29,9 @@ Initial release, superseding the standalone BubblesLauncher module.
   own label where the build adds one without an id.
 - Clear all entry in the task menu, built from the launcher's own option layout,
   icon, and label.
+- Application icon: a launcher grid whose top-right cell has burst into a spark,
+  set in a circular badge under a long diagonal shadow. The badge and shadow are
+  the Pixel Launcher's idiom so the two sit together on a home screen; the mark
+  is original, and Google's "G" is deliberately not reproduced. The mark alone
+  serves as the themed-icon layer.
 - R8 shrinking for release builds, with the module entry class kept by name.

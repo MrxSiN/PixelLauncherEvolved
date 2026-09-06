@@ -1,8 +1,14 @@
 <!--
-  A launcher grid with its top-right cell broken out into a spark: the home
-  screen, plus the thing this module adds to it. Drawn on the adaptive icon's
-  108dp canvas with the usual 18dp safe margin, and used unchanged as the
-  monochrome layer, so it has to read at one colour.
+  A launcher badge with its top-right cell burst into a spark: the home screen,
+  plus the thing this module adds to it.
+
+  The circular badge under a long 45-degree shadow is the Pixel Launcher's own
+  idiom, so the icon sits next to it on a home screen without pretending to be
+  it. The mark inside is this project's, not Google's.
+
+  Drawn on the adaptive icon's 108dp canvas. The badge sits up and left of
+  centre so the shadow has somewhere to fall; the shadow runs off the edge on
+  purpose and is trimmed by whatever mask the device applies.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -10,22 +16,30 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Three cells of a 2x2 launcher grid. -->
+    <!-- Long shadow, cast down-right from the badge. -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M36,36m-11,0a11,11 0 1,0 22,0a11,11 0 1,0 -22,0" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M36,72m-11,0a11,11 0 1,0 22,0a11,11 0 1,0 -22,0" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M72,72m-11,0a11,11 0 1,0 22,0a11,11 0 1,0 -22,0" />
+        android:fillColor="#000000"
+        android:fillAlpha="0.2"
+        android:pathData="M29.7,62.3 L75.7,108.3 L108.3,75.7 L62.3,29.7 Z" />
 
-    <!-- The fourth cell, evolved. -->
+    <!-- The badge. -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M72,21c1.4,7.2 2.4,8.2 9.6,9.6 -7.2,1.4 -8.2,2.4 -9.6,9.6 -1.4,-7.2 -2.4,-8.2 -9.6,-9.6 7.2,-1.4 8.2,-2.4 9.6,-9.6Z" />
+        android:fillColor="#FFF6F4FF"
+        android:pathData="M46,46m-23,0a23,23 0 1,0 46,0a23,23 0 1,0 -46,0" />
+
+    <!-- Three cells of a launcher grid. -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M86,38c0.7,3.4 1.2,3.9 4.6,4.6 -3.4,0.7 -3.9,1.2 -4.6,4.6 -0.7,-3.4 -1.2,-3.9 -4.6,-4.6 3.4,-0.7 3.9,-1.2 4.6,-4.6Z" />
+        android:fillColor="#FF3A21C4"
+        android:pathData="M37,37m-5.5,0a5.5,5.5 0 1,0 11,0a5.5,5.5 0 1,0 -11,0" />
+    <path
+        android:fillColor="#FF3A21C4"
+        android:pathData="M37,55m-5.5,0a5.5,5.5 0 1,0 11,0a5.5,5.5 0 1,0 -11,0" />
+    <path
+        android:fillColor="#FF3A21C4"
+        android:pathData="M55,55m-5.5,0a5.5,5.5 0 1,0 11,0a5.5,5.5 0 1,0 -11,0" />
+
+    <!-- The fourth, evolved. -->
+    <path
+        android:fillColor="#FF3A21C4"
+        android:pathData="M55,27c0.7,5.9 4.1,9.3 10,10 -5.9,0.7 -9.3,4.1 -10,10 -0.7,-5.9 -4.1,-9.3 -10,-10 5.9,-0.7 9.3,-4.1 10,-10Z" />
 </vector>
