@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pixel Launcher Evolved</string>
+    <string name="app_tagline">Tweaks for the Android 17 Pixel Launcher</string>
+    <string name="module_description">Xposed module that adds missing controls to the Pixel Launcher on Android 17.</string>
+
+    <string name="status_checking_title">Checking</string>
+    <string name="status_checking_detail">Looking for an Xposed framework.</string>
+    <string name="status_active_title">Module active</string>
+    <string name="status_active_detail">Running on %1$s, build %2$s. Restart the launcher to apply changes.</string>
+    <string name="status_inactive_title">Module not active</string>
+    <string name="status_inactive_detail">No Xposed framework answered. Install one, enable this module, and reopen this screen.</string>
+
+    <string name="category_overview_title">Overview</string>
+    <string name="category_overview_summary">The Recents screen and its task cards</string>
+    <string name="category_layout_title">Home and drawer</string>
+    <string name="category_layout_summary">Grid, icons and labels</string>
+    <string name="category_misc_title">Gestures and extras</string>
+    <string name="category_misc_summary">Everything that fits nowhere else</string>
+
+    <string name="feature_overview_bubble_title">Bubble button on task cards</string>
+    <string name="feature_overview_bubble_summary">Adds a button to each Recents card that reopens the app as a floating bubble.</string>
+    <string name="feature_overview_hide_screenshot_title">Hide Screenshot</string>
+    <string name="feature_overview_hide_screenshot_summary">Removes the Screenshot button from the Recents action row.</string>
+    <string name="feature_overview_hide_select_title">Hide Select</string>
+    <string name="feature_overview_hide_select_summary">Removes the Select button from the Recents action row.</string>
+    <string name="feature_overview_hide_clear_all_title">Hide Clear all</string>
+    <string name="feature_overview_hide_clear_all_summary">Removes the Clear all button at the end of the Recents carousel.</string>
+</resources>
