@@ -68,7 +68,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { ModuleStatusCard(uiState.status) }
+            item {
+                ModuleStatusCard(
+                    status = uiState.status,
+                    onRestartLauncher = viewModel::requestLauncherRestart,
+                )
+            }
 
             for (category in CatalogCategory.entries) {
                 val entries = FeatureCatalog.entriesIn(category)

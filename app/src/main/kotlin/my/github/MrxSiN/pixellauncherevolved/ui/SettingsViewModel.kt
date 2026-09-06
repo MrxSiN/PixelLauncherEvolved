@@ -15,6 +15,7 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.catalog.IntSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.Setting
+import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.settings.ModuleConnection
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsStore
 import my.github.MrxSiN.pixellauncherevolved.settings.SharedPreferencesStore
@@ -61,6 +62,18 @@ class SettingsViewModel : ViewModel() {
     fun set(setting: IntSetting, value: Int) {
         store?.put(setting, value)
         refreshValues()
+    }
+
+    /**
+     * Asks the launcher to restart itself.
+     *
+     * Nothing here can end another process, so the request travels as a raised
+     * counter on the shared preferences; the module notices it inside the
+     * launcher and exits, and Android brings the home app back.
+     */
+    fun requestLauncherRestart() {
+        val current = store ?: return
+        current.put(Settings.RESTART_REQUEST, current[Settings.RESTART_REQUEST] + 1)
     }
 
     override fun onCleared() {

@@ -27,6 +27,8 @@ class LauncherResources(context: Context) {
 
     fun id(name: String): Int = identifier(name, "id")
 
+    fun layout(name: String): Int = identifier(name, "layout")
+
     private fun identifier(name: String, type: String): Int =
         resources.getIdentifier(name, type, packageName)
 }

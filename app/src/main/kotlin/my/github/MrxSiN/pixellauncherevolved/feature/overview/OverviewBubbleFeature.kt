@@ -26,6 +26,9 @@ class OverviewBubbleFeature : ToggleFeature(Settings.OVERVIEW_BUBBLE_BUTTON) {
         }
 
         val decorator = OverviewBubbleDecorator(
+            // Read on every layout pass, so switching the feature on or off
+            // reaches a running launcher without a restart.
+            isEnabled = { context.settings[toggle] },
             buttonFactory = BubbleButtonFactory(),
             targetResolver = TaskViewTargetResolver(context.logger),
             geometry = TaskViewGeometry(),

@@ -18,6 +18,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.overview.TaskViewGeometry
  * Overview layout: grid, carousel, and split.
  */
 class OverviewBubbleDecorator(
+    private val isEnabled: () -> Boolean,
     private val buttonFactory: BubbleButtonFactory,
     private val targetResolver: TaskTargetResolver,
     private val geometry: TaskViewGeometry,
@@ -31,8 +32,19 @@ class OverviewBubbleDecorator(
     /** Adds the button as soon as the card finishes inflating. */
     fun onTaskViewInflated(taskView: ViewGroup) = attach(taskView)
 
-    /** Re-anchors the button and hides it on cards with nothing to bubble. */
+    /**
+     * Re-anchors the button, and hides it when the feature is switched off or
+     * the card has nothing to bubble.
+     *
+     * The setting is read here rather than at install time so that turning the
+     * feature on or off reaches a running launcher on the next frame.
+     */
     fun onTaskViewLaidOut(taskView: ViewGroup) {
+        if (!isEnabled()) {
+            findButton(taskView)?.visibility = View.GONE
+            return
+        }
+
         val button = findButton(taskView)
         if (button == null) {
             // Adding a child during layout is not allowed; retry next frame.
@@ -55,7 +67,7 @@ class OverviewBubbleDecorator(
     }
 
     private fun attach(taskView: ViewGroup) {
-        if (findButton(taskView) != null) return
+        if (!isEnabled() || findButton(taskView) != null) return
 
         try {
             taskView.addView(buttonFactory.create(taskView.context) { launch(taskView) })

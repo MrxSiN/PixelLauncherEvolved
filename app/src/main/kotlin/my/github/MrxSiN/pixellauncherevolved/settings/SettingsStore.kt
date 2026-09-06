@@ -16,16 +16,13 @@ interface SettingsStore : SettingsSource {
     fun put(setting: BoolSetting, value: Boolean)
 
     fun put(setting: IntSetting, value: Int)
-
-    /** Registers [listener] for changes made anywhere, and returns a way to stop. */
-    fun observe(listener: () -> Unit): AutoCloseable
 }
 
 /**
  * [SettingsStore] over the preferences the framework shares with the module.
  *
- * These are the same preferences the launcher process reads, so a write here is
- * visible to a hook as soon as the launcher is restarted.
+ * These are the same preferences the launcher process reads, so a write here
+ * reaches a running launcher without restarting it.
  */
 class SharedPreferencesStore(
     private val preferences: SharedPreferences,
@@ -37,13 +34,5 @@ class SharedPreferencesStore(
 
     override fun put(setting: IntSetting, value: Int) {
         preferences.edit().putInt(setting.key, value.coerceIn(setting.range)).apply()
-    }
-
-    override fun observe(listener: () -> Unit): AutoCloseable {
-        val registered = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> listener() }
-        preferences.registerOnSharedPreferenceChangeListener(registered)
-        return AutoCloseable {
-            preferences.unregisterOnSharedPreferenceChangeListener(registered)
-        }
     }
 }

@@ -41,6 +41,12 @@ object FeatureCatalog {
             summaryRes = R.string.feature_overview_hide_clear_all_summary,
             category = CatalogCategory.OVERVIEW,
         ),
+        CatalogEntry(
+            setting = Settings.OVERVIEW_CLEAR_ALL_IN_MENU,
+            titleRes = R.string.feature_overview_clear_all_in_menu_title,
+            summaryRes = R.string.feature_overview_clear_all_in_menu_summary,
+            category = CatalogCategory.OVERVIEW,
+        ),
     )
 
     fun entriesIn(category: CatalogCategory): List<CatalogEntry> =

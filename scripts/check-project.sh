@@ -14,7 +14,7 @@ grep -q '^com.google.android.apps.nexuslauncher$' "$META/scope.list"
 grep -q 'com.google.android.apps.nexuslauncher' "$SRC/PixelLauncherEvolvedModule.kt"
 grep -q 'isFirstPackage' "$SRC/PixelLauncherEvolvedModule.kt"
 grep -q 'XposedModule' "$SRC/PixelLauncherEvolvedModule.kt"
-grep -q 'FeatureRegistry.installEnabled' "$SRC/PixelLauncherEvolvedModule.kt"
+grep -q 'FeatureRegistry.install' "$SRC/PixelLauncherEvolvedModule.kt"
 
 # A settings outage must disable tweaks rather than the launcher.
 grep -q 'DefaultSettings' "$SRC/PixelLauncherEvolvedModule.kt"
@@ -27,6 +27,25 @@ grep -q 'getRemotePreferences' "$SRC/ui/SettingsViewModel.kt"
 # The framework binder arrives before any screen exists, so it is caught in the app.
 grep -q 'registerListener' "$SRC/settings/ModuleConnection.kt"
 grep -q 'ModuleConnection.register' "$SRC/PixelLauncherEvolvedApp.kt"
+
+# Tweaks reach a running launcher, and a feature that cannot say so is gated.
+grep -q 'val isLive' "$SRC/hook/LauncherFeature.kt"
+grep -q 'it.isLive || it.isEnabled' "$SRC/hook/FeatureRegistry.kt"
+grep -q 'fun observe' "$SRC/settings/SettingsSource.kt"
+
+# Hiding a button must be reversible, or switching a tweak off would do nothing.
+grep -q 'originalVisibility' "$SRC/feature/overview/OverviewActionsFeature.kt"
+
+# The restart signal travels on the preference channel and is held strongly.
+grep -q 'RESTART_REQUEST' "$SRC/catalog/Settings.kt"
+grep -q 'killProcess' "$SRC/feature/misc/RestartLauncherFeature.kt"
+grep -q 'private var observation' "$SRC/feature/misc/RestartLauncherFeature.kt"
+grep -q 'requestLauncherRestart' "$SRC/ui/SettingsViewModel.kt"
+
+# Clear all in the task menu reuses the launcher own row layout and action.
+grep -q 'task_view_menu_option' "$SRC/feature/overview/TaskMenuClearAllFeature.kt"
+grep -q 'dismissAllTasks' "$SRC/feature/overview/TaskMenuClearAllFeature.kt"
+grep -q 'fun method' "$SRC/core/Reflect.kt"
 
 # A failing feature is contained.
 grep -q 'runCatching' "$SRC/hook/FeatureRegistry.kt"

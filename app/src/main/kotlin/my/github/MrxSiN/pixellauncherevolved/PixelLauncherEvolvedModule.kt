@@ -27,7 +27,7 @@ class PixelLauncherEvolvedModule : XposedModule() {
         val logger = AndroidLogger
         logger.info("Loading in ${param.packageName}")
 
-        FeatureRegistry.installEnabled(
+        FeatureRegistry.install(
             FeatureContext(
                 xposed = this,
                 classLoader = param.defaultClassLoader,

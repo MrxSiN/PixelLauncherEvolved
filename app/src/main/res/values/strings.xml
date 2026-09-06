@@ -7,9 +7,10 @@
     <string name="status_checking_title">Checking</string>
     <string name="status_checking_detail">Looking for an Xposed framework.</string>
     <string name="status_active_title">Module active</string>
-    <string name="status_active_detail">Running on %1$s, build %2$s. Restart the launcher to apply changes.</string>
+    <string name="status_active_detail">Running on %1$s, build %2$s. Changes apply straight away.</string>
     <string name="status_inactive_title">Module not active</string>
     <string name="status_inactive_detail">No Xposed framework answered. Install one, enable this module, and reopen this screen.</string>
+    <string name="action_restart_launcher">Restart launcher</string>
 
     <string name="category_overview_title">Overview</string>
     <string name="category_overview_summary">The Recents screen and its task cards</string>
@@ -25,5 +26,7 @@
     <string name="feature_overview_hide_select_title">Hide Select</string>
     <string name="feature_overview_hide_select_summary">Removes the Select button from the Recents action row.</string>
     <string name="feature_overview_hide_clear_all_title">Hide Clear all</string>
-    <string name="feature_overview_hide_clear_all_summary">Removes the Clear all button at the end of the Recents carousel.</string>
+    <string name="feature_overview_hide_clear_all_summary">Removes the Clear all button from the Recents action row.</string>
+    <string name="feature_overview_clear_all_in_menu_title">Clear all in the task menu</string>
+    <string name="feature_overview_clear_all_in_menu_summary">Adds a Clear all entry to the menu behind the app chip on a task card. Pairs with hiding it from the action row.</string>
 </resources>

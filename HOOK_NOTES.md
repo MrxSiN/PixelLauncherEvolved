@@ -211,3 +211,66 @@ registers, so registering from `Application.onCreate` is safe and cannot miss it
 A framework that is not installed simply never answers. The app therefore waits a
 short grace period and then reports the module as inactive rather than waiting
 forever.
+
+## The task menu
+
+```
+com.android.quickstep.views.TaskMenuView extends com.android.launcher3.AbstractFloatingView
+  private final void addMenuOptions()
+  private final void populateAndLayoutMenu()
+  private com.android.quickstep.views.RecentsViewContainer recentsViewContainer
+
+com.android.quickstep.views.RecentsViewContainer
+  public View getOverviewPanel()
+
+com.android.quickstep.views.RecentsView
+  private void dismissAllTasks(android.view.View)
+
+com.android.launcher3.AbstractFloatingView
+  public final void close(boolean)
+```
+
+`addMenuOptions()` walks `TaskOverlayFactory.getEnabledShortcuts` and calls
+`addMenuOption` per entry, so hooking it after gives a menu the launcher has
+finished populating. The row layout is `res/layout/task_view_menu_option.xml`:
+a `View` with id `icon`, whose *background* carries the glyph, and a `TextView`
+with id `text`. They live in `id/menu_option_layout` from `res/layout/task_menu.xml`.
+
+The menu is a floating view rather than a child of the task list, so the recents
+view is reached through `recentsViewContainer.getOverviewPanel()`.
+
+`dismissAllTasks` is private and declared on `RecentsView` while the instance is
+a `LauncherRecentsView`, so neither `getMethod` nor a single `getDeclaredMethod`
+finds it — the lookup has to walk the hierarchy.
+
+The launcher's own menu already has a **Clear** entry, which dismisses that one
+task. The added entry is Clear all, and takes the launcher's own
+`string/recents_clear_all` so the two read distinctly.
+
+## Applying settings without restarting the launcher
+
+`RemotePreferences.apply()` updates its in-process map and notifies listeners
+synchronously, and only the commit back to the framework is queued, so a read
+straight after a write sees the new value on both sides of the bridge.
+
+Two consequences shape the code:
+
+- **Listeners are held weakly.** `RemotePreferences` keeps them in a
+  `WeakHashMap`, so anything that registers one must hold the registration for
+  as long as it wants the callbacks. A local variable is not enough.
+- **A live feature must restore, not just apply.** Hiding a view on every
+  recompute is easy; putting it back when the tweak is switched off means
+  remembering the visibility the launcher itself wanted, because the launcher
+  hides some of those views on its own.
+
+The launcher process cannot be ended from outside without a privileged
+permission, so the restart request travels on this same channel as a counter and
+the module calls `Process.killProcess(Process.myPid())` from inside the
+launcher.
+
+## Gotcha: private methods reached by direct calls
+
+`addMenuOptions` is called with `invoke-direct` from `populateAndLayoutMenu`,
+which ART may inline. That did not stop the hook here, but if a hook on a small
+private method never fires, `XposedInterface.deoptimize` on its *caller* is the
+remedy.

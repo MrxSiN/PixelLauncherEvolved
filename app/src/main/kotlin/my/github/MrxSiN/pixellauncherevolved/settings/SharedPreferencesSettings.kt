@@ -24,4 +24,10 @@ class SharedPreferencesSettings(
         runCatching { preferences.getInt(setting.key, setting.default) }
             .getOrDefault(setting.default)
             .coerceIn(setting.range)
+
+    override fun observe(onChange: () -> Unit): AutoCloseable {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> onChange() }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        return AutoCloseable { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 }

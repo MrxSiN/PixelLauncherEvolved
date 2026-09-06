@@ -1,15 +1,31 @@
+<!--
+  A launcher grid with its top-right cell broken out into a spark: the home
+  screen, plus the thing this module adds to it. Drawn on the adaptive icon's
+  108dp canvas with the usual 18dp safe margin, and used unchanged as the
+  monochrome layer, so it has to read at one colour.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="960"
-    android:viewportHeight="960">
-    <group
-        android:pivotX="480"
-        android:pivotY="480"
-        android:scaleX="0.6"
-        android:scaleY="0.6">
-        <path
-            android:fillColor="#FFFFFFFF"
-            android:pathData="m464,480 l-90,-90q-11,-11 -11.5,-27.5T374,334q11,-11 28,-11t28,11l90,89v-49q0,-17 11.5,-28.5T560,334q17,0 28.5,11.5T600,374v146q0,17 -11.5,28.5T560,560L414,560q-17,0 -28.5,-11.5T374,520q0,-17 11.5,-28.5T414,480h50ZM760,800q-50,0 -85,-35t-35,-85q0,-50 35,-85t85,-35q50,0 85,35t35,85q0,50 -35,85t-85,35ZM160,800q-33,0 -56.5,-23.5T80,720v-480q0,-33 23.5,-56.5T160,160h640q33,0 56.5,23.5T880,240v200q0,17 -11.5,28.5T840,480q-17,0 -28.5,-11.5T800,440v-200L160,240v480h360q17,0 28.5,11.5T560,760q0,17 -11.5,28.5T520,800L160,800Z" />
-    </group>
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Three cells of a 2x2 launcher grid. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M36,36m-11,0a11,11 0 1,0 22,0a11,11 0 1,0 -22,0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M36,72m-11,0a11,11 0 1,0 22,0a11,11 0 1,0 -22,0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M72,72m-11,0a11,11 0 1,0 22,0a11,11 0 1,0 -22,0" />
+
+    <!-- The fourth cell, evolved. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M72,21c1.4,7.2 2.4,8.2 9.6,9.6 -7.2,1.4 -8.2,2.4 -9.6,9.6 -1.4,-7.2 -2.4,-8.2 -9.6,-9.6 7.2,-1.4 8.2,-2.4 9.6,-9.6Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M86,38c0.7,3.4 1.2,3.9 4.6,4.6 -3.4,0.7 -3.9,1.2 -4.6,4.6 -0.7,-3.4 -1.2,-3.9 -4.6,-4.6 3.4,-0.7 3.9,-1.2 4.6,-4.6Z" />
 </vector>

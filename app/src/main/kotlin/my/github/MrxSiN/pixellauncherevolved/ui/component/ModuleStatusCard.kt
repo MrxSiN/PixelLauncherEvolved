@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -25,13 +26,20 @@ import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.ui.ModuleStatus
 
 /**
- * Says whether the module is actually doing anything.
+ * Says whether the module is actually doing anything, and offers the one action
+ * that is not a tweak.
  *
  * Nothing on this screen has any effect while the framework is absent, so the
- * answer leads the page rather than hiding in an about box.
+ * answer leads the page rather than hiding in an about box. Tweaks apply to a
+ * running launcher on their own; the restart button is there for the times a
+ * hooked process needs a clean slate.
  */
 @Composable
-fun ModuleStatusCard(status: ModuleStatus, modifier: Modifier = Modifier) {
+fun ModuleStatusCard(
+    status: ModuleStatus,
+    onRestartLauncher: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val containerColor = when (status) {
         is ModuleStatus.Active -> MaterialTheme.colorScheme.primaryContainer
         ModuleStatus.Inactive -> MaterialTheme.colorScheme.errorContainer
@@ -50,22 +58,32 @@ fun ModuleStatusCard(status: ModuleStatus, modifier: Modifier = Modifier) {
             contentColor = contentColor,
         ),
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            StatusGlyph(status)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatusGlyph(status)
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(status.titleRes),
-                    style = MaterialTheme.typography.titleMediumEmphasized,
-                )
-                Text(
-                    text = status.detail(),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = stringResource(status.titleRes),
+                        style = MaterialTheme.typography.titleMediumEmphasized,
+                    )
+                    Text(
+                        text = status.detail(),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
+            if (status is ModuleStatus.Active) {
+                FilledTonalButton(onClick = onRestartLauncher) {
+                    Text(stringResource(R.string.action_restart_launcher))
+                }
             }
         }
     }

@@ -3,9 +3,10 @@
 An Xposed module that adds the controls the Android 17 Pixel Launcher does not
 ship, with a Material 3 Expressive settings app to turn them on and off.
 
-Every tweak is off unless you switch it on, and each one is installed only when
-its preference says so — the launcher is left exactly as Google shipped it for
-anything you have not asked to change.
+Every tweak is off unless you switch it on, and every tweak applies to the
+launcher that is already running: switch one on and the next frame has it, with
+no restart. A Restart launcher button is there anyway, for the times a hooked
+process needs a clean slate.
 
 ## Features
 
@@ -17,6 +18,12 @@ anything you have not asked to change.
 | Hide Screenshot | Removes the Screenshot button from the Recents action row. |
 | Hide Select | Removes the Select button from the Recents action row. |
 | Hide Clear all | Removes the Clear all button from the Recents action row. |
+| Clear all in the task menu | Adds a Clear all entry to the menu behind the app chip on a task card. The launcher's own Clear entry dismisses one task; this one sweeps the lot. |
+
+### Everywhere
+
+A **Restart launcher** button on the status card, for when a hooked process
+needs a clean slate.
 
 Home-and-drawer layout and gesture tweaks are the next two categories; their
 sections appear in the app as soon as they carry features.
@@ -38,7 +45,8 @@ Built against the modern [libxposed API](https://github.com/libxposed/api)
 2. Enable **Pixel Launcher Evolved** in your Xposed manager. The module declares
    a static scope, so there is no scope to pick.
 3. Open the app, switch on what you want.
-4. Force-stop the Pixel Launcher, or reboot.
+4. Force-stop the Pixel Launcher once, so it loads the module. After that,
+   changes apply without restarting it.
 
 The app tells you at the top whether a framework has accepted the module.
 Settings cannot be changed while it has not: there would be nowhere to store
@@ -61,6 +69,18 @@ launcher      --read--->  XposedInterface.getRemotePreferences("settings")
 Both sides describe a tweak once, in `catalog/`: the settings screen renders from
 that list and the hooks read the same `Setting` objects, so a key cannot drift
 between them.
+
+That channel is also what makes changes apply without a restart. A feature that
+can react to a running launcher declares itself live: it is installed whatever
+its setting says, and reads that setting from inside its hooks. Overview lays
+out again constantly, so the next frame reflects the new value, and switching a
+tweak off restores what it changed rather than leaving it applied until the
+next start.
+
+The Restart launcher button rides the same channel. Nothing outside the launcher
+can end its process without a privileged permission, so the app raises a counter
+and the module, seeing it change, exits from inside the launcher; Android brings
+the home app straight back.
 
 `HOOK_NOTES.md` records the launcher internals each feature relies on and how
 they were verified on a device.
