@@ -1,17 +1,19 @@
 package my.github.MrxSiN.pixellauncherevolved.ui.screen
 
+import android.widget.Toast
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material3.Button
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -21,35 +23,47 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import my.github.MrxSiN.pixellauncherevolved.R
-import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
-import my.github.MrxSiN.pixellauncherevolved.catalog.CatalogCategory
-import my.github.MrxSiN.pixellauncherevolved.catalog.CatalogEntry
-import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
-import my.github.MrxSiN.pixellauncherevolved.ui.SettingsUiState
+import my.github.MrxSiN.pixellauncherevolved.ui.HomeSettings
+import my.github.MrxSiN.pixellauncherevolved.ui.ModuleStatus
 import my.github.MrxSiN.pixellauncherevolved.ui.SettingsViewModel
 import my.github.MrxSiN.pixellauncherevolved.ui.component.ModuleStatusCard
-import my.github.MrxSiN.pixellauncherevolved.ui.component.SwitchRow
 
-/**
- * The whole settings surface.
- *
- * Everything the module offers fits on one scrolling page grouped by category,
- * which keeps a tweak one gesture away instead of behind a navigation step.
- */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val status by viewModel.status.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val settingsUnavailable = stringResource(R.string.settings_unavailable)
+
+    fun report(done: Boolean, message: String) {
+        if (!done) Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
+    SettingsContent(
+        status = status,
+        onOpenHomeSettings = { report(HomeSettings.open(context), settingsUnavailable) },
+    )
+}
+
+/** Stateless presentation; the framework lifecycle stays in the view model. */
+@Composable
+private fun SettingsContent(
+    status: ModuleStatus,
+    onOpenHomeSettings: () -> Unit,
+) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val layoutDirection = LocalLayoutDirection.current
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             LargeFlexibleTopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
@@ -58,88 +72,54 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             )
         },
     ) { insets ->
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 380.dp),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = insets.calculateTopPadding() + 8.dp,
+                start = insets.calculateStartPadding(layoutDirection) + 20.dp,
+                end = insets.calculateEndPadding(layoutDirection) + 20.dp,
+                top = insets.calculateTopPadding() + 12.dp,
                 bottom = insets.calculateBottomPadding() + 32.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            item {
-                ModuleStatusCard(
-                    status = uiState.status,
-                    onRestartLauncher = viewModel::requestLauncherRestart,
-                )
+            item(key = "status", span = { GridItemSpan(maxLineSpan) }) {
+                ModuleStatusCard(status)
             }
-
-            for (category in CatalogCategory.entries) {
-                val entries = FeatureCatalog.entriesIn(category)
-                if (entries.isEmpty()) continue
-
-                item(key = "header-${category.name}") { CategoryHeader(category) }
-                item(key = "group-${category.name}") { CategoryCard(entries, uiState, viewModel) }
+            item(key = "where", span = { GridItemSpan(maxLineSpan) }) {
+                WhereTheSettingsAre(onOpenHomeSettings)
             }
         }
     }
 }
 
+/**
+ * Where the tweaks went.
+ *
+ * They are part of the launcher's own Home settings now, so this app's job is
+ * to say so once and offer the shortest way there.
+ */
 @Composable
-private fun CategoryHeader(category: CatalogCategory) {
+private fun WhereTheSettingsAre(onOpenHomeSettings: () -> Unit) {
     Column(
-        modifier = Modifier.padding(start = 12.dp, top = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = stringResource(category.titleRes),
-            style = MaterialTheme.typography.titleMediumEmphasized,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            text = stringResource(category.summaryRes),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun CategoryCard(
-    entries: List<CatalogEntry>,
-    uiState: SettingsUiState,
-    viewModel: SettingsViewModel,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
-    ) {
-        Column(modifier = Modifier.padding(vertical = 4.dp)) {
-            for (entry in entries) {
-                SettingEntry(entry, uiState, viewModel)
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(R.string.settings_heading),
+                style = MaterialTheme.typography.headlineMediumEmphasized,
+            )
+            Text(
+                stringResource(R.string.settings_summary),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-    }
-}
 
-@Composable
-private fun SettingEntry(
-    entry: CatalogEntry,
-    uiState: SettingsUiState,
-    viewModel: SettingsViewModel,
-) {
-    when (val setting = entry.setting) {
-        is BoolSetting -> SwitchRow(
-            title = stringResource(entry.titleRes),
-            summary = stringResource(entry.summaryRes),
-            checked = uiState.values[setting.key] as? Boolean ?: setting.default,
-            enabled = uiState.editable,
-            onCheckedChange = { viewModel.set(setting, it) },
-        )
-
-        else -> Unit
+        Button(onClick = onOpenHomeSettings) {
+            Text(stringResource(R.string.action_open_home_settings))
+        }
     }
 }

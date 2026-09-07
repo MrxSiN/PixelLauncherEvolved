@@ -1,5 +1,8 @@
 package my.github.MrxSiN.pixellauncherevolved
 
+import android.app.Application
+import android.content.SharedPreferences
+
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 
@@ -8,44 +11,74 @@ import my.github.MrxSiN.pixellauncherevolved.core.AndroidLogger
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureRegistry
-import my.github.MrxSiN.pixellauncherevolved.settings.DefaultSettings
-import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
-import my.github.MrxSiN.pixellauncherevolved.settings.SharedPreferencesSettings
+import my.github.MrxSiN.pixellauncherevolved.hook.LauncherStartup
+import my.github.MrxSiN.pixellauncherevolved.feature.wallpaper.WallpaperStyleFeature
+import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
+import my.github.MrxSiN.pixellauncherevolved.settings.SettingsMigration
+import my.github.MrxSiN.pixellauncherevolved.settings.SharedPreferencesStore
 
 /**
  * Module entry point.
  *
- * Its only job is to recognise the launcher process, read the stored settings,
- * and hand over to the feature registry. Every decision about what to change in
- * the launcher lives in a feature class.
+ * Its only job is to route each scoped package to its feature installer. Every
+ * decision about what to change in either app lives in a feature class.
  */
 class PixelLauncherEvolvedModule : XposedModule() {
 
     override fun onPackageLoaded(param: PackageLoadedParam) {
-        if (param.packageName != LAUNCHER_PACKAGE || !param.isFirstPackage) return
+        if (!param.isFirstPackage) return
 
         val logger = AndroidLogger
-        logger.info("Loading in ${param.packageName}")
+        when (param.packageName) {
+            LAUNCHER_PACKAGE -> {
+                logger.info("Loading in ${param.packageName}")
+                LauncherStartup(this, param.defaultClassLoader, logger)
+                    .onApplicationCreated { application ->
+                        installLauncher(application, param.defaultClassLoader, logger)
+                    }
+            }
+
+            WALLPAPER_PACKAGE -> {
+                logger.info("Loading in ${param.packageName}")
+                WallpaperStyleFeature(
+                    xposed = this,
+                    classLoader = param.defaultClassLoader,
+                    moduleApplicationInfo = moduleApplicationInfo,
+                    logger = logger,
+                ).install()
+            }
+        }
+    }
+
+    private fun installLauncher(application: Application, classLoader: ClassLoader, logger: Logger) {
+        val preferences = LauncherSettings.preferences(application)
+        SettingsMigration(logger).apply(preferences, frameworkPreferences(logger))
 
         FeatureRegistry.install(
             FeatureContext(
                 xposed = this,
-                classLoader = param.defaultClassLoader,
-                settings = settings(logger),
+                classLoader = classLoader,
+                appContext = application,
+                settings = SharedPreferencesStore(preferences),
                 logger = logger,
             ),
         )
     }
 
-    /** Falls back to defaults so a settings outage disables tweaks, not the launcher. */
-    private fun settings(logger: Logger): SettingsSource = try {
-        SharedPreferencesSettings(getRemotePreferences(FeatureCatalog.SETTINGS_GROUP))
+    /**
+     * The store earlier versions wrote to, read once so those choices survive.
+     *
+     * Null when no framework answers, which only costs the one-time copy.
+     */
+    private fun frameworkPreferences(logger: Logger): SharedPreferences? = try {
+        getRemotePreferences(FeatureCatalog.SETTINGS_GROUP)
     } catch (error: Throwable) {
-        logger.warn("Stored settings are unreachable; using defaults", error)
-        DefaultSettings
+        logger.warn("Earlier settings are unreachable; starting from the defaults", error)
+        null
     }
 
     private companion object {
         const val LAUNCHER_PACKAGE = "com.google.android.apps.nexuslauncher"
+        const val WALLPAPER_PACKAGE = "com.google.android.apps.wallpaper"
     }
 }

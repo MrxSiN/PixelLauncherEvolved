@@ -1,9 +1,15 @@
 package my.github.MrxSiN.pixellauncherevolved.hook
 
-import my.github.MrxSiN.pixellauncherevolved.feature.misc.RestartLauncherFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.TabletModeFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.gesture.DoubleTapToSleepFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarAllAppsButtonFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarOnlyFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarTransitionFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewActionsFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewBubbleFeature
-import my.github.MrxSiN.pixellauncherevolved.feature.overview.TaskMenuClearAllFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewClearAllButtonFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.LauncherSettingsFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.wallpaper.LauncherWallpaperBlurFeature
 
 /**
  * Every tweak the module can install.
@@ -14,10 +20,16 @@ import my.github.MrxSiN.pixellauncherevolved.feature.overview.TaskMenuClearAllFe
 object FeatureRegistry {
 
     val features: List<LauncherFeature> = listOf(
+        LauncherSettingsFeature(),
+        TabletModeFeature(),
+        TaskbarOnlyFeature(),
+        TaskbarTransitionFeature(),
+        TaskbarAllAppsButtonFeature(),
+        DoubleTapToSleepFeature(),
+        LauncherWallpaperBlurFeature(),
         OverviewBubbleFeature(),
         OverviewActionsFeature(),
-        TaskMenuClearAllFeature(),
-        RestartLauncherFeature(),
+        OverviewClearAllButtonFeature(),
     )
 
     /**

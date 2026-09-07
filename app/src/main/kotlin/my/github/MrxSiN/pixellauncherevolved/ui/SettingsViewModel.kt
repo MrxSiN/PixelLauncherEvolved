@@ -11,14 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
-import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
-import my.github.MrxSiN.pixellauncherevolved.catalog.IntSetting
-import my.github.MrxSiN.pixellauncherevolved.catalog.Setting
-import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.settings.ModuleConnection
-import my.github.MrxSiN.pixellauncherevolved.settings.SettingsStore
-import my.github.MrxSiN.pixellauncherevolved.settings.SharedPreferencesStore
 
 /** Whether the framework is present and has accepted this module. */
 sealed interface ModuleStatus {
@@ -27,58 +20,21 @@ sealed interface ModuleStatus {
     data object Inactive : ModuleStatus
 }
 
-data class SettingsUiState(
-    val status: ModuleStatus = ModuleStatus.Checking,
-    val values: Map<String, Any> = emptyMap(),
-) {
-    /** Settings can only be changed when there is a framework to store them in. */
-    val editable: Boolean get() = status is ModuleStatus.Active
-}
-
 /**
- * Holds what the settings screen shows.
+ * Holds what this app has left to say.
  *
- * The screen never sees the framework bridge: it reads values out of the state
- * and reports changes back here, so an inactive framework is one state value
- * rather than a special case spread over the UI.
+ * The tweaks themselves live in the launcher's own Home settings, where they
+ * are stored beside the launcher that reads them. What is left here is the one
+ * question this app can answer and Home settings cannot: whether a framework
+ * picked the module up at all.
  */
 class SettingsViewModel : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SettingsUiState())
-    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
-
-    private var store: SettingsStore? = null
-    private var observation: AutoCloseable? = null
+    private val _status = MutableStateFlow<ModuleStatus>(ModuleStatus.Checking)
+    val status: StateFlow<ModuleStatus> = _status.asStateFlow()
 
     init {
         viewModelScope.launch { connect() }
-    }
-
-    fun set(setting: BoolSetting, value: Boolean) {
-        store?.put(setting, value)
-        refreshValues()
-    }
-
-    fun set(setting: IntSetting, value: Int) {
-        store?.put(setting, value)
-        refreshValues()
-    }
-
-    /**
-     * Asks the launcher to restart itself.
-     *
-     * Nothing here can end another process, so the request travels as a raised
-     * counter on the shared preferences; the module notices it inside the
-     * launcher and exits, and Android brings the home app back.
-     */
-    fun requestLauncherRestart() {
-        val current = store ?: return
-        current.put(Settings.RESTART_REQUEST, current[Settings.RESTART_REQUEST] + 1)
-    }
-
-    override fun onCleared() {
-        observation?.close()
-        super.onCleared()
     }
 
     private suspend fun connect() {
@@ -86,43 +42,11 @@ class SettingsViewModel : ViewModel() {
             ModuleConnection.service.filterNotNull().first()
         }
 
-        if (service == null) {
-            _uiState.value = SettingsUiState(status = ModuleStatus.Inactive)
-            return
+        _status.value = if (service == null) {
+            ModuleStatus.Inactive
+        } else {
+            ModuleStatus.Active(service.frameworkName, service.frameworkVersionCode.toString())
         }
-
-        val opened = runCatching {
-            SharedPreferencesStore(service.getRemotePreferences(FeatureCatalog.SETTINGS_GROUP))
-        }.getOrNull()
-
-        if (opened == null) {
-            _uiState.value = SettingsUiState(status = ModuleStatus.Inactive)
-            return
-        }
-
-        store = opened
-        observation = opened.observe(::refreshValues)
-
-        _uiState.value = SettingsUiState(
-            status = ModuleStatus.Active(
-                service.frameworkName,
-                service.frameworkVersionCode.toString(),
-            ),
-            values = readValues(opened),
-        )
-    }
-
-    private fun refreshValues() {
-        val current = store ?: return
-        _uiState.value = _uiState.value.copy(values = readValues(current))
-    }
-
-    private fun readValues(store: SettingsStore): Map<String, Any> =
-        FeatureCatalog.entries.associate { entry -> entry.setting.key to store.read(entry.setting) }
-
-    private fun SettingsStore.read(setting: Setting<*>): Any = when (setting) {
-        is BoolSetting -> get(setting)
-        is IntSetting -> get(setting)
     }
 
     private companion object {

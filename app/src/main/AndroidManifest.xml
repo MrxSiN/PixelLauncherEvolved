@@ -3,6 +3,7 @@
 
     <queries>
         <package android:name="com.google.android.apps.nexuslauncher" />
+        <package android:name="com.google.android.apps.wallpaper" />
     </queries>
 
     <application
@@ -16,6 +17,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PixelLauncherEvolved">
 
+        <!--
+            No launcher category, so this does not appear in the app drawer.
+            Every setting is in the launcher's own Home settings and the blur
+            switch is in Wallpaper & Style, so an icon here would open a screen
+            with nothing to change. The activity itself stays, exported and
+            addressable by name, for a framework or a person that wants to ask
+            whether the module was accepted.
+        -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -23,9 +32,14 @@
             android:theme="@style/Theme.PixelLauncherEvolved">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Double tap is recognised by the launcher; this root-backed endpoint locks it. -->
+        <provider
+            android:name=".lock.ScreenLockProvider"
+            android:authorities="${applicationId}.screenlock"
+            android:exported="true" />
     </application>
 
 </manifest>

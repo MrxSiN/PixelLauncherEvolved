@@ -7,26 +7,39 @@
     <string name="status_checking_title">Checking</string>
     <string name="status_checking_detail">Looking for an Xposed framework.</string>
     <string name="status_active_title">Module active</string>
-    <string name="status_active_detail">Running on %1$s, build %2$s. Changes apply straight away.</string>
+    <string name="status_active_detail">Running on %1$s, build %2$s.</string>
     <string name="status_inactive_title">Module not active</string>
     <string name="status_inactive_detail">No Xposed framework answered. Install one, enable this module, and reopen this screen.</string>
-    <string name="action_restart_launcher">Restart launcher</string>
 
-    <string name="category_overview_title">Overview</string>
-    <string name="category_overview_summary">The Recents screen and its task cards</string>
-    <string name="category_layout_title">Home and drawer</string>
-    <string name="category_layout_summary">Grid, icons and labels</string>
-    <string name="category_misc_title">Gestures and extras</string>
-    <string name="category_misc_summary">Everything that fits nowhere else</string>
+    <string name="action_restart_launcher">Restart Launcher</string>
+    <string name="action_restart_launcher_summary">Close the launcher and let Android bring it back. Layout changes take effect then.</string>
+    <string name="action_open_home_settings">Open Home settings</string>
 
-    <string name="feature_overview_bubble_title">Bubble button on task cards</string>
-    <string name="feature_overview_bubble_summary">Adds a button to each Recents card that reopens the app as a floating bubble.</string>
-    <string name="feature_overview_hide_screenshot_title">Hide Screenshot</string>
+    <string name="settings_heading">Everything moved to Home settings</string>
+    <string name="settings_summary">Long press an empty part of the home screen, tap Home settings, and scroll to the bottom. Every tweak, and the restart button, sit under Pixel Launcher Evolved.</string>
+    <string name="settings_unavailable">Home settings could not be opened.</string>
+
+    <string name="settings_page_home_screen">Home Screen</string>
+    <string name="settings_page_overview">Overview</string>
+    <string name="settings_page_tablet_layout">Tablet Layout</string>
+
+    <string name="feature_overview_bubble_title">Show Bubble launcher button</string>
+    <string name="feature_overview_bubble_summary">Shows a button on each Recents card that reopens the app as a floating bubble.</string>
+    <string name="feature_overview_hide_screenshot_title">Hide Screenshot button</string>
     <string name="feature_overview_hide_screenshot_summary">Removes the Screenshot button from the Recents action row.</string>
-    <string name="feature_overview_hide_select_title">Hide Select</string>
+    <string name="feature_overview_hide_select_title">Hide Select button</string>
     <string name="feature_overview_hide_select_summary">Removes the Select button from the Recents action row.</string>
-    <string name="feature_overview_hide_clear_all_title">Hide Clear all</string>
-    <string name="feature_overview_hide_clear_all_summary">Removes the Clear all button from the Recents action row.</string>
-    <string name="feature_overview_clear_all_in_menu_title">Clear all in the task menu</string>
-    <string name="feature_overview_clear_all_in_menu_summary">Adds a Clear all entry to the menu behind the app chip on a task card. Pairs with hiding it from the action row.</string>
+    <string name="feature_overview_clear_all_in_actions_title">Show Clear all button</string>
+    <string name="feature_overview_clear_all_in_actions_summary">Shows a Clear all button beside Screenshot and Select. The stock launcher has no such button.</string>
+    <string name="feature_tablet_mode_title">Full tablet layout</string>
+    <string name="feature_tablet_mode_summary">Use the launcher’s full tablet layout on this device. Restart the launcher after changing this setting. Turns off Taskbar only. Other apps keep their normal layout.</string>
+    <string name="feature_taskbar_only_title">Taskbar Only</string>
+    <string name="feature_taskbar_only_summary">Use the tablet taskbar with phone home, app drawer and Recents layouts. The search bar moves above the hotseat icons, as it does on a tablet. Turns off Tablet mode. Restart the launcher after changing this setting.</string>
+    <string name="feature_home_double_tap_to_sleep_title">Double Tap to Sleep</string>
+    <string name="feature_home_double_tap_to_sleep_summary">Turn the screen off by tapping an empty part of the home screen twice. Root access is required.</string>
+    <string name="feature_home_blur_wallpaper_title">Blur Wallpaper</string>
+    <string name="feature_home_blur_wallpaper_on">On</string>
+    <string name="feature_home_blur_wallpaper_off">Off</string>
+    <string name="feature_overview_hide_taskbar_all_apps_title">Hide app drawer button</string>
+    <string name="feature_overview_hide_taskbar_all_apps_summary">Take the app drawer button, and the divider beside it, out of the taskbar while Recents is open. Needs a taskbar, so turn on Full tablet layout or Taskbar only as well.</string>
 </resources>

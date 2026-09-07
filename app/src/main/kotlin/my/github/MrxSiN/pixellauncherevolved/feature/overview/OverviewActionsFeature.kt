@@ -2,7 +2,6 @@ package my.github.MrxSiN.pixellauncherevolved.feature.overview
 
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 
 import java.util.WeakHashMap
 
@@ -23,15 +22,12 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
  * it, not a blanket `VISIBLE`. The launcher hides some of these buttons itself
  * depending on the selected task, and that decision has to survive.
  *
- * Buttons are matched by resource id where they have one, and otherwise by the
- * launcher's own label: this build adds Clear all to the row programmatically
- * without an id, so an id-only rule would miss it. Reading the label out of the
- * launcher's resources keeps the match correct in every language.
+ * Buttons are matched by resource id, which stays stable across translations.
  */
 class OverviewActionsFeature : LauncherFeature {
 
     /** One button, as it can be recognised in the row. */
-    private data class ActionButton(val idName: String?, val labelName: String?)
+    private data class ActionButton(val idName: String)
 
     override val id: String = "overview_actions"
 
@@ -58,34 +54,23 @@ class OverviewActionsFeature : LauncherFeature {
     private fun hiddenButtons(settings: SettingsSource): List<ActionButton> = buildList {
         if (settings[Settings.OVERVIEW_HIDE_SCREENSHOT]) add(SCREENSHOT)
         if (settings[Settings.OVERVIEW_HIDE_SELECT]) add(SELECT)
-        if (settings[Settings.OVERVIEW_HIDE_CLEAR_ALL]) add(CLEAR_ALL)
     }
 
     private fun apply(actionsRow: ViewGroup, hidden: List<ActionButton>) {
         val resources = LauncherResources(actionsRow.context)
 
-        val hiddenIds = hidden.mapNotNull { it.idName }
+        val hiddenIds = hidden.map { it.idName }
             .map(resources::id)
             .filterTo(HashSet()) { it != View.NO_ID && it != 0 }
 
-        val hiddenLabels = hidden.mapNotNull { it.labelName }
-            .mapNotNullTo(HashSet()) { resources.string(it, "").takeIf(String::isNotEmpty) }
-
-        val knownIds = ALL.mapNotNull { it.idName }
+        val knownIds = ALL.map { it.idName }
             .map(resources::id)
             .filterTo(HashSet()) { it != View.NO_ID && it != 0 }
-
-        val knownLabels = ALL.mapNotNull { it.labelName }
-            .mapNotNullTo(HashSet()) { resources.string(it, "").takeIf(String::isNotEmpty) }
 
         walk(actionsRow) { view ->
-            val isKnown = view.id in knownIds || (view is TextView && view.text?.toString() in knownLabels)
-            if (!isKnown) return@walk false
+            if (view.id !in knownIds) return@walk false
 
-            val shouldHide =
-                view.id in hiddenIds || (view is TextView && view.text?.toString() in hiddenLabels)
-
-            if (shouldHide) {
+            if (view.id in hiddenIds) {
                 originalVisibility.putIfAbsent(view, view.visibility)
                 view.visibility = View.GONE
             } else {
@@ -108,12 +93,8 @@ class OverviewActionsFeature : LauncherFeature {
     private companion object {
         const val ACTIONS_VIEW_CLASS = "com.android.quickstep.views.OverviewActionsView"
 
-        val SCREENSHOT = ActionButton(idName = "action_screenshot", labelName = null)
-        val SELECT = ActionButton(idName = "action_select", labelName = null)
-
-        /** This build adds the clear-all button without an id, so its label is the anchor. */
-        val CLEAR_ALL = ActionButton(idName = "clear_all", labelName = "recents_clear_all")
-
-        val ALL = listOf(SCREENSHOT, SELECT, CLEAR_ALL)
+        val SCREENSHOT = ActionButton("action_screenshot")
+        val SELECT = ActionButton("action_select")
+        val ALL = listOf(SCREENSHOT, SELECT)
     }
 }

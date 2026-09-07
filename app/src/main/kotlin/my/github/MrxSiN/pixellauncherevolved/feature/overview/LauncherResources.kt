@@ -29,6 +29,9 @@ class LauncherResources(context: Context) {
 
     fun layout(name: String): Int = identifier(name, "layout")
 
+    fun dimensionPixels(name: String, fallbackPixels: Int): Int =
+        identifier(name, "dimen").let { if (it == 0) fallbackPixels else resources.getDimensionPixelSize(it) }
+
     private fun identifier(name: String, type: String): Int =
         resources.getIdentifier(name, type, packageName)
 }

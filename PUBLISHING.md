@@ -69,13 +69,13 @@ bridge, which R8 could otherwise break silently.
 
 ```bash
 git add .
-git commit -m "Release Pixel Launcher Evolved v1.0.0"
+git commit -m "Release Pixel Launcher Evolved v0.0.1"
 git push origin HEAD
 ```
 
 After the branch run succeeds:
 
 ```bash
-git tag -a v1.0.0 -m "Pixel Launcher Evolved v1.0.0"
-git push origin v1.0.0
+git tag -a v0.0.1 -m "Pixel Launcher Evolved v0.0.1"
+git push origin v0.0.1
 ```

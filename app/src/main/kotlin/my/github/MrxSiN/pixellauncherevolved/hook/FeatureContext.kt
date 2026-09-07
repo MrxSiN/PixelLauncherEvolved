@@ -1,20 +1,26 @@
 package my.github.MrxSiN.pixellauncherevolved.hook
 
+import android.content.Context
+
 import io.github.libxposed.api.XposedInterface
 
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
-import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
+import my.github.MrxSiN.pixellauncherevolved.settings.SettingsStore
 
 /**
  * Everything a feature needs to install itself into the launcher process.
  *
  * Features receive this rather than the module, so nothing below this package
  * depends on the Xposed entry class.
+ *
+ * [settings] is writable because one feature draws the settings section inside
+ * the launcher's own Home settings. Every other feature only reads it.
  */
 class FeatureContext(
     val xposed: XposedInterface,
     val classLoader: ClassLoader,
-    val settings: SettingsSource,
+    val appContext: Context,
+    val settings: SettingsStore,
     val logger: Logger,
 ) {
 
