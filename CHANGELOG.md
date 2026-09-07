@@ -60,6 +60,14 @@ First alpha.
   else two slots right of where it belonged.
 - Double tap empty workspace to send Android's power-key event through `su`.
   Only the module app receives root access.
+- Search bar opens app search: tapping the home screen search bar opens the app
+  drawer with its search box focused, the way earlier Pixel Launcher versions
+  did. The bar is a widget, so the tap belongs to the Google app's own
+  `RemoteViews` and there is no listener to replace; it is claimed a step
+  earlier, at the launcher's widget host. A tap that lands on one of the
+  widget's narrower buttons — the logo, the microphone, Lens — is left alone,
+  and a press that the launcher has already taken as a long one still picks the
+  widget up rather than counting as a tap.
 - Blur Wallpaper, switched from **Wallpaper & Style → Home screen**, directly
   under **Layout**. It raises the floor under the depth the launcher's own state
   handler asks for, so the home screen wallpaper is blurred and pushed back with

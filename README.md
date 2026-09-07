@@ -16,6 +16,7 @@ because the launcher builds its device profiles once at startup.
 | Tweak | What it does |
 |---|---|
 | Double Tap to Sleep | Sends the power-key event through `su` after two taps on empty workspace. Root permission belongs to this module app; the launcher never receives root access. |
+| Search bar opens app search | Tapping the home screen search bar opens the app drawer with its search box focused, as earlier Pixel Launcher versions did, instead of handing the tap to the Google app. The bar's own buttons — the logo, the microphone and Lens — keep their actions, and a long press still picks the widget up. |
 
 **Blur Wallpaper** is the exception to the rule above: its switch is in
 **Wallpaper & Style → Home screen**, directly under **Layout**, because that is

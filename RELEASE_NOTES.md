@@ -25,6 +25,10 @@ First alpha.
   while Recents is open. The icons that remain are re-centred.
 - **Double tap to sleep.** Double tap empty workspace to send the power-key
   event through root. Root is granted to the module app, not Pixel Launcher.
+- **Search bar opens app search.** Tap the home screen search bar to open the
+  app drawer with its search box ready, as earlier Pixel Launcher versions did.
+  The logo, microphone and Lens buttons keep their own actions, and a long press
+  still picks the widget up.
 - **Blur Wallpaper.** Switched from **Wallpaper & Style → Home screen**, under
   **Layout**. The home screen wallpaper is blurred and pushed back using the
   launcher's own blur, at half the strength it already uses behind the app

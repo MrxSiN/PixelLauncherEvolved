@@ -170,6 +170,17 @@ grep -q 'ValueAnimator' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
 # Empty-workspace double taps stay in the launcher; privileged power-key work
 # crosses a caller-checked provider and runs in the module app through root.
 grep -q 'mLongPressState' "$SRC/feature/gesture/DoubleTapToSleepFeature.kt"
+
+# The search bar is a widget, so its tap is claimed at the launcher's host view,
+# and only where the widget has no narrower button of its own.
+grep -q 'com.android.launcher3.qsb.OseWidgetView' "$SRC/feature/search/HomeSearchBarFeature.kt"
+grep -q 'onInterceptTouchEvent' "$SRC/feature/search/HomeSearchBarFeature.kt"
+grep -q 'mHasPerformedLongPress' "$SRC/feature/search/HomeSearchBarFeature.kt"
+# The long press is cleared on the way up, so it is read before proceeding.
+grep -q 'fun read' "$SRC/feature/search/HomeSearchBarFeature.kt"
+grep -q 'requestFocusExplicitly' "$SRC/feature/search/HomeSearchBarFeature.kt"
+grep -q 'HOME_SEARCH_OPENS_DRAWER' "$SRC/catalog/Settings.kt"
+grep -q 'HomeSearchBarFeature' "$SRC/hook/FeatureRegistry.kt"
 grep -q 'Binder.getCallingUid' "$SRC/lock/ScreenLockProvider.kt"
 grep -q 'ProcessBuilder("su"' "$SRC/lock/ScreenLocker.kt"
 grep -q 'KEYCODE_POWER' "$SRC/lock/ScreenLocker.kt"

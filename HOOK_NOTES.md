@@ -1032,3 +1032,108 @@ has finished morphing into the hotseat and is not the row on screen.
 
 Both deferred changes are numbered, so a transition overtaken by another cannot
 apply its change to the newer one; the last transition always decides.
+
+## The home screen search bar (Android 17, verified September 8, 2026)
+
+```
+com.android.launcher3.qsb.OseWidgetView extends
+    com.android.launcher3.widget.LauncherAppWidgetHostView
+
+com.android.launcher3.widget.LauncherAppWidgetHostView extends AppWidgetHostView
+  public boolean onInterceptTouchEvent(MotionEvent)
+  public boolean onTouchEvent(MotionEvent)
+  private final CheckLongPressHelper mLongPressHelper
+
+com.android.launcher3.CheckLongPressHelper
+  public boolean mHasPerformedLongPress
+```
+
+The bar is an app widget, so its taps are the Google app's own `RemoteViews`
+`PendingIntent`s. There is no listener on the launcher side to replace, and
+replacing one inside the widget would be undone the next time its `RemoteViews`
+are applied. The touch is claimed a step earlier instead, at the host view that
+sees it before the widget's children do.
+
+`onInterceptTouchEvent` normally returns `mHasPerformedLongPress`, so the
+children get every touch until a long press fires:
+
+```java
+public boolean onInterceptTouchEvent(MotionEvent ev) {
+    if (ev.getAction() == ACTION_DOWN) { …setTouchCompleteListener(this); }
+    mLongPressHelper.onTouchEvent(ev);
+    return mLongPressHelper.mHasPerformedLongPress;
+}
+```
+
+Returning true for the bar's own area as well hands the whole gesture to the
+host, whose `onTouchEvent` already feeds the same long press helper — so
+picking the widget up and moving it keeps working, and the tap is free to mean
+something else.
+
+### Which taps belong to the bar and which do not
+
+Read off the widget on a Pixel 8 Pro, the clickable descendants are:
+
+| Bounds | What it is |
+|---|---|
+| `[105,2417][1238,2585]` | the search field, the full width of the bar |
+| `[105,2417][264,2585]` | the Google logo |
+| `[788,2417][932,2585]` | first of the right-hand buttons |
+| `[932,2417][1076,2585]` | second |
+| `[1076,2417][1238,2585]` | Lens |
+
+So a tap is the bar's own only when no clickable descendant narrower than the
+bar contains it. Measured: taps at x=180, x=860, x=1000 and x=1150 still reach
+`InternalGoogleAppActivityEntrypoint` and `LensActivity`, and only x=500 opens
+the drawer.
+
+`mHasPerformedLongPress` has to be consulted on the way up as well. Without it a
+long press fires, the launcher offers **Widget settings**, and the finger
+lifting still counts as a tap — measured, the drawer opened over the popup.
+
+### Gotcha: the long press is cleared before you can read it
+
+Reading that flag after the launcher's own `onTouchEvent` always answers false:
+
+```java
+public void cancelLongPress() {
+    mHasPerformedLongPress = false;
+    clearCallbacks();
+}
+```
+
+and `CheckLongPressHelper.onTouchEvent` calls it on both `ACTION_UP` and
+`ACTION_CANCEL`. So the flag is read *before* the hooked method proceeds, along
+with the action and the pointer position, and the decision is made from that
+snapshot afterwards. Reading it after proceed left long press opening the drawer
+exactly as a tap did, which is how the bug was found.
+
+### Opening the drawer's search
+
+```
+com.android.launcher3.statemanager.StatefulContainer
+  StateManager getStateManager()
+com.android.launcher3.statemanager.StateManager
+  public final void goToState(BaseState, boolean, Animator.AnimatorListener)
+com.android.launcher3.LauncherState
+  public static final AllAppsState ALL_APPS
+com.android.launcher3.views.ActivityContext
+  ActivityAllAppsContainerView getAppsView()
+com.android.launcher3.allapps.ActivityAllAppsContainerView
+  public SearchUiManager mSearchUiManager
+com.android.launcher3.allapps.SearchUiManager
+  ExtendedEditText getEditText()
+com.android.launcher3.ExtendedEditText
+  public final boolean requestFocusExplicitly()
+  public final void showKeyboard()
+```
+
+Every step is the launcher's own, including the focus and keyboard calls the
+drawer uses when a search begins any other way. The focus waits for the
+`AnimatorListener` the state change takes, because the search box is not on
+screen until the transition ends; asking for it earlier leaves the drawer open
+with no keyboard.
+
+The widget's context is wrapped, so the launcher behind it is found by
+unwrapping `ContextWrapper` until something implements `StatefulContainer`
+rather than by casting what the view was handed.

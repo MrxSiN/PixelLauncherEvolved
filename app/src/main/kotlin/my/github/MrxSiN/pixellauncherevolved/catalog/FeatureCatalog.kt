@@ -29,6 +29,12 @@ object FeatureCatalog {
             page = CatalogPage.HOME_SCREEN,
         ),
         CatalogEntry(
+            setting = Settings.HOME_SEARCH_OPENS_DRAWER,
+            titleRes = R.string.feature_home_search_opens_drawer_title,
+            summaryRes = R.string.feature_home_search_opens_drawer_summary,
+            page = CatalogPage.HOME_SCREEN,
+        ),
+        CatalogEntry(
             setting = Settings.OVERVIEW_BUBBLE_BUTTON,
             titleRes = R.string.feature_overview_bubble_title,
             summaryRes = R.string.feature_overview_bubble_summary,

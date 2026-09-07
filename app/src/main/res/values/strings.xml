@@ -37,6 +37,8 @@
     <string name="feature_taskbar_only_summary">Use the tablet taskbar with phone home, app drawer and Recents layouts. The search bar moves above the hotseat icons, as it does on a tablet. Turns off Tablet mode. Restart the launcher after changing this setting.</string>
     <string name="feature_home_double_tap_to_sleep_title">Double Tap to Sleep</string>
     <string name="feature_home_double_tap_to_sleep_summary">Turn the screen off by tapping an empty part of the home screen twice. Root access is required.</string>
+    <string name="feature_home_search_opens_drawer_title">Search bar opens app search</string>
+    <string name="feature_home_search_opens_drawer_summary">Tap the home screen search bar to open the app drawer with its search box ready, as earlier Pixel Launcher versions did. The logo, microphone and Lens buttons keep their own actions.</string>
     <string name="feature_home_blur_wallpaper_title">Blur Wallpaper</string>
     <string name="feature_home_blur_wallpaper_on">On</string>
     <string name="feature_home_blur_wallpaper_off">Off</string>

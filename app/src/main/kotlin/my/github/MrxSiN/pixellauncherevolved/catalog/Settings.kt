@@ -16,6 +16,7 @@ object Settings {
     val TASKBAR_ONLY = BoolSetting("taskbar_only", default = false)
     val TABLET_MODE = BoolSetting("tablet_mode", default = false)
     val HOME_DOUBLE_TAP_TO_SLEEP = BoolSetting("home_double_tap_to_sleep", default = false)
+    val HOME_SEARCH_OPENS_DRAWER = BoolSetting("home_search_opens_drawer", default = false)
     val OVERVIEW_HIDE_TASKBAR_ALL_APPS =
         BoolSetting("overview_hide_taskbar_all_apps", default = false)
 
