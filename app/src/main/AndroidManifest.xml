@@ -5,33 +5,21 @@
         <package android:name="com.google.android.apps.nexuslauncher" />
     </queries>
 
+    <!--
+        The module has no screen of its own. Every tweak is in the launcher's
+        own Home settings, beside the launcher that reads it, so an activity
+        here would open on nothing to change. What remains is the part Home
+        settings cannot host: the two providers below, which run in this
+        application because this is the process that holds root.
+    -->
     <application
-        android:name=".PixelLauncherEvolvedApp"
         android:allowBackup="false"
         android:description="@string/module_description"
         android:hasCode="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.PixelLauncherEvolved">
-
-        <!--
-            No launcher category, so this does not appear in the app drawer.
-            Every setting is in the launcher's own Home settings, so an icon here
-            would open a screen with nothing to change. The activity itself stays,
-            exported and addressable by name, for a framework or a person that
-            wants to ask whether the module was accepted.
-        -->
-        <activity
-            android:name=".ui.MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.PixelLauncherEvolved">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
-        </activity>
+        android:supportsRtl="true">
 
         <!--
             Exported so the launcher can ask which Modes are on. It checks the

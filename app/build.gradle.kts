@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.agp.app)
-    alias(libs.plugins.kotlin.compose)
 }
 
 val appVersion = "0.0.2"
@@ -42,18 +41,14 @@ android {
 
     buildTypes {
         release {
-            // Compose is most of the download; without shrinking the APK is five
-            // times larger. The entry class is kept by name in proguard-rules.pro
-            // because the framework resolves it from META-INF/xposed.
+            // The entry class is kept by name in proguard-rules.pro because the
+            // framework resolves it from META-INF/xposed rather than from any
+            // call site.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             releaseSigningConfig?.let { signingConfig = it }
         }
-    }
-
-    buildFeatures {
-        compose = true
     }
 
     compileOptions {
@@ -64,13 +59,6 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-
-            // Material 3 Expressive has no stable release; opting in here rather
-            // than per file keeps the annotation out of every screen.
-            optIn.addAll(
-                "androidx.compose.material3.ExperimentalMaterial3Api",
-                "androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
-            )
         }
     }
 
@@ -112,14 +100,10 @@ dependencies {
     // Hook side: provided by the framework at runtime, never packaged.
     compileOnly(libs.libxposed.api)
 
-    // App side: the bridge that lets the settings screen write module preferences.
-    implementation(libs.libxposed.service)
-
+    // The only runtime dependency left. The settings rows are built from the
+    // launcher's own androidx.preference classes by reflection, and the page
+    // previews are drawn with plain views, so nothing else is packaged.
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.bundles.compose)
-    debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
 }

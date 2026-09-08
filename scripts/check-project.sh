@@ -32,10 +32,6 @@ grep -q "getRemotePreferences" "$SRC/PixelLauncherEvolvedModule.kt"
 grep -q "SettingsMigration" "$SRC/PixelLauncherEvolvedModule.kt"
 grep -q "MARKER" "$SRC/settings/SettingsMigration.kt"
 
-# The framework binder arrives before any screen exists, so it is caught in the app.
-grep -q 'registerListener' "$SRC/settings/ModuleConnection.kt"
-grep -q 'ModuleConnection.register' "$SRC/PixelLauncherEvolvedApp.kt"
-
 # Tweaks reach a running launcher, and a feature that cannot say so is gated.
 grep -q "val isLive" "$SRC/hook/LauncherFeature.kt"
 grep -q "it.isLive || it.isEnabled" "$SRC/hook/FeatureRegistry.kt"
@@ -58,9 +54,16 @@ grep -q "CatalogPage.entries" "$SRC/feature/settings/LauncherSettingsFeature.kt"
 # The restart is the launcher ending its own process, from that same section.
 grep -q "killProcess" "$SRC/feature/settings/LauncherSettingsFeature.kt"
 
-# What is left of the app says whether a framework picked the module up.
-grep -q "ACTION_APPLICATION_PREFERENCES" "$SRC/ui/HomeSettings.kt"
-grep -q "ModuleStatus" "$SRC/ui/SettingsViewModel.kt"
+# The module has no screen of its own: no activity, no application class, and
+# nothing of Compose left in the build. What runs in this app is the two
+# providers, and they need neither.
+[ ! -d "$SRC/ui" ]
+[ ! -e "$SRC/PixelLauncherEvolvedApp.kt" ]
+[ ! -e "$SRC/settings/ModuleConnection.kt" ]
+! grep -q '<activity' "$ROOT/app/src/main/AndroidManifest.xml"
+! grep -q 'android:name=".PixelLauncherEvolvedApp"' "$ROOT/app/src/main/AndroidManifest.xml"
+! grep -qi 'compose' "$ROOT/app/build.gradle.kts"
+! grep -qi 'compose' "$ROOT/gradle/libs.versions.toml"
 
 # Clear all in the action row delegates the destructive operation to one action.
 grep -q 'ClearAllAction' "$SRC/feature/overview/OverviewClearAllButtonFeature.kt"

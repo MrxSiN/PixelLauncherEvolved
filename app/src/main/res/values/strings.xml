@@ -1,23 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+      The module has no screen of its own, so every string here is read by the
+      launcher: app_name and module_description name the module in an Xposed
+      manager, and the rest are the rows this module adds to Home settings.
+    -->
     <string name="app_name">Pixel Launcher Evolved</string>
-    <string name="app_tagline">Tweaks for the Android 17 Pixel Launcher</string>
     <string name="module_description">Xposed module that adds missing controls to the Pixel Launcher on Android 17.</string>
-
-    <string name="status_checking_title">Checking</string>
-    <string name="status_checking_detail">Looking for an Xposed framework.</string>
-    <string name="status_active_title">Module active</string>
-    <string name="status_active_detail">Running on %1$s, build %2$s.</string>
-    <string name="status_inactive_title">Module not active</string>
-    <string name="status_inactive_detail">No Xposed framework answered. Install one, enable this module, and reopen this screen.</string>
 
     <string name="action_restart_launcher">Restart Launcher</string>
     <string name="action_restart_launcher_summary">Close the launcher and let Android bring it back. Layout changes take effect then.</string>
-    <string name="action_open_home_settings">Open Home settings</string>
-
-    <string name="settings_heading">Everything moved to Home settings</string>
-    <string name="settings_summary">Long press an empty part of the home screen, tap Home settings, and scroll to the bottom. Every tweak, and the restart button, sit under Pixel Launcher Evolved.</string>
-    <string name="settings_unavailable">Home settings could not be opened.</string>
 
     <string name="settings_page_home_screen">Home Screen</string>
     <string name="settings_page_overview">Overview</string>

@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+### Removed
+
+- The module's own screen, and with it the activity, the application class, the
+  framework-binder listener that only the screen consumed, and every Compose
+  dependency. Every setting already lived in the launcher's own Home settings,
+  so the screen opened on nothing to change and existed to answer one question:
+  whether a framework had picked the module up. An Xposed manager answers that
+  itself. The debug APK goes from 33 MB to 7 MB, and one runtime dependency is
+  left.
+- The application no longer declares a class of its own. What runs in this
+  process is the two providers — Modes, and the screen lock — and a provider
+  needs neither an `Application` nor an `Activity`.
+
+### Changed
+
+- The application icon is the mark alone, white, centred on the flat brand
+  circle, rather than a small badge under a long diagonal shadow. The badge read
+  as a circle inside the mask's circle at the one size the icon is actually
+  seen, in an Xposed manager's list. The monochrome layer is now the same paths
+  at the same coordinates, so the themed icon is the drawing rather than an
+  approximation of it.
+- The README leads with what the module is and why it has no settings app, and
+  the feature list is grouped the way Home settings groups it. The screenshots
+  are gone: they were captures of a real home screen, and the ones worth showing
+  could not be taken without showing its contents.
+
 ## 0.0.2
 
 Second alpha.
