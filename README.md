@@ -53,6 +53,28 @@ frame.
 </details>
 
 <details>
+<summary><b>🔍 App Drawer</b></summary>
+<br>
+
+The app drawer's search results are not the launcher's own work: it asks the
+platform's search service and the Google app for them and draws what comes
+back, grouped the way they grouped it. Each switch takes one whole group out on
+the way in — heading and rows together — so the launcher lays out a shorter
+list rather than one with a gap in it.
+
+| Tweak | What it does |
+|---|---|
+| **Hide Web Search** | Removes Google's suggestions for what you typed. |
+| **Hide Play Store** | Removes the apps-to-install results. |
+| **Hide Search in Apps** | Removes the row that hands your search to Google, YouTube, Maps and the rest. |
+| **Open Web Search with** | Tapping a Web Search result opens the results in the app you pick here instead of the Google app. The list is every app on the device that opens a website link. What is searched for is the result you tapped, not what you typed — type *weather*, tap *weather tomorrow*, get *weather tomorrow*. |
+
+Your apps, their shortcuts, Settings results and tips are untouched, and every
+switch applies to the next keystroke.
+
+</details>
+
+<details>
 <summary><b>🗂 Overview</b></summary>
 <br>
 

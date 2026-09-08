@@ -1,6 +1,35 @@
 # Changelog
 
-## Unreleased
+## 0.0.3
+
+Third alpha.
+
+### Added
+
+- App drawer search: three switches that each take one group out of the search
+  results — **Hide Web Search**, **Hide Play Store** and **Hide Search in
+  Apps** — on a new **App Drawer** page in Home settings. A group's heading
+  goes with its rows, so nothing is left as a title over nothing, and apps,
+  shortcuts, Settings results and tips are untouched. The results reach the app
+  drawer from two places at once, the platform's search service and the Google
+  app, and both are filtered because the filtering happens where the launcher
+  merges them.
+- **Open Web Search with**, on the same page: which app a tapped Web Search
+  result opens. The list is every app on the device that opens a website link,
+  and what is searched for is the result that was tapped rather than what was
+  typed, which is the difference between typing *weather* and asking for
+  *weather tomorrow*. The results themselves are opened as a link, so the app
+  shows them on the first tap rather than offering to search again. Left alone,
+  or pointed at an app that is later uninstalled, the launcher's own answer
+  stands.
+
+### Changed
+
+- Home settings names the pages **Home Screen**, **App Drawer**, **Overview**
+  and **Tablet Layout (Experimental)**, each with a line saying what it holds,
+  so the section reads as a menu rather than as four words. The lines under the
+  tweaks themselves are shorter: they sit among the launcher's own rows, which
+  say what a setting does and what it needs in one line.
 
 ### Removed
 

@@ -193,6 +193,52 @@ grep -q 'requestFocusExplicitly' "$SRC/feature/search/HomeSearchBarFeature.kt"
 grep -q 'HOME_SEARCH_OPENS_DRAWER' "$SRC/catalog/Settings.kt"
 grep -q 'HomeSearchBarFeature' "$SRC/hook/FeatureRegistry.kt"
 grep -q 'Binder.getCallingUid' "$SRC/lock/ScreenLockProvider.kt"
+
+# App drawer search results are filtered where the launcher merges its two
+# sources, so both the platform's service and the Google app's web suggestions
+# are covered by one hook.
+grep -q 'com.android.launcher3.allapps.ActivityAllAppsContainerView'     "$SRC/feature/search/AppDrawerSearchFeature.kt"
+grep -q '"setSearchResults"' "$SRC/feature/search/AppDrawerSearchFeature.kt"
+grep -q 'AppDrawerSearchFeature' "$SRC/hook/FeatureRegistry.kt"
+grep -q 'APP_DRAWER_SEARCH_HIDE_WEB' "$SRC/catalog/Settings.kt"
+grep -q 'APP_DRAWER_SEARCH_HIDE_PLAY_STORE' "$SRC/catalog/Settings.kt"
+grep -q 'APP_DRAWER_SEARCH_HIDE_SEARCH_IN_APPS' "$SRC/catalog/Settings.kt"
+grep -q 'APP_DRAWER(' "$SRC/catalog/FeatureCatalog.kt"
+
+# Every page row carries a line saying what the page holds.
+grep -q 'val summaryRes: Int' "$SRC/catalog/FeatureCatalog.kt"
+grep -q 'summary = resources.getString(page.summaryRes)' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+
+# A tapped Web Search result can be handed to another app. The launcher builds
+# one action for that tap and no other, so the action is what identifies it, and
+# the words searched for are the result's own title rather than what was typed.
+grep -q 'com.android.launcher3.uioverrides.QuickstepLauncher' "$SRC/feature/search/WebSearchAppFeature.kt"
+grep -q '"startActivitySafely"' "$SRC/feature/search/WebSearchAppFeature.kt"
+grep -q 'com.google.android.PIXEL_SEARCH' "$SRC/feature/search/WebSearchAppFeature.kt"
+grep -q '"title"' "$SRC/feature/search/WebSearchAppFeature.kt"
+grep -q 'WebSearchAppFeature' "$SRC/hook/FeatureRegistry.kt"
+
+# The candidates are what the device offers, not a list of package names, and a
+# chosen app that is gone falls back to the launcher's own answer. A link is
+# opened rather than a query handed over, so one tap reaches the results.
+grep -q 'ACTION_VIEW' "$SRC/feature/search/WebSearchApps.kt"
+grep -q 'CATEGORY_BROWSABLE' "$SRC/feature/search/WebSearchApps.kt"
+# Both halves, or the browsers never appear: a scheme with no address, asked
+# without the narrowing the platform applies to web links.
+grep -q 'Uri.parse("http:")' "$SRC/feature/search/WebSearchApps.kt"
+grep -q 'PackageManager.MATCH_ALL' "$SRC/feature/search/WebSearchApps.kt"
+# The Google app is the first choice already, so it is never also one of the rest.
+grep -q 'com.google.android.googlequicksearchbox' "$SRC/feature/search/WebSearchApps.kt"
+grep -q 'resolveActivity' "$SRC/feature/search/WebSearchApps.kt"
+grep -q 'WebSearchAppDialog' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+
+# The adapter item that carries a target is renamed by the shrinker; its field
+# is found by type instead, and a row without one is never hidden.
+grep -q 'android.app.search.SearchTarget' "$SRC/feature/search/SearchTargets.kt"
+grep -q 'isTarget(it.type)' "$SRC/feature/search/SearchResultItems.kt"
+
+# Deciding which results to hide has no Android in it, so it can be tested.
+! grep -qE '^import android' "$SRC/feature/search/SearchResultKind.kt"
 grep -q 'ProcessBuilder("su"' "$SRC/lock/ScreenLocker.kt"
 grep -q 'KEYCODE_POWER' "$SRC/lock/ScreenLocker.kt"
 
@@ -256,8 +302,8 @@ grep -q 'my.github.MrxSiN.pixellauncherevolved.focus' "$SRC/focus/FocusContract.
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.0.2"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 2' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.0.3"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 3' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"

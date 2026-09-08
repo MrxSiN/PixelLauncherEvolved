@@ -188,6 +188,151 @@ therefore matched by resource id where they have one and by the launcher's own
 `string/recents_clear_all` where they do not, which keeps the match correct in
 every language.
 
+## The app drawer's search results (Android 17, verified September 8, 2026)
+
+The results are assembled from two sources and merged before anything is drawn,
+so filtering them at either source misses the other:
+
+- **The platform's search service.** `com.google.android.apps.nexuslauncher.allapps.n4`
+  builds an `android.app.search.SearchContext` with a corpus bitmask and calls
+  `SearchSession.query(Query, Executor, Consumer<List<SearchTarget>>)`, which
+  streams several batches per keystroke. This carries apps, shortcuts, Settings
+  slices, tips, the Play Store group and the Search in Apps group.
+- **The Google app.** Web suggestions come over its own binder channel, from
+  `com.google.android.apps.search.googleapp.search.suggest.plugins.onesearch.server.OneSearchSuggestService`,
+  and the launcher turns those into `SearchTarget`s itself. They never pass
+  through `SearchSession.query`.
+
+Both converge on one call, which is what the module hooks:
+
+```
+com.android.launcher3.allapps.ActivityAllAppsContainerView
+  public void setSearchResults(java.util.ArrayList<BaseAllAppsAdapter.AdapterItem>)
+```
+
+It is reached from `com.google.android.apps.nexuslauncher.allapps.UniversalSearchInputView`,
+which implements `com.android.launcher3.search.SearchCallback`; the two-argument
+`onSearchResult` delegates to the three-argument one, whose `int` is a reason
+code rather than a count, so the list may be shortened freely.
+
+The items are `AdapterItem` subclasses. The one carrying a search target is
+renamed by the shrinker, but its field is the only one on that class whose type
+is `android.app.search.SearchTarget`, so the module finds it by type and caches
+the answer per item class. An item with no such field — the launcher's own rows
+— is never a candidate for hiding.
+
+### Which result is which
+
+Read off a device with `adb shell setprop log.tag.SearchTargetUtil VERBOSE`,
+which turns on the launcher's own `SearchTargetUtil` dump of every batch:
+
+| Group | Heading | Rows |
+|---|---|---|
+| Web Search | `resultType=131072`, `text_header_row` | `resultType=131072` |
+| Play Store | `resultType=8388608`, `text_header_row`, `com.android.vending` | `resultType=256` |
+| Search in Apps | `resultType=262144`, `text_header_row`, no package | `resultType=512` |
+
+`resultType` is a bit set. `1 << 17` is a web suggestion, `1 << 8` a Play Store
+listing, `1 << 9` an offer to run the query inside one app, `1 << 18` a result
+that fulfils nothing itself, and `1 << 23` the heading above one app's group.
+Apps are `1`, shortcuts `2`, Settings slices `16`, tips `8192`.
+
+Two of those need more than the bit:
+
+- **Play Store's heading** carries `1 << 23`, the same as the YouTube and
+  Settings headings, so the package is what separates it. The **Search on Play
+  Store** row in Search in Apps also carries that package, but is `1 << 9` and
+  not a heading, so hiding one group never empties the other.
+- **Search in Apps' heading** carries `1 << 18` — but so does every blank
+  separator, `empty_divider`. Only `text_header_row` is the heading.
+
+Separators are left alone. The launcher already emits consecutive ones, so one
+left behind by a removed group reads as spacing rather than as a stray line.
+
+### Opening a Web Search result somewhere else
+
+The launcher answers a tapped web suggestion with an intent it builds nowhere
+else:
+
+```
+com.google.android.apps.nexuslauncher.allapps.c
+  public final void a(byte[], String, String, android.view.View, boolean)
+      new Intent("com.google.android.PIXEL_SEARCH")
+          .setPackage("com.google.android.googlequicksearchbox")
+          .putExtra("onesearch_request_type", …)
+          .putExtra("onesearch_request", byte[])
+```
+
+so that action is what identifies the tap. It reaches the system through
+
+```
+com.android.launcher3.uioverrides.QuickstepLauncher
+  public RunnableList startActivitySafely(View, Intent, ItemInfo)
+```
+
+which is where the module swaps the intent. Three declarations of that method
+exist — `ActivityContext`, `Launcher`, `QuickstepLauncher` — and the launcher
+activity is a `QuickstepLauncher`, so the most derived one is the one to hook.
+
+The call is also the only place the query is still readable. `onesearch_request`
+is a protobuf meant for the Google app, but `ItemInfo.title` on the same call is
+the suggestion's own words, which is what a person tapped: typing *weather* and
+tapping *weather tomorrow* has to search for the second.
+
+Pressing enter in the search box takes the same path, with the title of the
+suggestion the launcher would have opened, so it follows the choice too.
+
+`SearchActionItemInfo.onItemClicked` is **not** this path. It is unobfuscated and
+looks like the click handler, but a web suggestion's row carries an `ItemInfo`
+tag already, which skips the factory that method belongs to; hooking it catches
+no web result.
+
+The replacement is a **link**, `ACTION_VIEW` on
+`https://www.google.com/search?q=…`, not `ACTION_WEB_SEARCH` with
+`SearchManager.QUERY`. An app handed a query may do what it likes with it:
+Chrome answers `ACTION_WEB_SEARCH` by opening its own search box with the words
+filled in, so a tap that should have reached the results asks to be tapped
+again. A link is opened once by every app that takes links.
+
+### Gotcha: enumerating browsers needs both halves
+
+```
+Intent(ACTION_VIEW, Uri.parse("http:")).addCategory(CATEGORY_BROWSABLE)
+packageManager.queryIntentActivities(probe, PackageManager.MATCH_ALL)
+```
+
+Neither half is optional, and the launcher's `QUERY_ALL_PACKAGES` does not
+substitute for either:
+
+| Asked as | Answer on the verification device |
+|---|---|
+| `https://www.google.com/search?q=…`, flags `0` | LinkSheet only |
+| `http:`, flags `0` | LinkSheet only |
+| `http:`, `MATCH_ALL` | AdGuard, Chrome, LinkSheet, MiChat |
+
+A real address resolves to whoever verified that address rather than to the
+browsers, which is Android 12's web-link behaviour; and the ordinary answer is
+narrowed to the app already holding the browser role. `MATCH_ALL` is documented
+as "if the platform is doing any filtering of the results, the filtering will
+not happen", which is exactly the narrowing to undo.
+
+The Google app is filtered out of the list because it is already the first
+choice — the one that means leaving the launcher alone.
+
+What is stored is a package name, not a component: which screen of an app opens
+a link is the app's business and moves between versions, so it is resolved
+again on every tap. That resolution is also the check that the app is still
+there; an app uninstalled after it was chosen leaves the launcher's own answer
+working.
+
+### Gotcha: the launcher has its own Web search switch
+
+Home settings → **Search settings** has one, stored as `pref_allowWebResult` in
+`com.android.launcher3.prefs`, which clears `1 << 17` from the corpus mask at
+session creation. It is not what this module uses: it needs a launcher restart
+to take effect, it is one of three groups rather than all three, and driving it
+would make the same choice readable in two places that could disagree.
+
 ## Where the settings live
 
 They live in the launcher's own data directory, in

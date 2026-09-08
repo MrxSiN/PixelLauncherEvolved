@@ -15,6 +15,17 @@ object Settings {
     val HOME_SEARCH_OPENS_DRAWER = BoolSetting("home_search_opens_drawer", default = false)
 
     /**
+     * Parts of the app drawer's search results a person can switch off. Each
+     * one names a group the platform's search service returns; hiding a group
+     * hides its heading with it.
+     */
+    val APP_DRAWER_SEARCH_HIDE_WEB = BoolSetting("app_drawer_search_hide_web", default = false)
+    val APP_DRAWER_SEARCH_HIDE_PLAY_STORE =
+        BoolSetting("app_drawer_search_hide_play_store", default = false)
+    val APP_DRAWER_SEARCH_HIDE_SEARCH_IN_APPS =
+        BoolSetting("app_drawer_search_hide_search_in_apps", default = false)
+
+    /**
      * Which pages each Mode shows is not here, because it is neither a switch
      * nor one key. It lives in
      * [my.github.MrxSiN.pixellauncherevolved.focus.FocusStore], in the same

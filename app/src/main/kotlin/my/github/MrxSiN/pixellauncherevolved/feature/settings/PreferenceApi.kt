@@ -80,12 +80,17 @@ class PreferenceApi(classLoader: ClassLoader) {
         categoryConstructor!!.newInstance(context, null).also { setTitle!!.invoke(it, title) }
 
     /** A row that opens a nested page within the launcher's settings activity. */
-    fun createScreen(context: Context, key: String, title: CharSequence): Any =
-        screenConstructor!!.newInstance(context, null).also { row ->
-            setKey!!.invoke(row, key)
-            setTitle!!.invoke(row, title)
-            persistentField!!.setBoolean(row, false)
-        }
+    fun createScreen(
+        context: Context,
+        key: String,
+        title: CharSequence,
+        summary: CharSequence,
+    ): Any = screenConstructor!!.newInstance(context, null).also { row ->
+        setKey!!.invoke(row, key)
+        setTitle!!.invoke(row, title)
+        setSummary!!.invoke(row, summary)
+        persistentField!!.setBoolean(row, false)
+    }
 
     /** Builds and then installs one of this module's own pages atomically. */
     fun showRootScreen(fragment: Any, populate: (Any) -> Unit) {
@@ -141,6 +146,11 @@ class PreferenceApi(classLoader: ClassLoader) {
     /** Moves a switch that something else turned off. Its listener is not called. */
     fun setChecked(row: Any, checked: Boolean) {
         setChecked!!.invoke(row, checked)
+    }
+
+    /** Rewrites a row's line, for one that reports a choice made in a dialog. */
+    fun setSummary(row: Any, summary: CharSequence) {
+        setSummary!!.invoke(row, summary)
     }
 
     fun add(group: Any, preference: Any) {

@@ -41,6 +41,24 @@ object FeatureCatalog {
             page = CatalogPage.HOME_SCREEN,
         ),
         CatalogEntry(
+            setting = Settings.APP_DRAWER_SEARCH_HIDE_WEB,
+            titleRes = R.string.feature_app_drawer_search_hide_web_title,
+            summaryRes = R.string.feature_app_drawer_search_hide_web_summary,
+            page = CatalogPage.APP_DRAWER,
+        ),
+        CatalogEntry(
+            setting = Settings.APP_DRAWER_SEARCH_HIDE_PLAY_STORE,
+            titleRes = R.string.feature_app_drawer_search_hide_play_store_title,
+            summaryRes = R.string.feature_app_drawer_search_hide_play_store_summary,
+            page = CatalogPage.APP_DRAWER,
+        ),
+        CatalogEntry(
+            setting = Settings.APP_DRAWER_SEARCH_HIDE_SEARCH_IN_APPS,
+            titleRes = R.string.feature_app_drawer_search_hide_search_in_apps_title,
+            summaryRes = R.string.feature_app_drawer_search_hide_search_in_apps_summary,
+            page = CatalogPage.APP_DRAWER,
+        ),
+        CatalogEntry(
             setting = Settings.OVERVIEW_BUBBLE_BUTTON,
             titleRes = R.string.feature_overview_bubble_title,
             summaryRes = R.string.feature_overview_bubble_summary,
@@ -95,11 +113,35 @@ data class CatalogEntry(
     val page: CatalogPage,
 )
 
+/**
+ * One page of the section, and the line under its title.
+ *
+ * The summary says what the page holds, so the four rows read as a menu rather
+ * than as four words.
+ */
 enum class CatalogPage(
     val key: String,
     @param:StringRes val titleRes: Int,
+    @param:StringRes val summaryRes: Int,
 ) {
-    HOME_SCREEN("home_screen", R.string.settings_page_home_screen),
-    OVERVIEW("overview", R.string.settings_page_overview),
-    TABLET_LAYOUT("tablet_layout", R.string.settings_page_tablet_layout),
+    HOME_SCREEN(
+        "home_screen",
+        R.string.settings_page_home_screen,
+        R.string.settings_page_home_screen_summary,
+    ),
+    APP_DRAWER(
+        "app_drawer",
+        R.string.settings_page_app_drawer,
+        R.string.settings_page_app_drawer_summary,
+    ),
+    OVERVIEW(
+        "overview",
+        R.string.settings_page_overview,
+        R.string.settings_page_overview_summary,
+    ),
+    TABLET_LAYOUT(
+        "tablet_layout",
+        R.string.settings_page_tablet_layout,
+        R.string.settings_page_tablet_layout_summary,
+    ),
 }

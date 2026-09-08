@@ -14,6 +14,10 @@ import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagesDialog
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.LauncherPagePreviewSource
+import my.github.MrxSiN.pixellauncherevolved.feature.search.SharedPreferencesWebSearchAppStore
+import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppDialog
+import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppStore
+import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchApps
 import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.SharedPreferencesFocusStore
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
@@ -125,7 +129,7 @@ class LauncherSettingsFeature : LauncherFeature {
 }
 
 /**
- * The section itself: three focused pages, then the restart button.
+ * The section itself: four focused pages, then the restart button.
  *
  * The tweaks come from [FeatureCatalog], so adding one to this module adds it
  * here too, and nothing in this class knows what any of them do.
@@ -154,6 +158,7 @@ private class SettingsSection(
                 context = context,
                 key = PAGE_KEY_PREFIX + page.key,
                 title = resources.getString(page.titleRes),
+                summary = resources.getString(page.summaryRes),
             )
             api.add(section, pageScreen)
             populate(pageScreen, page)
@@ -198,7 +203,11 @@ private class SettingsSection(
             api.add(screen, row)
         }
 
-        if (page == CatalogPage.HOME_SCREEN) addFocusPages(screen, context)
+        when (page) {
+            CatalogPage.HOME_SCREEN -> addFocusPages(screen, context)
+            CatalogPage.APP_DRAWER -> addWebSearchApp(screen, context)
+            else -> Unit
+        }
     }
 
     /**
@@ -232,6 +241,47 @@ private class SettingsSection(
                 },
             ),
         )
+    }
+
+    /**
+     * The row that says which app opens a tapped Web Search result.
+     *
+     * Not a switch, so it is not in the catalogue: the catalogue is one key per
+     * on/off setting, and this is one app out of what the device offers. It is
+     * left out entirely while Web Search is hidden, because there is then no
+     * result to open.
+     */
+    private fun addWebSearchApp(screen: Any, context: Context) {
+        if (settings[Settings.APP_DRAWER_SEARCH_HIDE_WEB]) return
+
+        val store = SharedPreferencesWebSearchAppStore(LauncherSettings.preferences(context))
+        val apps = WebSearchApps(context.packageManager)
+        lateinit var row: Any
+
+        row = api.createAction(
+            context = context,
+            key = KEY_PREFIX + "web_search_app",
+            title = resources.getString(R.string.feature_app_drawer_search_web_app_title),
+            summary = webSearchAppSummary(store, apps),
+            onClick = {
+                WebSearchAppDialog.show(context, resources, store, apps) {
+                    api.setSummary(row, webSearchAppSummary(store, apps))
+                }
+            },
+        )
+
+        api.add(screen, row)
+    }
+
+    /**
+     * An app that is gone reads as the launcher's own answer, which is what the
+     * tap then does.
+     */
+    private fun webSearchAppSummary(store: WebSearchAppStore, apps: WebSearchApps): String {
+        val label = store.chosen()?.let(apps::labelOf)
+            ?: return resources.getString(R.string.feature_app_drawer_search_web_app_default)
+
+        return resources.getString(R.string.feature_app_drawer_search_web_app_chosen, label)
     }
 
     /**

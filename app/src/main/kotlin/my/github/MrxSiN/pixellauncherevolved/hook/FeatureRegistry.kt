@@ -10,7 +10,9 @@ import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarTransitionFea
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewActionsFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewBubbleFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewClearAllButtonFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.search.AppDrawerSearchFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.search.HomeSearchBarFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.LauncherSettingsFeature
 
 /**
@@ -30,6 +32,8 @@ object FeatureRegistry {
         TaskbarAllAppsButtonFeature(),
         DoubleTapToSleepFeature(),
         HomeSearchBarFeature(),
+        AppDrawerSearchFeature(),
+        WebSearchAppFeature(),
         FocusHomeFeature(),
         OverviewBubbleFeature(),
         OverviewActionsFeature(),

@@ -4,34 +4,47 @@
       The module has no screen of its own, so every string here is read by the
       launcher: app_name and module_description name the module in an Xposed
       manager, and the rest are the rows this module adds to Home settings.
+
+      A row is a title and one line under it. The line says what the tweak does
+      and what it needs, in as few words as that takes: these sit among the
+      launcher's own rows, which are written the same way.
     -->
     <string name="app_name">Pixel Launcher Evolved</string>
     <string name="module_description">Xposed module that adds missing controls to the Pixel Launcher on Android 17.</string>
 
     <string name="action_restart_launcher">Restart Launcher</string>
-    <string name="action_restart_launcher_summary">Close the launcher and let Android bring it back. Layout changes take effect then.</string>
+    <string name="action_restart_launcher_summary">Close the launcher and let Android bring it back.</string>
 
     <string name="settings_page_home_screen">Home Screen</string>
+    <string name="settings_page_home_screen_summary">Focus pages, double tap to sleep, search bar.</string>
+    <string name="settings_page_app_drawer">App Drawer</string>
+    <string name="settings_page_app_drawer_summary">What the app drawer’s search shows, and what opens it.</string>
     <string name="settings_page_overview">Overview</string>
-    <string name="settings_page_tablet_layout">Tablet Layout</string>
+    <string name="settings_page_overview_summary">The buttons on and under each Recents card.</string>
+    <string name="settings_page_tablet_layout">Tablet Layout (Experimental)</string>
+    <string name="settings_page_tablet_layout_summary">Tablet grid and taskbar. Needs a restart.</string>
 
     <string name="feature_overview_bubble_title">Show Bubble launcher button</string>
-    <string name="feature_overview_bubble_summary">Shows a button on each Recents card that reopens the app as a floating bubble.</string>
+    <string name="feature_overview_bubble_summary">Reopen a Recents card’s app as a floating bubble.</string>
     <string name="feature_overview_hide_screenshot_title">Hide Screenshot button</string>
-    <string name="feature_overview_hide_screenshot_summary">Removes the Screenshot button from the Recents action row.</string>
+    <string name="feature_overview_hide_screenshot_summary">Remove Screenshot from the Recents action row.</string>
     <string name="feature_overview_hide_select_title">Hide Select button</string>
-    <string name="feature_overview_hide_select_summary">Removes the Select button from the Recents action row.</string>
+    <string name="feature_overview_hide_select_summary">Remove Select from the Recents action row.</string>
     <string name="feature_overview_clear_all_in_actions_title">Show Clear all button</string>
-    <string name="feature_overview_clear_all_in_actions_summary">Shows a Clear all button beside Screenshot and Select. The stock launcher has no such button.</string>
+    <string name="feature_overview_clear_all_in_actions_summary">Add Clear all beside Screenshot and Select.</string>
     <string name="feature_tablet_mode_title">Full tablet layout</string>
-    <string name="feature_tablet_mode_summary">Use the launcher’s full tablet layout on this device. Restart the launcher after changing this setting. Turns off Taskbar only. Other apps keep their normal layout.</string>
+    <string name="feature_tablet_mode_summary">Tablet grid and taskbar. Migrates the workspace. Turns off Taskbar only.</string>
     <string name="feature_taskbar_only_title">Taskbar Only</string>
-    <string name="feature_taskbar_only_summary">Use the tablet taskbar with phone home, app drawer and Recents layouts. The search bar moves above the hotseat icons, as it does on a tablet. Turns off Tablet mode. Restart the launcher after changing this setting.</string>
+    <string name="feature_taskbar_only_summary">The tablet taskbar, phone grid. Turns off Full tablet layout.</string>
+    <string name="feature_overview_hide_taskbar_all_apps_title">Hide app drawer button</string>
+    <string name="feature_overview_hide_taskbar_all_apps_summary">Take it out of the taskbar while Recents is open. Needs a taskbar.</string>
+
     <string name="feature_home_double_tap_to_sleep_title">Double Tap to Sleep</string>
-    <string name="feature_home_double_tap_to_sleep_summary">Turn the screen off by tapping an empty part of the home screen twice. Root access is required.</string>
+    <string name="feature_home_double_tap_to_sleep_summary">Two taps on an empty spot turn the screen off. Needs root.</string>
     <string name="feature_home_search_opens_drawer_title">Search bar opens app search</string>
+    <string name="feature_home_search_opens_drawer_summary">The home search bar opens the app drawer’s search instead of the Google app.</string>
     <string name="feature_focus_home_screens_title">Focus home screens</string>
-    <string name="feature_focus_home_screens_summary">Give a home screen page to a Mode. While that Mode is on, only its pages show; the rest come back when it ends. Use Focus pages below to choose which pages each Mode shows. Needs root, because Android does not let an app read Modes it does not own.</string>
+    <string name="feature_focus_home_screens_summary">Show only a Mode’s own pages while that Mode is on. Needs root.</string>
     <string name="feature_focus_pages_title">Focus pages</string>
     <string name="feature_focus_pages_summary">Choose which pages each Mode shows.</string>
     <string name="feature_focus_choose_mode_summary">Choose a Mode, then select the home screens it can use.</string>
@@ -43,7 +56,16 @@
     <string name="feature_focus_no_pages">The home screen pages are not known yet. Open the home screen once, then try again.</string>
     <string name="feature_focus_needs_access">Your Modes could not be read. This needs root access, because Android only lets an app see the Modes it created itself. Grant Pixel Launcher Evolved root, then try again.</string>
     <string name="feature_focus_no_modes">This device has no Modes to assign a page to.</string>
-    <string name="feature_home_search_opens_drawer_summary">Tap the home screen search bar to open the app drawer with its search box ready, as earlier Pixel Launcher versions did. The logo, microphone and Lens buttons keep their own actions.</string>
-    <string name="feature_overview_hide_taskbar_all_apps_title">Hide app drawer button</string>
-    <string name="feature_overview_hide_taskbar_all_apps_summary">Take the app drawer button, and the divider beside it, out of the taskbar while Recents is open. Needs a taskbar, so turn on Full tablet layout or Taskbar only as well.</string>
+
+    <string name="feature_app_drawer_search_hide_web_title">Hide Web Search</string>
+    <string name="feature_app_drawer_search_hide_web_summary">Hide Google’s suggestions for what you typed.</string>
+    <string name="feature_app_drawer_search_hide_play_store_title">Hide Play Store</string>
+    <string name="feature_app_drawer_search_hide_play_store_summary">Hide the apps-to-install results.</string>
+    <string name="feature_app_drawer_search_hide_search_in_apps_title">Hide Search in Apps</string>
+    <string name="feature_app_drawer_search_hide_search_in_apps_summary">Hide the row that hands your search to other apps.</string>
+    <string name="feature_app_drawer_search_web_app_title">Open Web Search with</string>
+    <string name="feature_app_drawer_search_web_app_default">Google app. Tap to choose another.</string>
+    <string name="feature_app_drawer_search_web_app_chosen">%1$s. Tap to choose another.</string>
+    <string name="feature_app_drawer_search_web_app_default_label">Google app (default)</string>
+    <string name="feature_app_drawer_search_web_app_none">No app on this device opens website links.</string>
 </resources>
