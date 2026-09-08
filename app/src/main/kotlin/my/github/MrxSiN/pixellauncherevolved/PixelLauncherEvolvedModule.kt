@@ -12,7 +12,6 @@ import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureRegistry
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherStartup
-import my.github.MrxSiN.pixellauncherevolved.feature.wallpaper.WallpaperStyleFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsMigration
 import my.github.MrxSiN.pixellauncherevolved.settings.SharedPreferencesStore
@@ -20,8 +19,8 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SharedPreferencesStore
 /**
  * Module entry point.
  *
- * Its only job is to route each scoped package to its feature installer. Every
- * decision about what to change in either app lives in a feature class.
+ * Its only job is to route the scoped package to its feature installer. Every
+ * decision about what to change in the launcher lives in a feature class.
  */
 class PixelLauncherEvolvedModule : XposedModule() {
 
@@ -36,16 +35,6 @@ class PixelLauncherEvolvedModule : XposedModule() {
                     .onApplicationCreated { application ->
                         installLauncher(application, param.defaultClassLoader, logger)
                     }
-            }
-
-            WALLPAPER_PACKAGE -> {
-                logger.info("Loading in ${param.packageName}")
-                WallpaperStyleFeature(
-                    xposed = this,
-                    classLoader = param.defaultClassLoader,
-                    moduleApplicationInfo = moduleApplicationInfo,
-                    logger = logger,
-                ).install()
             }
         }
     }
@@ -79,6 +68,5 @@ class PixelLauncherEvolvedModule : XposedModule() {
 
     private companion object {
         const val LAUNCHER_PACKAGE = "com.google.android.apps.nexuslauncher"
-        const val WALLPAPER_PACKAGE = "com.google.android.apps.wallpaper"
     }
 }

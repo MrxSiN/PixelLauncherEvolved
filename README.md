@@ -9,6 +9,19 @@ Overview tweaks apply to the running launcher. The layout tweaks are off by
 default and require **Restart Launcher** after enabling or disabling them,
 because the launcher builds its device profiles once at startup.
 
+## Screenshots
+
+| | |
+|---|---|
+| <img src="docs/screenshots/home-settings.png" width="260" alt="The module's Home Screen tweaks inside the launcher's own Home settings"> | <img src="docs/screenshots/tablet-layout.png" width="260" alt="The Tablet Layout page, with Full tablet layout, Taskbar Only and Hide app drawer button"> |
+| **Home Screen**, inside the launcher's own settings. Double Tap to Sleep, Search bar opens app search, Focus home screens, and the Focus pages chooser. | **Tablet Layout.** Full tablet layout and Taskbar Only are alternatives; Hide app drawer button needs one of them. |
+| <img src="docs/screenshots/focus-pages.png" width="260" alt="The Focus pages chooser listing the device's Modes, each showing how many pages it has been given"> | <img src="docs/screenshots/overview-actions.png" width="260" alt="Recents with the Bubble button on the task card and Clear all in the action row"> |
+| **Focus pages**, step one. Every Mode on the device, with what it has been given so far. Picking one opens live previews of the home screens to choose from. | **Overview.** The Bubble button sits at the bottom-right of each card, and **Clear all** joins Screenshot and Select in the action row. |
+| <img src="docs/screenshots/taskbar-only.png" width="260" alt="Recents with the taskbar shown and its app drawer button hidden"> | |
+| **Taskbar Only**, with **Hide app drawer button** on. The taskbar keeps phone layouts everywhere else, and its app drawer button and divider are gone while Recents is open. | |
+
+Captured on a Pixel 8 Pro running Android 17.
+
 ## Features
 
 ### Home Screen
@@ -16,16 +29,40 @@ because the launcher builds its device profiles once at startup.
 | Tweak | What it does |
 |---|---|
 | Double Tap to Sleep | Sends the power-key event through `su` after two taps on empty workspace. Root permission belongs to this module app; the launcher never receives root access. |
+| Focus home screens | Gives a home screen page to one of the device's Modes — Bedtime, Driving, Sleeping, whatever you have. While that Mode is on, only its pages show; when it ends, the ordinary pages come back and its own go away. Use **Focus pages** under Home settings to assign it. |
 | Search bar opens app search | Tapping the home screen search bar opens the app drawer with its search box focused, as earlier Pixel Launcher versions did, instead of handing the tap to the Google app. The bar's own buttons — the logo, the microphone and Lens — keep their actions, and a long press still picks the widget up. |
 
-**Blur Wallpaper** is the exception to the rule above: its switch is in
-**Wallpaper & Style → Home screen**, directly under **Layout**, because that is
-where a person already goes to change how the wallpaper looks. It raises the
-floor under the depth the launcher's own state handler asks for, so the
-wallpaper is blurred and pushed back on the home screen with the launcher's own
-blur, at half the strength it uses behind the app drawer. Opening the app drawer
-or Recents still deepens it the usual amount rather than stacking a second blur.
-Turning it on or off applies to the running launcher.
+**Focus home screens** filters the model the launcher builds its workspace from.
+The database is never written, so a hidden page is hidden the way a page scrolled
+off the side is hidden — turning the Mode off brings it back exactly as it was.
+
+What is filtered is the items, not a list of screens, because the launcher keeps
+no such list: `collectWorkspaceScreens` walks the items, takes the ones sitting
+on the workspace and collects the screens they name. A page with no items left is
+a page never asked for. The launcher is handed a second model around a second
+map rather than its own — the model's `copy()` hands back the very same map, and
+it is shared with the loader and with the code that writes.
+
+Three things follow from that:
+
+- The launcher prunes screens it finds empty and saves the result. While a Mode
+  is on, the screens it was not shown are absent rather than empty, so that
+  pruning is held off. If the pruning cannot be found at all, the feature
+  refuses to install rather than risk deleting a page it hid.
+- Reading Modes needs root. Android only reports the Modes an app created
+  itself: `getAutomaticZenRules` returns nothing for the Modes a person actually
+  has, which belong to the system, to Wellbeing, to GMS and to Settings
+  Intelligence. So this module's own app reads them out of the notification
+  service's own dump and answers the launcher through a content provider that
+  serves no other caller.
+- The launcher creates its first screen before it is told what to show. The
+  feature skips that screen when the active Mode does not own it, avoiding an
+  empty page at the front.
+
+Modes are looked at when the launcher comes back to the front, and whenever Do
+Not Disturb changes. Nothing polls on a timer. A Mode that changes while the home
+screen is already showing applies on the next return to it, unless it moved Do
+Not Disturb, which most do — Driving and Transit are the ones that do not.
 
 ### Overview
 
@@ -73,8 +110,8 @@ needs a clean slate. The launcher ends its own process, and Android brings the
 home app straight back.
 
 The module's own app is not in the app drawer. Every setting is in the
-launcher's own Home settings and the blur switch is in Wallpaper & Style, so an
-icon there would open a screen with nothing to change. The app itself stays —
+launcher's own Home settings, so an icon there would open a screen with nothing
+to change. The app itself stays —
 it is what holds root, and its screen still answers the one question Home
 settings cannot, whether a framework accepted the module — and an Xposed
 manager can still open it by name.
@@ -86,7 +123,7 @@ manager can still open it by name.
 | Android | 17 (API 37) |
 | Launcher | Pixel Launcher (`com.google.android.apps.nexuslauncher`) |
 | Framework | [Vector](https://github.com/JingMatrix/Vector) v2.2 or newer, or any framework implementing libxposed API 101+ |
-| Root | Required only for Double tap to sleep |
+| Root | Required for Double tap to sleep and Focus home screens |
 
 Built against the modern [libxposed API](https://github.com/libxposed/api)
 (`io.github.libxposed:api`), not the legacy `de.robv.android.xposed` bridge.

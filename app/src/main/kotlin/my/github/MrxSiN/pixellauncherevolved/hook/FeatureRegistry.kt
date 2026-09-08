@@ -1,8 +1,10 @@
 package my.github.MrxSiN.pixellauncherevolved.hook
 
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TabletModeFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusHomeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.gesture.DoubleTapToSleepFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarAllAppsButtonFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarHomeVisibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarOnlyFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarTransitionFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewActionsFeature
@@ -10,7 +12,6 @@ import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewBubbleFeat
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewClearAllButtonFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.search.HomeSearchBarFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.LauncherSettingsFeature
-import my.github.MrxSiN.pixellauncherevolved.feature.wallpaper.LauncherWallpaperBlurFeature
 
 /**
  * Every tweak the module can install.
@@ -25,10 +26,11 @@ object FeatureRegistry {
         TabletModeFeature(),
         TaskbarOnlyFeature(),
         TaskbarTransitionFeature(),
+        TaskbarHomeVisibilityFeature(),
         TaskbarAllAppsButtonFeature(),
         DoubleTapToSleepFeature(),
         HomeSearchBarFeature(),
-        LauncherWallpaperBlurFeature(),
+        FocusHomeFeature(),
         OverviewBubbleFeature(),
         OverviewActionsFeature(),
         OverviewClearAllButtonFeature(),

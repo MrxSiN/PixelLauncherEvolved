@@ -5,11 +5,7 @@ package my.github.MrxSiN.pixellauncherevolved.catalog
  *
  * Keys are stable strings: renaming one silently resets that tweak on every
  * device that already stored it.
- *
- * Blur Wallpaper is not here. Its switch is in Wallpaper & Style rather than in
- * Home settings, and the two apps cannot see this module's store, so it keeps
- * its key with the setting itself in
- * [my.github.MrxSiN.pixellauncherevolved.wallpaper.WallpaperBlur].
+
  */
 object Settings {
 
@@ -17,6 +13,14 @@ object Settings {
     val TABLET_MODE = BoolSetting("tablet_mode", default = false)
     val HOME_DOUBLE_TAP_TO_SLEEP = BoolSetting("home_double_tap_to_sleep", default = false)
     val HOME_SEARCH_OPENS_DRAWER = BoolSetting("home_search_opens_drawer", default = false)
+
+    /**
+     * Which pages each Mode shows is not here, because it is neither a switch
+     * nor one key. It lives in
+     * [my.github.MrxSiN.pixellauncherevolved.focus.FocusStore], in the same
+     * preference file.
+     */
+    val FOCUS_HOME_SCREENS = BoolSetting("focus_home_screens", default = false)
     val OVERVIEW_HIDE_TASKBAR_ALL_APPS =
         BoolSetting("overview_hide_taskbar_all_apps", default = false)
 

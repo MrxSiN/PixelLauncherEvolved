@@ -219,6 +219,8 @@ private class TaskbarWindow(private val context: FeatureContext) {
         val alignsWithHotseat = requireNotNull(
             Reflect.method(state, "isTaskbarAlignedWithHotseat"),
         )
+        val stateFlags = Reflect.field(controller, "mState")
+        val isInLauncher = Reflect.method(controller, "isInLauncher", Int::class.javaPrimitiveType!!)
 
         val applyState = controller.declaredMethods.firstOrNull {
             it.name == "applyState" && it.parameterTypes.size == 2
@@ -239,7 +241,7 @@ private class TaskbarWindow(private val context: FeatureContext) {
 
                     when {
                         // Home. The icons travel to the hotseat, so stand down.
-                        toHotseat -> show()
+                        toHotseat && inLauncher(chain.thisObject, stateFlags, isInLauncher) -> show()
 
                         result is Animator -> result.addListener(
                             object : AnimatorListenerAdapter() {
@@ -258,6 +260,26 @@ private class TaskbarWindow(private val context: FeatureContext) {
 
             result
         }
+    }
+
+    /**
+     * Whether the launcher is in front, as the taskbar has been told.
+     *
+     * A state that aligns with the hotseat is not on its own the way home. The
+     * same heading is reported part way through a quick switch between two apps,
+     * where an app arrives rather than the launcher, and standing down there drew
+     * the taskbar across the app it was switching to — and left it there, because
+     * the transition it belonged to was over.
+     */
+    private fun inLauncher(
+        stateController: Any?,
+        stateFlags: java.lang.reflect.Field?,
+        isInLauncher: java.lang.reflect.Method?,
+    ): Boolean {
+        if (stateController == null || stateFlags == null || isInLauncher == null) return true
+        return runCatching {
+            isInLauncher.invoke(null, stateFlags.getInt(stateController)) == true
+        }.getOrDefault(true)
     }
 
     /** The launcher has arrived. The window may still be the app's. */

@@ -217,6 +217,10 @@ private const val STATIC_TASKBAR_VIEWS = 2
  * `StashedHandleViewController`, which outlines the pill itself, is a different
  * one and is left alone.
  *
+ * Replacing the reveal with a fade was tried and taken back out: the same call
+ * carries the icons that travel to the hotseat on the way home, so fading them
+ * left the hotseat row arriving half drawn.
+ *
  * The height is restored around the call rather than overwritten, so the value
  * the launcher stored survives for anything that reads it in a later build.
  */

@@ -38,10 +38,20 @@
     <string name="feature_home_double_tap_to_sleep_title">Double Tap to Sleep</string>
     <string name="feature_home_double_tap_to_sleep_summary">Turn the screen off by tapping an empty part of the home screen twice. Root access is required.</string>
     <string name="feature_home_search_opens_drawer_title">Search bar opens app search</string>
+    <string name="feature_focus_home_screens_title">Focus home screens</string>
+    <string name="feature_focus_home_screens_summary">Give a home screen page to a Mode. While that Mode is on, only its pages show; the rest come back when it ends. Use Focus pages below to choose which pages each Mode shows. Needs root, because Android does not let an app read Modes it does not own.</string>
+    <string name="feature_focus_pages_title">Focus pages</string>
+    <string name="feature_focus_pages_summary">Choose which pages each Mode shows.</string>
+    <string name="feature_focus_choose_mode_summary">Choose a Mode, then select the home screens it can use.</string>
+    <string name="feature_focus_choose_pages_summary">Select one or more live home screen previews.</string>
+    <string name="feature_focus_active">Active now</string>
+    <string name="feature_focus_page">Page %1$d</string>
+    <string name="feature_focus_no_pages_assigned">No pages</string>
+    <string name="feature_focus_pages_assigned">Pages %1$s</string>
+    <string name="feature_focus_no_pages">The home screen pages are not known yet. Open the home screen once, then try again.</string>
+    <string name="feature_focus_needs_access">Your Modes could not be read. This needs root access, because Android only lets an app see the Modes it created itself. Grant Pixel Launcher Evolved root, then try again.</string>
+    <string name="feature_focus_no_modes">This device has no Modes to assign a page to.</string>
     <string name="feature_home_search_opens_drawer_summary">Tap the home screen search bar to open the app drawer with its search box ready, as earlier Pixel Launcher versions did. The logo, microphone and Lens buttons keep their own actions.</string>
-    <string name="feature_home_blur_wallpaper_title">Blur Wallpaper</string>
-    <string name="feature_home_blur_wallpaper_on">On</string>
-    <string name="feature_home_blur_wallpaper_off">Off</string>
     <string name="feature_overview_hide_taskbar_all_apps_title">Hide app drawer button</string>
     <string name="feature_overview_hide_taskbar_all_apps_summary">Take the app drawer button, and the divider beside it, out of the taskbar while Recents is open. Needs a taskbar, so turn on Full tablet layout or Taskbar only as well.</string>
 </resources>

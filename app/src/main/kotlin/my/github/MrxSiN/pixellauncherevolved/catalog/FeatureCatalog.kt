@@ -35,6 +35,12 @@ object FeatureCatalog {
             page = CatalogPage.HOME_SCREEN,
         ),
         CatalogEntry(
+            setting = Settings.FOCUS_HOME_SCREENS,
+            titleRes = R.string.feature_focus_home_screens_title,
+            summaryRes = R.string.feature_focus_home_screens_summary,
+            page = CatalogPage.HOME_SCREEN,
+        ),
+        CatalogEntry(
             setting = Settings.OVERVIEW_BUBBLE_BUTTON,
             titleRes = R.string.feature_overview_bubble_title,
             summaryRes = R.string.feature_overview_bubble_summary,

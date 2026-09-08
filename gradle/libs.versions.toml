@@ -10,6 +10,7 @@ m3 = "1.5.0-alpha27"
 compose-bom = "2026.08.00"
 nav3 = "1.1.6"
 navigationevent = "1.1.2"
+junit = "4.13.2"
 
 [plugins]
 agp-app = { id = "com.android.application", version.ref = "agp" }
@@ -18,6 +19,7 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 [libraries]
 libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "libxposed" }
 libxposed-service = { group = "io.github.libxposed", name = "service", version.ref = "libxposed" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.19.0" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.13.0" }

@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.settings
 
+import android.content.Context
 import android.content.res.Resources
 import android.os.Bundle
 import android.os.Process
@@ -9,9 +10,15 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.CatalogPage
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagesDialog
+import my.github.MrxSiN.pixellauncherevolved.feature.focus.LauncherPagePreviewSource
+import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
+import my.github.MrxSiN.pixellauncherevolved.focus.SharedPreferencesFocusStore
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
+import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsStore
 
@@ -63,7 +70,7 @@ class LauncherSettingsFeature : LauncherFeature {
             return
         }
 
-        val section = SettingsSection(api, resources, context.settings) {
+        val section = SettingsSection(api, resources, context.settings, context.logger) {
             context.logger.info("Restart requested from Home settings; ending the launcher process")
             Process.killProcess(Process.myPid())
         }
@@ -130,6 +137,7 @@ private class SettingsSection(
     private val api: PreferenceApi,
     private val resources: Resources,
     private val settings: SettingsStore,
+    private val logger: Logger,
     private val onRestart: () -> Unit,
 ) {
 
@@ -189,6 +197,41 @@ private class SettingsSection(
             switches[setting] = row
             api.add(screen, row)
         }
+
+        if (page == CatalogPage.HOME_SCREEN) addFocusPages(screen, context)
+    }
+
+    /**
+     * The row that says which pages each Mode shows.
+     *
+     * Not a switch, so it is not in the catalog: the catalog is one key per
+     * on/off setting, and this is a set of pages per Mode. It sits under the
+     * switch that turns the whole thing on, and does nothing while that is off.
+     */
+    private fun addFocusPages(screen: Any, context: Context) {
+        if (!settings[Settings.FOCUS_HOME_SCREENS]) return
+
+        val store = SharedPreferencesFocusStore(LauncherSettings.preferences(context))
+        val source = ProviderFocusSource(context.contentResolver, logger)
+
+        api.add(
+            screen,
+            api.createAction(
+                context = context,
+                key = KEY_PREFIX + "focus_pages",
+                title = resources.getString(R.string.feature_focus_pages_title),
+                summary = resources.getString(R.string.feature_focus_pages_summary),
+                onClick = {
+                    FocusPagesDialog.show(
+                        context,
+                        resources,
+                        store,
+                        source,
+                        LauncherPagePreviewSource(),
+                    )
+                },
+            ),
+        )
     }
 
     /**

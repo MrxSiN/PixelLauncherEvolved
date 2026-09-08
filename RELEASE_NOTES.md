@@ -1,38 +1,68 @@
-# Pixel Launcher Evolved v0.0.1
+# Pixel Launcher Evolved v0.0.2
 
-First alpha.
+Second alpha. One new feature, a round of taskbar repairs, and one feature
+withdrawn.
 
-- **Settings where you already are.** Long press an empty part of the home
-  screen, tap **Home settings**, and scroll to the bottom: everything this module
-  adds sits under **Pixel Launcher Evolved**, styled as the launcher's own rows.
-  The module's app is left to say whether a framework accepted the module, and to
-  offer a shortcut into that screen.
-- **Changes apply straight away.** Every Overview tweak reaches the launcher that
-  is already running, and switching one off restores what it changed. A **Restart
-  Launcher** row is there for the layout tweaks, which the launcher only reads at
-  startup.
-- **Bubble button on Recents cards.** A Material 3 medium FAB in the
-  bottom-right of each task card. Tapping it puts Overview away — back to the app
-  you came from, or to home — and reopens the card's app as a floating bubble
-  through the platform's own `SystemUiProxy.showAppBubble` path.
-- **Clear all where you want it.** Add it to the Recents action row. Hide
-  Screenshot and Select individually.
-- **Full tablet layout** for the launcher's large-screen layout, or **Taskbar
-  Only** for the taskbar without the tablet grid, with the hotseat handoff, the
-  icon count and the reveal animation corrected so the transition reads as the
-  launcher's own.
-- **Cleaner Overview taskbar.** Hide the app drawer button and its divider only
-  while Recents is open. The icons that remain are re-centred.
-- **Double tap to sleep.** Double tap empty workspace to send the power-key
-  event through root. Root is granted to the module app, not Pixel Launcher.
-- **Search bar opens app search.** Tap the home screen search bar to open the
-  app drawer with its search box ready, as earlier Pixel Launcher versions did.
-  The logo, microphone and Lens buttons keep their own actions, and a long press
-  still picks the widget up.
-- **Blur Wallpaper.** Switched from **Wallpaper & Style → Home screen**, under
-  **Layout**. The home screen wallpaper is blurred and pushed back using the
-  launcher's own blur, at half the strength it already uses behind the app
-  drawer, so opening the drawer deepens it rather than stacking a second blur.
+## New
+
+- **Focus home screens.** Give a home screen page to one of the device's Modes —
+  Bedtime, Driving, Sleeping, whatever you have. While that Mode is on the
+  launcher shows only its pages; when it ends the ordinary pages come back and
+  the Mode's own are put away. Nothing is written to the launcher's database, so
+  a hidden page is hidden the way a page scrolled off the side is hidden.
+- **Focus pages**, the row under the switch, opens a two-step chooser: pick a
+  Mode, then pick its pages from live previews of the home screens themselves.
+  The Mode that is on is marked. When it cannot offer a choice it says which of
+  the three reasons applies — pages the launcher has not built yet, Modes it
+  could not read without root, or a device with no Modes at all.
+
+Reading Modes needs root. Since Android 15 `getAutomaticZenRules` reports only
+the rules the calling app owns, so a person's real Modes — the system's,
+Wellbeing's, GMS's — come back as nothing at all. The module's own app reads
+them through root and answers the launcher through a content provider that
+serves no other caller. Root stays with the module app; the launcher never
+receives it.
+
+## Fixed
+
+- **The hotseat is no longer empty after the launcher restarts.** The taskbar is
+  told whether home is visible, and on a restart that report arrives out of
+  order — describing the launcher it has just replaced. Nothing takes it back,
+  so the taskbar spent the session believing the launcher was behind something
+  and stopped drawing the hotseat icons it had been handed.
+- **The taskbar no longer sits across the app you switched to.** Ending a quick
+  switch between two apps left the same answer stale the other way round, and
+  going into the Google feed and back left it stale a third way.
+- **Switching between two apps along the bottom edge** no longer leaves the
+  taskbar drawn across the app it switched to. Standing down early now also asks
+  whether the launcher is in front, which a quick switch answers for itself.
+- **Focus pages previews show each page's own contents**, rather than a
+  screenshot of the home screen drawn underneath every one of them. The capture
+  no longer races the compositor, is not taken through the notification shade or
+  part way through a page change, and a frame sampled while anything was in
+  front is dropped instead of kept.
+- **The page gallery no longer squashes previews**, and newly-created home pages
+  appear in the chooser immediately.
+
+## Removed
+
+- **Blur Wallpaper**, and with it the `com.google.android.apps.wallpaper` scope.
+  The depth floor it raised shared one number with the app drawer and Recents,
+  so every launcher state and every launcher update was a way for the two to
+  disagree. Replacing the wallpaper with a blurred copy fixed that but could not
+  cover a live wallpaper, which stores no image; blurring the bitmaps a live
+  wallpaper renders from covered that in turn, but only for one app, by name.
+  The module is scoped to the launcher alone again, and every setting is in the
+  launcher's own Home settings. A value left in the old `Settings.Secure` key by
+  v0.0.1 is ignored and never read.
+
+## Upgrading from v0.0.1
+
+Install over the top and force-stop the Pixel Launcher once. Your existing
+settings are kept. Grant the module app root if you want Focus home screens;
+Double tap to sleep already needed it.
+
+---
 
 Built against the modern libxposed API 102; requires a framework implementing API
 101 or newer, such as Vector v2.2.

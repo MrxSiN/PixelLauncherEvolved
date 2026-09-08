@@ -3,7 +3,6 @@
 
     <queries>
         <package android:name="com.google.android.apps.nexuslauncher" />
-        <package android:name="com.google.android.apps.wallpaper" />
     </queries>
 
     <application
@@ -19,11 +18,10 @@
 
         <!--
             No launcher category, so this does not appear in the app drawer.
-            Every setting is in the launcher's own Home settings and the blur
-            switch is in Wallpaper & Style, so an icon here would open a screen
-            with nothing to change. The activity itself stays, exported and
-            addressable by name, for a framework or a person that wants to ask
-            whether the module was accepted.
+            Every setting is in the launcher's own Home settings, so an icon here
+            would open a screen with nothing to change. The activity itself stays,
+            exported and addressable by name, for a framework or a person that
+            wants to ask whether the module was accepted.
         -->
         <activity
             android:name=".ui.MainActivity"
@@ -34,6 +32,16 @@
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
         </activity>
+
+        <!--
+            Exported so the launcher can ask which Modes are on. It checks the
+            caller itself rather than relying on a permission, because no
+            permission exists that this module and the launcher could both hold.
+        -->
+        <provider
+            android:name=".focus.FocusProvider"
+            android:authorities="${applicationId}.focus"
+            android:exported="true" />
 
         <!-- Double tap is recognised by the launcher; this root-backed endpoint locks it. -->
         <provider

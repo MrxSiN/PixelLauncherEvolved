@@ -20,7 +20,7 @@ object Reflect {
         var current: Class<*>? = type
         while (current != null) {
             runCatching {
-                return current!!.getDeclaredMethod(name, *parameterTypes)
+                return current.getDeclaredMethod(name, *parameterTypes)
                     .apply { isAccessible = true }
             }
             current = current.superclass
@@ -33,7 +33,7 @@ object Reflect {
         var current: Class<*>? = type
         while (current != null) {
             runCatching {
-                return current!!.getDeclaredField(name).apply { isAccessible = true }
+                return current.getDeclaredField(name).apply { isAccessible = true }
             }
             current = current.superclass
         }

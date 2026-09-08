@@ -148,6 +148,14 @@ grep -q 'animateIconsForReveal' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 grep -q 'mStashedHandleHeight' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 grep -q 'finally' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 
+# The taskbar's view of the launcher being in front is repaired for the one
+# stale report a launcher restart delivers, and left alone otherwise, because
+# that answer also drives the taskbar's animation between home and an app.
+grep -q 'onLauncherVisibilityChanged' "$SRC/feature/layout/TaskbarHomeVisibilityFeature.kt"
+grep -q 'hasBeenResumed' "$SRC/feature/layout/TaskbarHomeVisibilityFeature.kt"
+grep -q 'GRACE_MILLIS' "$SRC/feature/layout/TaskbarHomeVisibilityFeature.kt"
+grep -q 'TaskbarHomeVisibilityFeature' "$SRC/hook/FeatureRegistry.kt"
+
 # Overview can remove the taskbar app drawer button and its matching divider,
 # while preserving the visibility the launcher wanted outside Overview.
 grep -q 'OVERVIEW_HIDE_TASKBAR_ALL_APPS' "$SRC/catalog/Settings.kt"
@@ -185,33 +193,68 @@ grep -q 'Binder.getCallingUid' "$SRC/lock/ScreenLockProvider.kt"
 grep -q 'ProcessBuilder("su"' "$SRC/lock/ScreenLocker.kt"
 grep -q 'KEYCODE_POWER' "$SRC/lock/ScreenLocker.kt"
 
-# Blur Wallpaper: switched from Wallpaper & Style, applied by raising the floor
-# under the launcher's own wallpaper depth rather than blurring its window, and
-# shared through secure settings because package visibility hides this module's
-# provider from an app without QUERY_ALL_PACKAGES.
-grep -q '^com.google.android.apps.wallpaper$' "$META/scope.list"
-grep -q 'com.google.android.apps.wallpaper' "$SRC/PixelLauncherEvolvedModule.kt"
-grep -q 'Settings.Secure' "$SRC/wallpaper/WallpaperBlur.kt"
-grep -q 'pixel_launcher_evolved_home_blur_wallpaper' "$SRC/wallpaper/WallpaperBlur.kt"
-grep -q 'com.android.quickstep.util.BaseDepthControllerImpl' "$SRC/feature/wallpaper/LauncherWallpaperBlurFeature.kt"
-grep -q 'SET_DEPTH = "setDepth"' "$SRC/feature/wallpaper/LauncherWallpaperBlurFeature.kt"
-grep -q 'DEPTH_FIELD = "mDepth"' "$SRC/feature/wallpaper/LauncherWallpaperBlurFeature.kt"
-grep -q 'deoptimize' "$SRC/feature/wallpaper/LauncherWallpaperBlurFeature.kt"
-grep -q 'registerContentObserver' "$SRC/feature/wallpaper/LauncherWallpaperBlurFeature.kt"
+# No wallpaper blur: the feature was removed, and nothing is left reaching for
+# the launcher's depth, another app's render models, or a secure-settings switch.
+! grep -rq 'BaseDepthControllerImpl' "$SRC"
+! grep -rq 'pixel_launcher_evolved_home_blur_wallpaper' "$SRC"
+! grep -rq 'magicportrait' "$SRC"
+! grep -rq 'com.google.android.apps.wallpaper' "$SRC"
+[ ! -d "$SRC/wallpaper" ]
+[ ! -d "$SRC/feature/wallpaper" ]
+[ ! -d "$SRC/feature/magicportrait" ]
+grep -q '^com.google.android.apps.nexuslauncher$' "$META/scope.list"
+[ "$(wc -l < "$META/scope.list")" -eq 1 ]
 
-# The switch is appended under Layout, which is the last Home screen entry, and
-# takes over the background that closes off the list.
-grep -q 'ThemePickerCustomizationOptionsBinder' "$SRC/feature/wallpaper/WallpaperStyleFeature.kt"
-# Read once and kept: a module update replaces the APK these come from.
-grep -q 'private var labels' "$SRC/feature/wallpaper/WallpaperStyleFeature.kt"
-grep -q 'home_customization_option_container' "$SRC/feature/wallpaper/WallpaperStyleFeature.kt"
-grep -q 'customization_option_entry_grid' "$SRC/feature/wallpaper/WallpaperStyleFeature.kt"
-grep -q 'customization_option_entry_bottom_background' "$SRC/feature/wallpaper/WallpaperStyleFeature.kt"
-grep -q 'customization_option_entry_singleton_background' "$SRC/feature/wallpaper/WallpaperStyleFeature.kt"
+# Pages are assigned from Home settings, by number. The launcher's long press
+# menu is a Compose dialog in classes its shrinker renames, so there is no view
+# list to add a row to; nothing here reaches for one.
+grep -q 'FocusPagesDialog' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+! grep -rq 'OptionsPopupView' "$SRC"
+! grep -rq 'showForSystemShortcuts' "$SRC"
+[ ! -e "$SRC/feature/focus/FocusAssignFeature.kt" ]
+
+# Page numbers are read off the unfiltered order, which is only seen at the
+# filter, so settings cannot number them differently while a Mode is on.
+grep -q 'FocusPages.remember(all)' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'FocusPages.include(added)' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'commitExtraEmptyScreens' "$SRC/feature/focus/FocusHomeFeature.kt"
+
+# Focus home screens: the launcher is handed a filtered list of screens and
+# nothing else. The database is never touched.
+grep -q 'bindCompleteModelAsync' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'bindAddScreens' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'bindItems' "$SRC/feature/focus/FocusHomeFeature.kt"
+
+# The launcher keeps no list of screens: collectWorkspaceScreens walks the items
+# and collects the screens they name. So the items are what is filtered, and the
+# model handed over is a second one around a second map, never the launcher's
+# own — its copy() shares the map it copies.
+grep -q 'itemsIdMap' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'SparseArray<Any?>(items.size())' "$SRC/feature/focus/FocusHomeFeature.kt"
+
+# The one write that would turn a hidden page into a deleted one is held off,
+# and the feature refuses to install at all if it cannot be found.
+grep -q 'stripEmptyScreens' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'isFiltering()) null else chain.proceed()' "$SRC/feature/focus/FocusHomeFeature.kt"
+
+# Deciding which screens to show has no Android in it, so it can be reasoned about.
+! grep -qE '^import android' "$SRC/focus/FocusPlan.kt"
+
+# Modes are read in this module's own app, which is the process that holds root,
+# and answered to the launcher alone. The platform API is not used: since Android
+# 15 it reports only the rules the calling app owns, so it returns nothing.
+grep -q 'dumpsys notification --zen' "$SRC/focus/ZenModes.kt"
+grep -q 'ProcessBuilder("su"' "$SRC/focus/ZenModes.kt"
+grep -q 'callingPackage != LAUNCHER_PACKAGE' "$SRC/focus/FocusProvider.kt"
+
+# The provider authority is written out in code and templated in the manifest;
+# they have to stay the same string.
+grep -q 'my.github.MrxSiN.pixellauncherevolved.focus' "$SRC/focus/FocusContract.kt"
+grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.0.1"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 1' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.0.2"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 2' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"
