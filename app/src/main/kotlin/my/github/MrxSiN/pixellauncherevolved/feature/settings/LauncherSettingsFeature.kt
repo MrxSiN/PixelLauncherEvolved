@@ -1,6 +1,9 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.settings
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.os.Process
@@ -14,6 +17,9 @@ import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagesDialog
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.LauncherPagePreviewSource
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.HideAppsSelection
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsStore
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.search.SharedPreferencesWebSearchAppStore
 import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppDialog
 import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppStore
@@ -205,7 +211,10 @@ private class SettingsSection(
 
         when (page) {
             CatalogPage.HOME_SCREEN -> addFocusPages(screen, context)
-            CatalogPage.APP_DRAWER -> addWebSearchApp(screen, context)
+            CatalogPage.APP_DRAWER -> {
+                addHiddenApps(screen, context)
+                addWebSearchApp(screen, context)
+            }
             else -> Unit
         }
     }
@@ -241,6 +250,63 @@ private class SettingsSection(
                 },
             ),
         )
+    }
+
+    /**
+     * The row that says which apps the drawer leaves out.
+     *
+     * Not a switch, so it is not in the catalogue: the catalogue is one key per
+     * on/off setting, and this is a set of apps out of everything installed.
+     */
+    private fun addHiddenApps(screen: Any, context: Context) {
+        val store = SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(context))
+
+        api.add(
+            screen,
+            api.createAction(
+                context = context,
+                key = KEY_PREFIX + "hidden_apps",
+                title = resources.getString(R.string.feature_hidden_apps_title),
+                summary = hiddenAppsSummary(store),
+                onClick = { chooseHiddenApps(context, store) },
+            ),
+        )
+    }
+
+    /**
+     * Hands the question to the app drawer.
+     *
+     * The apps are picked where they are drawn, so settings steps out of the
+     * way: it starts what the launcher will finish, goes home, and closes
+     * itself rather than waiting behind the drawer with a count that is about
+     * to be wrong.
+     */
+    private fun chooseHiddenApps(context: Context, store: HiddenAppsStore) {
+        HideAppsSelection.begin(store.hidden())
+
+        context.startActivity(
+            Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_HOME)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        context.activityOrNull()?.finish()
+    }
+
+    /** The activity behind a themed preference context. */
+    private fun Context.activityOrNull(): Activity? {
+        var current: Context? = this
+        while (current != null) {
+            if (current is Activity) return current
+            current = (current as? ContextWrapper)?.baseContext
+        }
+        return null
+    }
+
+    private fun hiddenAppsSummary(store: HiddenAppsStore): String {
+        val count = store.hidden().size
+        if (count == 0) return resources.getString(R.string.feature_hidden_apps_summary_none)
+
+        return resources.getQuantityString(R.plurals.feature_hidden_apps_summary, count, count)
     }
 
     /**

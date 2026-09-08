@@ -18,7 +18,7 @@
     <string name="settings_page_home_screen">Home Screen</string>
     <string name="settings_page_home_screen_summary">Focus pages, double tap to sleep, search bar.</string>
     <string name="settings_page_app_drawer">App Drawer</string>
-    <string name="settings_page_app_drawer_summary">What the app drawer’s search shows, and what opens it.</string>
+    <string name="settings_page_app_drawer_summary">Which apps appear, what the search shows, and what opens it.</string>
     <string name="settings_page_overview">Overview</string>
     <string name="settings_page_overview_summary">The buttons on and under each Recents card.</string>
     <string name="settings_page_tablet_layout">Tablet Layout (Experimental)</string>
@@ -57,6 +57,9 @@
     <string name="feature_focus_needs_access">Your Modes could not be read. This needs root access, because Android only lets an app see the Modes it created itself. Grant Pixel Launcher Evolved root, then try again.</string>
     <string name="feature_focus_no_modes">This device has no Modes to assign a page to.</string>
 
+    <string name="feature_hidden_apps_title">Hidden apps</string>
+    <string name="feature_hidden_apps_summary_none">Nothing hidden. Tap to pick apps in the drawer.</string>
+
     <string name="feature_app_drawer_search_hide_web_title">Hide Web Search</string>
     <string name="feature_app_drawer_search_hide_web_summary">Hide Google’s suggestions for what you typed.</string>
     <string name="feature_app_drawer_search_hide_play_store_title">Hide Play Store</string>
@@ -68,4 +71,9 @@
     <string name="feature_app_drawer_search_web_app_chosen">%1$s. Tap to choose another.</string>
     <string name="feature_app_drawer_search_web_app_default_label">Google app (default)</string>
     <string name="feature_app_drawer_search_web_app_none">No app on this device opens website links.</string>
+
+    <plurals name="feature_hidden_apps_summary">
+        <item quantity="one">%1$d app hidden. Tap to pick apps in the drawer.</item>
+        <item quantity="other">%1$d apps hidden. Tap to pick apps in the drawer.</item>
+    </plurals>
 </resources>

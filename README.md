@@ -56,6 +56,10 @@ frame.
 <summary><b>🔍 App Drawer</b></summary>
 <br>
 
+Apps you hide are left out through the launcher's own per-tab filter, so a work
+app is still a work app. Nothing is written until you press the button; leaving
+the drawer any other way keeps what was already hidden.
+
 The app drawer's search results are not the launcher's own work: it asks the
 platform's search service and the Google app for them and draws what comes
 back, grouped the way they grouped it. Each switch takes one whole group out on
@@ -64,6 +68,7 @@ list rather than one with a gap in it.
 
 | Tweak | What it does |
 |---|---|
+| **Hidden apps** | Leaves the apps you pick out of the drawer, and out of its search. Tapping it opens the drawer itself with a tick on every icon: tap the apps to hide, then the button in the corner. Apps already hidden come back with their ticks on, so you can take them off. An icon already on the home screen or in the hotseat stays where you put it. |
 | **Hide Web Search** | Removes Google's suggestions for what you typed. |
 | **Hide Play Store** | Removes the apps-to-install results. |
 | **Hide Search in Apps** | Removes the row that hands your search to Google, YouTube, Maps and the rest. |

@@ -1,6 +1,8 @@
 package my.github.MrxSiN.pixellauncherevolved.hook
 
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TabletModeFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.HideAppsPickerFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusHomeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.gesture.DoubleTapToSleepFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarAllAppsButtonFeature
@@ -32,6 +34,8 @@ object FeatureRegistry {
         TaskbarAllAppsButtonFeature(),
         DoubleTapToSleepFeature(),
         HomeSearchBarFeature(),
+        HiddenAppsFeature(),
+        HideAppsPickerFeature(),
         AppDrawerSearchFeature(),
         WebSearchAppFeature(),
         FocusHomeFeature(),

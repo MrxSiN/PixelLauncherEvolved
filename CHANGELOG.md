@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Hidden apps**, on the App Drawer page: the apps you pick are left out of
+  the drawer, and out of its search, so one that is hidden does not come back
+  the moment its name is typed.
+
+  They are picked in the drawer itself rather than from a list of names: the row
+  opens the app drawer with a tick on every icon, tapping one takes it instead
+  of opening it, and a button in the corner ends it. Apps already hidden are put
+  back for the length of it, ticks on, so one can be recovered. Nothing is
+  written until the button is pressed; leaving the drawer any other way keeps
+  what was already hidden.
+
+  The launcher's own per-tab filter does the hiding, wrapped rather than
+  replaced, so a work app is still a work app. An icon already on the home
+  screen or in the hotseat stays where it was put.
+
 ## 0.0.3
 
 Third alpha.

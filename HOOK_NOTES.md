@@ -188,6 +188,118 @@ therefore matched by resource id where they have one and by the launcher's own
 `string/recents_clear_all` where they do not, which keeps the match correct in
 every language.
 
+## Leaving apps out of the app drawer (Android 17, verified September 9, 2026)
+
+The launcher already filters the drawer, one predicate per tab:
+
+```
+com.android.launcher3.allapps.ActivityAllAppsContainerView$AdapterHolder
+  public void setup(android.view.View, java.util.function.Predicate)
+    -> AlphabeticalAppsList.mItemFilter = predicate
+    -> AlphabeticalAppsList.onAppsUpdated()
+
+com.android.launcher3.allapps.AlphabeticalAppsList
+  public List mApps
+  public AllAppsStore mAllAppsStore
+  public Predicate mItemFilter
+  public void onAppsUpdated()
+```
+
+`onAppsUpdated` streams `AllAppsStore.mApps` through `mItemFilter`, so wrapping
+the predicate handed to `setup` hides an app without replacing what the
+launcher was doing with it — the personal and work tabs each pass their own
+predicate, and the wrapper ANDs with it. The predicate may be null for a drawer
+with nothing to separate, so the wrapper has to stand alone in that case.
+
+The wrapper asks the store on every call rather than closing over an answer,
+which means nothing has to be rebuilt for a change to be *correct* — only for
+it to be *visible*.
+
+### Gotcha: the filter only runs when the search box is empty
+
+```
+if (mSearchResults.isEmpty() && mItemFilter != null) stream = stream.filter(mItemFilter);
+```
+
+So an app hidden from the grid is still a search result. The module drops it in
+the same `setSearchResults` filter as the hidden groups, matched on an app
+result type (`1`) and the package. The three apps in the top row of the results
+are three separate adapter items, not one, so dropping one leaves the others.
+
+### Picking the apps in the drawer itself
+
+A list of names is a poor way to choose apps, so the choosing happens where the
+icons are. Home settings starts it and the launcher finishes it; both are the
+same process, so a plain object carries the state between them.
+
+```
+com.android.launcher3.BubbleTextView            // extends TextView
+  public void onDraw(android.graphics.Canvas)
+  public void getIconBounds(android.graphics.Rect)
+
+android.view.View
+  public boolean performClick()
+
+com.android.launcher3.uioverrides.QuickstepLauncher
+  public void onStateSetEnd(com.android.launcher3.statemanager.BaseState)
+
+com.android.launcher3.Launcher
+  public BaseDragLayer getDragLayer()
+
+com.android.launcher3.statemanager.StateManager
+  public void goToState(com.android.launcher3.statemanager.BaseState)
+```
+
+- **The tick is drawn by the icon**, in `onDraw`, against `getIconBounds`. The
+  drawer recycles its views, so anything hung on a particular view — a badge
+  child, a foreground drawable — is handed to a different app on the next
+  scroll. Drawing from the view's own item is the only thing that cannot drift.
+- **The tap is taken at `performClick`**, which is where a view decides to act
+  on being clicked. Returning true there means the launcher's own listener is
+  never reached, so it never has to be found or replaced. It is a framework
+  method, so it does not move; the guard is that only a `BubbleTextView` whose
+  tag is an `AppInfo` answers, which is also what keeps the home screen behind
+  the drawer out of it — a workspace icon carries a `WorkspaceItemInfo`.
+- **Leaving is a state change.** `onStateSetEnd` says what the launcher settled
+  into; anything that is not `ALL_APPS`, after `ALL_APPS` has been reached at
+  least once, is a person changing their mind. The first settle has to be seen
+  or the one that opens the drawer reads as the one that closed it.
+
+While the choosing lasts the hide filter passes everything, or an app already
+hidden could never be recovered. Both entering and leaving therefore rebuild the
+list.
+
+### Gotcha: the drag layer rebuilds layout parameters
+
+`BaseDragLayer` accepts only its own `LayoutParams`, and builds them from
+another kind by copying width and height — `FrameLayout.LayoutParams(ViewGroup.LayoutParams)`
+does not carry gravity across. A confirm button added with
+`gravity = BOTTOM|END` therefore lands in the top-left corner. Setting gravity
+and margins on the parameters the view *ends up with*, after `addView`, is what
+places it.
+
+### Making a change appear
+
+The launcher rebuilds the drawer when the installed apps change and not
+otherwise, so a change made in Home settings would sit unseen. `AllAppsStore`
+carries the launcher's own way to ask:
+
+```
+com.android.launcher3.allapps.AllAppsStore
+  public void notifyUpdate()
+  public void addUpdateListener(AllAppsStore$OnUpdateListener)
+```
+
+The store is reached from the `AlphabeticalAppsList` captured in the `setup`
+hook, and `notifyUpdate()` is called from `Launcher.onResume` when the stored
+set differs from the one the drawer was last built for — which is the moment a
+person returns from having changed it. `getAppsStore()` exists too, but only on
+a Dagger component interface, so the field is the shorter route.
+
+Apps are stored by package name. `ItemInfo.getTargetPackage()` is what the
+predicate reads, and a package present in both a personal and a work profile is
+the same app to the person hiding it.
+
 ## The app drawer's search results (Android 17, verified September 8, 2026)
 
 The results are assembled from two sources and merged before anything is drawn,

@@ -1,8 +1,11 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.search
 
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsStore
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
+import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
 
 /**
@@ -19,6 +22,9 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
  * that hands the finished list to the app drawer. Both channels are covered by
  * it, and it is a launcher class rather than a Google one, so its name survives
  * the shrinker.
+ *
+ * Apps hidden from the drawer are taken out here too. An app that is hidden
+ * from the list but comes back the moment its name is typed is not hidden.
  *
  * Live: the settings are read as each list arrives, so switching one changes
  * the next keystroke's results.
@@ -43,10 +49,11 @@ class AppDrawerSearchFeature : LauncherFeature {
         }
 
         val items = SearchResultItems(targets)
+        val apps = SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(context.appContext))
 
         context.xposed.hook(show).intercept { chain ->
             val results = chain.getArg(RESULTS_ARGUMENT) as? ArrayList<*>
-            val kept = runCatching { keep(results, items, context.settings) }
+            val kept = runCatching { keep(results, items, context.settings, apps) }
                 .onFailure { context.logger.warn("Unable to filter the app drawer's search results", it) }
                 .getOrDefault(results)
 
@@ -62,9 +69,10 @@ class AppDrawerSearchFeature : LauncherFeature {
         results: ArrayList<*>?,
         items: SearchResultItems,
         settings: SettingsSource,
+        apps: HiddenAppsStore,
     ): ArrayList<*>? {
-        val hidden = hiddenSearchResults(settings)
-        if (results == null || hidden.isEmpty()) return results
+        val hidden = HiddenSearchResults(hiddenSearchResults(settings), apps.hidden())
+        if (results == null || hidden.isEmpty) return results
 
         val kept = results.filterNotTo(ArrayList()) { item ->
             items.read(item)?.let(hidden::hides) == true

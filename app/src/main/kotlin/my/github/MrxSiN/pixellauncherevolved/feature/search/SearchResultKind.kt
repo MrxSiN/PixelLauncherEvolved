@@ -64,12 +64,27 @@ enum class SearchResultKind(val setting: BoolSetting) {
     }
 }
 
+/**
+ * Everything the app drawer's search has been told to leave out.
+ *
+ * Two questions with one answer: whole groups a person switched off, and the
+ * individual apps they hid from the drawer. An app hidden from the drawer that
+ * came back the moment its name was typed would not be hidden at all.
+ */
+class HiddenSearchResults(
+    private val kinds: Set<SearchResultKind>,
+    private val apps: Set<String>,
+) {
+
+    val isEmpty: Boolean get() = kinds.isEmpty() && apps.isEmpty()
+
+    fun hides(result: SearchResult): Boolean =
+        kinds.any { it.matches(result) } || (result.isApp && result.packageName in apps)
+}
+
 /** The kinds currently switched off, read fresh so a change applies at once. */
 fun hiddenSearchResults(settings: SettingsSource): Set<SearchResultKind> =
     SearchResultKind.entries.filterTo(LinkedHashSet()) { settings[it.setting] }
-
-/** Whether any of these kinds claims [result]. */
-fun Set<SearchResultKind>.hides(result: SearchResult): Boolean = any { it.matches(result) }
 
 /**
  * The result-type bits the launcher's search provider sets, as observed on
@@ -85,6 +100,9 @@ private object ResultTypes {
     /** An offer to run this query inside one app. */
     const val SEARCH_IN_APPS = 1 shl 9
 
+    /** An app on the device. */
+    const val APPLICATION = 1
+
     /** A result that opens nothing itself: a heading, or a blank separator. */
     const val NO_FULFILLMENT = 1 shl 18
 
@@ -95,6 +113,8 @@ private object ResultTypes {
 private const val HEADING_LAYOUT = "text_header_row"
 
 private val SearchResult.isHeadingRow: Boolean get() = layoutType == HEADING_LAYOUT
+
+private val SearchResult.isApp: Boolean get() = resultType has ResultTypes.APPLICATION
 
 private val SearchResult.isSectionHeading: Boolean
     get() = resultType has ResultTypes.SECTION_HEADING

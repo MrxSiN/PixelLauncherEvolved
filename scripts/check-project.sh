@@ -209,6 +209,41 @@ grep -q 'APP_DRAWER(' "$SRC/catalog/FeatureCatalog.kt"
 grep -q 'val summaryRes: Int' "$SRC/catalog/FeatureCatalog.kt"
 grep -q 'summary = resources.getString(page.summaryRes)' "$SRC/feature/settings/LauncherSettingsFeature.kt"
 
+# Apps hidden from the drawer go through the launcher's own per-tab predicate,
+# which is wrapped rather than replaced so a work app is still a work app. The
+# predicate asks the store on every call, and the rebuild that shows a change is
+# the launcher coming back to the front.
+grep -q 'ActivityAllAppsContainerView..AdapterHolder' "$SRC/feature/apps/HiddenAppsFeature.kt"
+grep -q '"setup"' "$SRC/feature/apps/HiddenAppsFeature.kt"
+grep -q 'getTargetPackage' "$SRC/feature/apps/HiddenAppsFeature.kt"
+grep -q 'onResume' "$SRC/feature/apps/HiddenAppsFeature.kt"
+grep -q 'notifyUpdate' "$SRC/feature/apps/AppDrawerList.kt"
+grep -q 'HiddenAppsFeature' "$SRC/hook/FeatureRegistry.kt"
+
+# Apps are picked in the drawer itself: the icon draws its own tick, because the
+# drawer recycles views; the tap is taken where a view acts on being clicked, so
+# the launcher's own listener is never replaced; and settling into another state
+# is what says the choosing was left.
+grep -q 'com.android.launcher3.BubbleTextView' "$SRC/feature/apps/HideAppsPickerFeature.kt"
+grep -q '"onDraw"' "$SRC/feature/apps/HideAppsPickerFeature.kt"
+grep -q '"getIconBounds"' "$SRC/feature/apps/HideAppsPickerFeature.kt"
+grep -q '"performClick"' "$SRC/feature/apps/HideAppsPickerFeature.kt"
+grep -q '"onStateSetEnd"' "$SRC/feature/apps/HideAppsPickerFeature.kt"
+grep -q 'HideAppsPickerFeature' "$SRC/hook/FeatureRegistry.kt"
+
+# Every app has to be on screen while choosing, or a hidden one could never be
+# recovered, and nothing is written until the button is pressed.
+grep -q 'HideAppsSelection.isSelecting' "$SRC/feature/apps/HiddenAppsFeature.kt"
+grep -q 'fun confirm' "$SRC/feature/apps/HideAppsSelection.kt"
+
+# The drag layer rebuilds layout parameters from ours, so where the button sits
+# is said on the ones it ends up with.
+grep -q 'button.layoutParams as? FrameLayout.LayoutParams' "$SRC/feature/apps/HideAppsButton.kt"
+
+# A hidden app must not come back the moment its name is typed.
+grep -q 'class HiddenSearchResults' "$SRC/feature/search/SearchResultKind.kt"
+grep -q 'HiddenAppsStore' "$SRC/feature/search/AppDrawerSearchFeature.kt"
+
 # A tapped Web Search result can be handed to another app. The launcher builds
 # one action for that tap and no other, so the action is what identifies it, and
 # the words searched for are the result's own title rather than what was typed.
