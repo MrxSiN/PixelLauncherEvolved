@@ -14,7 +14,6 @@ import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewBubbleFeat
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewClearAllButtonFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.search.AppDrawerSearchFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.search.HomeSearchBarFeature
-import my.github.MrxSiN.pixellauncherevolved.feature.search.LensLongPressFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.LauncherSettingsFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.wallpaper.HomeWallpaperBlurFeature
@@ -37,7 +36,6 @@ object FeatureRegistry {
         HomeWallpaperBlurFeature(),
         DoubleTapToSleepFeature(),
         HomeSearchBarFeature(),
-        LensLongPressFeature(),
         HiddenAppsFeature(),
         HideAppsPickerFeature(),
         AppDrawerSearchFeature(),

@@ -47,8 +47,6 @@
     <string name="feature_home_double_tap_to_sleep_summary">Two taps on an empty spot turn the screen off. Needs root.</string>
     <string name="feature_home_search_opens_drawer_title">Search bar opens app search</string>
     <string name="feature_home_search_opens_drawer_summary">The home search bar opens the app drawer’s search instead of the Google app.</string>
-    <string name="feature_home_lens_long_press_title">Hold Lens for the camera</string>
-    <string name="feature_home_lens_long_press_summary">Press and hold the Lens button in the home search bar to open the Lens camera.</string>
     <string name="feature_focus_home_screens_title">Focus home screens</string>
     <string name="feature_focus_home_screens_summary">Show only a Mode’s own pages while that Mode is on. Needs root.</string>
     <string name="feature_focus_pages_title">Focus pages</string>

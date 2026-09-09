@@ -1585,55 +1585,6 @@ with the action and the pointer position, and the decision is made from that
 snapshot afterwards. Reading it after proceed left long press opening the drawer
 exactly as a tap did, which is how the bug was found.
 
-### Opening the Lens camera from that bar
-
-```
-com.google.android.googlequicksearchbox
-  com.google.android.apps.lens.MainActivity     exported=true
-    android.intent.action.VIEW  scheme "google"  authority "lens"
-  com.google.android.apps.search.lens.LensExportedActivity   the trampoline it lands on
-```
-
-`google://lens` opens the camera, but the activity behind it refuses two kinds
-of caller, and refuses them silently — the task is created, the transition
-starts, and the home screen comes straight back. The one line that says why:
-
-```
-W/dtyi: Caller package cannot be empty. LensExportedActivity must be started for result.
-```
-
-So it wants a calling package, which no `adb shell am start` has, and it wants
-`startActivityForResult` rather than `startActivity`. Both are satisfied by
-asking the launcher activity, unwrapped from the widget's own wrapped context.
-Measured on Android 17: held, the focused window becomes
-`com.google.android.apps.lens.MainActivity`; tapped, the Google app's own
-handler runs instead and it becomes
-`com.google.android.apps.search.lens.LensActivity`.
-
-### Gotcha: the bar's buttons have no ids and no stable descriptions
-
-Read off the widget, every view inside it comes from the Google app's
-`RemoteViews` and only the root carries an id. The content descriptions do
-distinguish them — "Google app", "AI Mode", "Voice search", "Camera search" —
-but they are translated with the phone, so they are no use to match on. Lens is
-recognised by position instead: the rightmost of the narrow clickable views. A
-bar laid out right to left, or one that grows a button beyond Lens, would pick
-the wrong one.
-
-### Gotcha: two long presses on one finger
-
-The host posts its own long press on every touch down, and that is what offers
-**Widget settings**. Left alone it fires alongside a long press of this
-module's own, so the camera opens with the widget menu over it.
-`CheckLongPressHelper.cancelLongPress()` is called for that one gesture, after
-the hooked method has proceeded — before it, the launcher has not yet posted the
-check there is to cancel.
-
-Claiming the press also takes the tap away from the button, since the widget's
-children never see the gesture at all. A press that ends before the long press
-timeout is handed back with `performClick()` on the button it landed on, which
-runs the `RemoteViews` `PendingIntent` exactly as the untouched tap would.
-
 ### Opening the drawer's search
 
 ```
