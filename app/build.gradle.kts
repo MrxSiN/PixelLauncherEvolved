@@ -31,7 +31,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "my.github.MrxSiN.pixellauncherevolved"
+        applicationId = "io.github.mrxsin.pixellauncherevolved"
         // The launcher surfaces these features hook into are Android 17 (API 37).
         minSdk = 37
         targetSdk = 37
