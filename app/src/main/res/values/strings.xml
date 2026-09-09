@@ -16,7 +16,7 @@
     <string name="action_restart_launcher_summary">Close the launcher and let Android bring it back.</string>
 
     <string name="settings_page_home_screen">Home Screen</string>
-    <string name="settings_page_home_screen_summary">Focus pages, double tap to sleep, search bar.</string>
+    <string name="settings_page_home_screen_summary">Blur wallpaper, Focus pages, double tap to sleep, search bar.</string>
     <string name="settings_page_app_drawer">App Drawer</string>
     <string name="settings_page_app_drawer_summary">Which apps appear, what the search shows, and what opens it.</string>
     <string name="settings_page_overview">Overview</string>
@@ -39,6 +39,10 @@
     <string name="feature_overview_hide_taskbar_all_apps_title">Hide app drawer button</string>
     <string name="feature_overview_hide_taskbar_all_apps_summary">Take it out of the taskbar while Recents is open. Needs a taskbar.</string>
 
+    <string name="feature_home_blur_wallpaper_title">Blur wallpaper</string>
+    <string name="feature_home_blur_wallpaper_summary">Keep the wallpaper blurred and pushed back while the home screen is showing.</string>
+    <string name="feature_home_blur_strength_title">Blur strength</string>
+    <string name="feature_home_blur_strength_summary">Stronger to the right, weaker to the left. Now %1$d%%.</string>
     <string name="feature_home_double_tap_to_sleep_title">Double Tap to Sleep</string>
     <string name="feature_home_double_tap_to_sleep_summary">Two taps on an empty spot turn the screen off. Needs root.</string>
     <string name="feature_home_search_opens_drawer_title">Search bar opens app search</string>

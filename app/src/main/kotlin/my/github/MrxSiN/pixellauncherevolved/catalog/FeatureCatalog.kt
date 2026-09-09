@@ -23,6 +23,12 @@ object FeatureCatalog {
 
     val entries: List<CatalogEntry> = listOf(
         CatalogEntry(
+            setting = Settings.HOME_BLUR_WALLPAPER,
+            titleRes = R.string.feature_home_blur_wallpaper_title,
+            summaryRes = R.string.feature_home_blur_wallpaper_summary,
+            page = CatalogPage.HOME_SCREEN,
+        ),
+        CatalogEntry(
             setting = Settings.HOME_DOUBLE_TAP_TO_SLEEP,
             titleRes = R.string.feature_home_double_tap_to_sleep_title,
             summaryRes = R.string.feature_home_double_tap_to_sleep_summary,

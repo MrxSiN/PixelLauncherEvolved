@@ -277,14 +277,102 @@ grep -q 'isTarget(it.type)' "$SRC/feature/search/SearchResultItems.kt"
 grep -q 'ProcessBuilder("su"' "$SRC/lock/ScreenLocker.kt"
 grep -q 'KEYCODE_POWER' "$SRC/lock/ScreenLocker.kt"
 
-# No wallpaper blur: the feature was removed, and nothing is left reaching for
-# the launcher's depth, another app's render models, or a secure-settings switch.
-! grep -rq 'BaseDepthControllerImpl' "$SRC"
+# Wallpaper blur changes what the home state reports and lets the launcher draw
+# it, so the effect is the launcher's own and a deeper state deepens it rather
+# than stacking a second blur. The answer is given at the state, never at the
+# depth the launcher ends up applying: the launcher animates a state change from
+# the depth it believes it is at, so a floor held under the applied depth alone
+# drops the blur out at the start of every transition.
+grep -q 'com.android.launcher3.LauncherState' "$SRC/feature/wallpaper/LauncherDepth.kt"
+grep -q '"getDepth"' "$SRC/feature/wallpaper/LauncherDepth.kt"
+grep -q 'com.android.launcher3.statehandlers.DepthController' "$SRC/feature/wallpaper/LauncherDepth.kt"
+grep -q '"setState"' "$SRC/feature/wallpaper/LauncherDepth.kt"
+! grep -rq 'mDepth' "$SRC"
+
+# The launcher pauses its own window blurs for the length of an animation home.
+# The back gesture's pause must stand: its animation follows an app's window off
+# the screen, which puts the launcher's content under the transition leash,
+# where a blur behind that leash blurs the icons with the wallpaper. The swipe
+# up to home is handed no window animation and needs no pause, and that is what
+# tells the two apart. Everything here fails towards leaving the pause alone.
+grep -q 'pauseBlursOnWindows' "$SRC/feature/wallpaper/LauncherDepth.kt"
+grep -q 'installPausedBlur' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
+# The pause is never skipped: whether the back gesture is protected depends on
+# the order its own controller and the reveal happen to raise theirs, which is a
+# race, and losing it blurs the whole home screen.
+! grep -rq 'ScalingWorkspaceRevealAnim' "$SRC"
+! grep -rq 'RectFSpringAnim' "$SRC"
+! grep -rq 'revealing' "$SRC"
+# What is done instead is clearing the workspace effect the pause leaves behind.
+grep -q 'refreshBlur' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
+
+# The strength is a stored number with its range, and one law turns it into a
+# depth: the middle is what the tweak did before it could be changed.
+grep -q 'class IntSetting' "$SRC/catalog/Setting.kt"
+grep -q 'HOME_BLUR_STRENGTH' "$SRC/catalog/Settings.kt"
+grep -q 'fun depthFor' "$SRC/wallpaper/HomeBlurDepth.kt"
+grep -q 'FULL_DEPTH' "$SRC/wallpaper/HomeBlurDepth.kt"
+grep -q 'coerceIn(setting.range)' "$SRC/settings/SharedPreferencesSettings.kt"
+
+# The slider row is greyed out with the switch above it rather than hidden, and
+# every member of the launcher's SeekBarPreference is renamed, so its bounds are
+# the ones it builds itself and its value is set through a method found by shape.
+grep -q 'androidx.preference.SeekBarPreference' "$SRC/feature/settings/PreferenceApi.kt"
+grep -q 'fun valueSetter' "$SRC/feature/settings/PreferenceApi.kt"
+grep -q 'mEnabled' "$SRC/feature/settings/PreferenceApi.kt"
+grep -q 'hasSlider' "$SRC/feature/settings/PreferenceApi.kt"
+grep -q 'fun companionOf' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+grep -q 'api.setEnabled' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+
+# The slider row is aligned with the switches, and drawn the way Material 3
+# Expressive draws a slider: a tall track, a handle that is a bar, and a gap.
+# A SeekBar clips one drawable over another, so both halves are drawn by one
+# drawable of this module's own, which reads its progress as its own level.
+grep -q 'mIconSpaceReserved' "$SRC/feature/settings/PreferenceApi.kt"
+grep -q 'onBindViewHolder' "$SRC/feature/settings/PreferenceApi.kt"
+grep -q 'ExpressiveSlider' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+grep -q 'TRACK_HEIGHT_DP' "$SRC/feature/settings/ExpressiveSlider.kt"
+grep -q 'HANDLE_WIDTH_DP' "$SRC/feature/settings/ExpressiveSlider.kt"
+grep -q 'GAP_DP' "$SRC/feature/settings/ExpressiveSlider.kt"
+grep -q 'colorAccent' "$SRC/feature/settings/ExpressiveSlider.kt"
+grep -q 'expressive.level = levelOf' "$SRC/feature/settings/ExpressiveSlider.kt"
+
+# The ask is an interface call to a five-unit method, so the two callers that
+# decide the resting and the animated depth are deoptimized.
+grep -q 'deoptimize' "$SRC/feature/wallpaper/LauncherDepth.kt"
+grep -q '"setStateWithAnimation"' "$SRC/feature/wallpaper/LauncherDepth.kt"
+
+# Only the home state is answered for, so no other state is touched and this
+# module's number is never one the app drawer's depth has to stay above.
+grep -q 'chain.thisObject === depth.home' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
+grep -q 'NORMAL' "$SRC/feature/wallpaper/LauncherDepth.kt"
+
+# The launcher blurs its own workspace as well as the wallpaper while the drawer
+# is the state being left, and recomputes that only when the depth moves. A home
+# screen that rests at a depth stops it moving, so the launcher is asked for that
+# answer again once the state has settled. It is the launcher's own answer.
+grep -q 'blurWorkspaceDepthTargets' "$SRC/feature/wallpaper/LauncherDepth.kt"
+grep -q 'LauncherDepthController' "$SRC/feature/wallpaper/LauncherDepth.kt"
+grep -q 'installSettled' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
+grep -q 'onStateSetEnd' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
+grep -q 'refreshBlur' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
+
+# A change reaches the screen by applying the state again, which is the
+# launcher's own path to the wallpaper rather than a second one.
+grep -q 'depth.reapply' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
+grep -q 'applyState.invoke' "$SRC/feature/wallpaper/LauncherDepth.kt"
+grep -q 'HOME_BLUR_WALLPAPER' "$SRC/catalog/Settings.kt"
+grep -q 'HomeWallpaperBlurFeature' "$SRC/hook/FeatureRegistry.kt"
+
+# Deciding the depth has no Android in it, so it can be tested.
+! grep -qE '^import android' "$SRC/wallpaper/HomeBlurDepth.kt"
+
+# The switch is in the launcher's own Home settings. The secure-settings key,
+# the Wallpaper & Style hook and the live-wallpaper render models stay gone, and
+# the module stays scoped to the launcher alone.
 ! grep -rq 'pixel_launcher_evolved_home_blur_wallpaper' "$SRC"
 ! grep -rq 'magicportrait' "$SRC"
 ! grep -rq 'com.google.android.apps.wallpaper' "$SRC"
-[ ! -d "$SRC/wallpaper" ]
-[ ! -d "$SRC/feature/wallpaper" ]
 [ ! -d "$SRC/feature/magicportrait" ]
 grep -q '^com.google.android.apps.nexuslauncher$' "$META/scope.list"
 [ "$(wc -l < "$META/scope.list")" -eq 1 ]
@@ -337,8 +425,8 @@ grep -q 'my.github.MrxSiN.pixellauncherevolved.focus' "$SRC/focus/FocusContract.
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.0.3"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 3' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.0.4"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 4' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"

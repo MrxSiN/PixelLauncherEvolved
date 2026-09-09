@@ -11,6 +11,16 @@ object Settings {
 
     val TASKBAR_ONLY = BoolSetting("taskbar_only", default = false)
     val TABLET_MODE = BoolSetting("tablet_mode", default = false)
+    /** Blurs the wallpaper while the home screen is the state the launcher is in. */
+    val HOME_BLUR_WALLPAPER = BoolSetting("home_blur_wallpaper", default = false)
+
+    /**
+     * How strong that blur is, as a percentage of the deepest the launcher's
+     * own blur goes. The middle is what the tweak did before it could be
+     * changed. The range is the one the launcher's slider row is built with;
+     * see [my.github.MrxSiN.pixellauncherevolved.feature.settings.PreferenceApi].
+     */
+    val HOME_BLUR_STRENGTH = IntSetting("home_blur_strength", default = 50, range = 0..100)
     val HOME_DOUBLE_TAP_TO_SLEEP = BoolSetting("home_double_tap_to_sleep", default = false)
     val HOME_SEARCH_OPENS_DRAWER = BoolSetting("home_search_opens_drawer", default = false)
 

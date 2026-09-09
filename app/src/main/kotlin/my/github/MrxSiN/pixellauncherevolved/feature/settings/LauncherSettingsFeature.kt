@@ -85,6 +85,8 @@ class LauncherSettingsFeature : LauncherFeature {
             Process.killProcess(Process.myPid())
         }
 
+        installExpressiveSlider(context, api)
+
         context.xposed.hook(createPreferences).intercept { chain ->
             val rootKey = chain.args.getOrNull(ROOT_KEY_ARGUMENT) as? String
             val page = CatalogPage.entries.firstOrNull { PAGE_KEY_PREFIX + it.key == rootKey }
@@ -111,6 +113,29 @@ class LauncherSettingsFeature : LauncherFeature {
     }
 
     /**
+     * Draws this module's slider rows the way Material 3 Expressive draws one.
+     *
+     * The bar only exists once a row is bound, so the restyling happens there.
+     * Only this module's own rows are touched, recognised by the key prefix
+     * every row here is built with: a slider the launcher adds of its own is
+     * left as the launcher drew it.
+     */
+    private fun installExpressiveSlider(context: FeatureContext, api: PreferenceApi) {
+        val bind = api.sliderBind
+        if (!api.hasSlider || bind == null) return
+
+        context.xposed.hook(bind).intercept { chain ->
+            chain.proceed().also {
+                val row = chain.thisObject
+                if (row != null && api.keyOf(row)?.startsWith(KEY_PREFIX) == true) {
+                    runCatching { api.sliderViewOf(row)?.let(ExpressiveSlider::applyTo) }
+                        .onFailure { context.logger.warn("Unable to draw the slider", it) }
+                }
+            }
+        }
+    }
+
+    /**
      * This module's own resources, read from inside the launcher.
      *
      * Titles and summaries are described once, in this module's `strings.xml`,
@@ -130,7 +155,8 @@ class LauncherSettingsFeature : LauncherFeature {
 
         /** `onCreatePreferences(Bundle savedInstanceState, String rootKey)`. */
         const val ROOT_KEY_ARGUMENT = 1
-        const val PAGE_KEY_PREFIX = "ple_page_"
+        const val KEY_PREFIX = "ple_"
+        const val PAGE_KEY_PREFIX = KEY_PREFIX + "page_"
     }
 }
 
@@ -191,6 +217,8 @@ private class SettingsSection(
         // Rows stay addressable so the two layout choices can update each other
         // on screen the moment one of them is switched on.
         val switches = mutableMapOf<BoolSetting, Any>()
+        // A row that belongs to one switch, greyed out while that switch is off.
+        val companions = mutableMapOf<BoolSetting, Any>()
 
         for (entry in FeatureCatalog.entriesIn(page)) {
             val setting = entry.setting
@@ -202,11 +230,16 @@ private class SettingsSection(
                 title = resources.getString(entry.titleRes),
                 summary = resources.getString(entry.summaryRes),
                 checked = settings[setting],
-                onChange = { value -> apply(setting, value, switches) },
+                onChange = { value -> apply(setting, value, switches, companions) },
             )
 
             switches[setting] = row
             api.add(screen, row)
+
+            companionOf(setting, context)?.let { companion ->
+                companions[setting] = companion
+                api.add(screen, companion)
+            }
         }
 
         when (page) {
@@ -218,6 +251,50 @@ private class SettingsSection(
             else -> Unit
         }
     }
+
+    /**
+     * The row that belongs directly under one switch, or none.
+     *
+     * A companion is not a tweak of its own — it says how the switch above it
+     * behaves — so it is not in the catalogue, and it is greyed out rather than
+     * hidden while that switch is off, to say what it would change.
+     */
+    private fun companionOf(setting: BoolSetting, context: Context): Any? = when (setting) {
+        Settings.HOME_BLUR_WALLPAPER -> blurStrength(context)
+        else -> null
+    }
+
+    /**
+     * How strong the home screen blur is, from weakest to the launcher's own
+     * deepest. The middle is what the tweak did before it could be changed.
+     */
+    private fun blurStrength(context: Context): Any? {
+        if (!api.hasSlider) {
+            logger.warn("Home settings has no slider row in this launcher; blur strength is not offered")
+            return null
+        }
+
+        val strength = Settings.HOME_BLUR_STRENGTH
+        lateinit var row: Any
+
+        row = api.createSlider(
+            context = context,
+            key = KEY_PREFIX + strength.key,
+            title = resources.getString(R.string.feature_home_blur_strength_title),
+            summary = blurStrengthSummary(settings[strength]),
+            value = settings[strength],
+            isEnabled = settings[Settings.HOME_BLUR_WALLPAPER],
+            onChange = { value ->
+                settings.put(strength, value)
+                api.setSummary(row, blurStrengthSummary(value))
+            },
+        )
+
+        return row
+    }
+
+    private fun blurStrengthSummary(strength: Int): String =
+        resources.getString(R.string.feature_home_blur_strength_summary, strength)
 
     /**
      * The row that says which pages each Mode shows.
@@ -351,15 +428,23 @@ private class SettingsSection(
     }
 
     /**
-     * Writes one setting, and settles the pair that cannot both be on.
+     * Writes one setting, greys its companion row with it, and settles the pair
+     * that cannot both be on.
      *
      * Tablet mode and tablet taskbar only are two answers to the same question,
      * so switching one on switches the other off, on screen as well as in the
      * store. Without the second half a person would be looking at two switches
      * that both read on while only one of them is.
      */
-    private fun apply(setting: BoolSetting, value: Boolean, switches: Map<BoolSetting, Any>) {
+    private fun apply(
+        setting: BoolSetting,
+        value: Boolean,
+        switches: Map<BoolSetting, Any>,
+        companions: Map<BoolSetting, Any>,
+    ) {
         settings.put(setting, value)
+        companions[setting]?.let { api.setEnabled(it, value) }
+
         if (value) {
             val opposite = when (setting) {
                 Settings.TABLET_MODE -> Settings.TASKBAR_ONLY

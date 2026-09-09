@@ -34,6 +34,7 @@ class PreferenceApi(classLoader: ClassLoader) {
     private val category = load(classLoader, "androidx.preference.PreferenceCategory")
     private val screen = load(classLoader, "androidx.preference.PreferenceScreen")
     private val switch = load(classLoader, "androidx.preference.SwitchPreference")
+    private val slider = load(classLoader, "androidx.preference.SeekBarPreference")
     private val twoState = load(classLoader, "androidx.preference.TwoStatePreference")
     private val fragment = load(classLoader, "androidx.preference.PreferenceFragmentCompat")
 
@@ -41,6 +42,21 @@ class PreferenceApi(classLoader: ClassLoader) {
     private val categoryConstructor = category?.let(::styledConstructor)
     private val screenConstructor = screen?.let(::styledConstructor)
     private val switchConstructor = switch?.let(::styledConstructor)
+    private val sliderConstructor = slider?.let(::styledConstructor)
+    private val setSliderValue = slider?.let(::valueSetter)
+
+    /**
+     * `onBindViewHolder`, and the `SeekBar` a bind puts in the row.
+     *
+     * The override keeps its name where every other member of the class lost
+     * one, because it overrides a method of `Preference`, which is not renamed.
+     * The view behind it is found by its type: there is one field of it.
+     */
+    val sliderBind: java.lang.reflect.Method? =
+        slider?.declaredMethods?.singleOrNull { it.name == "onBindViewHolder" }
+    private val sliderViewField = slider?.declaredFields?.singleOrNull {
+        it.type == android.widget.SeekBar::class.java
+    }?.apply { isAccessible = true }
 
     private val setTitle = preference?.let { Reflect.method(it, "setTitle", CharSequence::class.java) }
     private val setSummary = preference?.let { Reflect.method(it, "setSummary", CharSequence::class.java) }
@@ -56,6 +72,10 @@ class PreferenceApi(classLoader: ClassLoader) {
     }
 
     private val contextField = preference?.let { Reflect.field(it, "mContext") }
+    private val enabledField = preference?.let { Reflect.field(it, "mEnabled") }
+    private val iconSpaceField = preference?.let { Reflect.field(it, "mIconSpaceReserved") }
+    private val keyField = preference?.let { Reflect.field(it, "mKey") }
+    private val notifyChanged = preference?.let { Reflect.method(it, "notifyChanged") }
     private val persistentField = preference?.let { Reflect.field(it, "mPersistent") }
     private val changeListenerField = preference?.let { Reflect.field(it, "mOnChangeListener") }
     private val clickListenerField = preference?.let { Reflect.field(it, "mOnClickListener") }
@@ -72,6 +92,23 @@ class PreferenceApi(classLoader: ClassLoader) {
             contextField != null && persistentField != null &&
             changeListenerField != null && clickListenerField != null &&
             preferenceManagerField != null && attachToHierarchy != null
+
+    /**
+     * Whether this build can draw a slider row.
+     *
+     * Separate from [isUsable] because a launcher that has shrunk this one
+     * class away should lose one row rather than the whole section.
+     */
+    val hasSlider: Boolean =
+        sliderConstructor != null && setSliderValue != null &&
+            enabledField != null && notifyChanged != null
+
+    /** The bar a bound slider row draws, for a row that wants restyling. */
+    fun sliderViewOf(row: Any): android.widget.SeekBar? =
+        sliderViewField?.get(row) as? android.widget.SeekBar
+
+    /** A row's key, which is what says whether it is one of this module's. */
+    fun keyOf(row: Any): String? = keyField?.get(row) as? String
 
     /** The themed context a preference was built with, which new rows must share. */
     fun contextOf(preference: Any): Context = contextField!!.get(preference) as Context
@@ -129,6 +166,61 @@ class PreferenceApi(classLoader: ClassLoader) {
         )
     }
 
+    /**
+     * A row carrying a slider from 0 to 100.
+     *
+     * Those bounds are not set here: they are what
+     * `SeekBarPreference(Context, null)` builds itself, reading `min` with a
+     * default of 0 and `android:max` with a default of 100 from an attribute
+     * set that is not there. The setters for them did not survive this
+     * launcher's shrinker — every member of this one class is renamed — so a
+     * caller's range has to be the same 0..100.
+     *
+     * The value is set through the only method the class declares that takes a
+     * number and a flag and returns nothing, which is recognised by that shape
+     * rather than by its rewritten name.
+     */
+    fun createSlider(
+        context: Context,
+        key: String,
+        title: CharSequence,
+        summary: CharSequence,
+        value: Int,
+        isEnabled: Boolean,
+        onChange: (Int) -> Unit,
+    ): Any = sliderConstructor!!.newInstance(context, null).also { row ->
+        setKey!!.invoke(row, key)
+        setTitle!!.invoke(row, title)
+        setSummary!!.invoke(row, summary)
+        persistentField!!.setBoolean(row, false)
+        enabledField!!.setBoolean(row, isEnabled)
+        // The theme's slider style reserves room for an icon, which no row in
+        // this section has. Left reserved, the slider alone sits 56dp right of
+        // every switch above and below it.
+        iconSpaceField?.setBoolean(row, false)
+        setSliderValue!!.invoke(row, value, false)
+        changeListenerField!!.set(
+            row,
+            listener(changeListenerField.type) { args ->
+                args.filterIsInstance<Int>().firstOrNull()?.let(onChange)
+            },
+        )
+    }
+
+    /**
+     * Greys a row out, for one that only means something while another is on.
+     *
+     * `setEnabled` did not survive the shrinker, so the field behind it is
+     * written and the row is asked to draw itself again.
+     */
+    fun setEnabled(row: Any, isEnabled: Boolean) {
+        if (enabledField == null || notifyChanged == null) return
+        if (enabledField.getBoolean(row) == isEnabled) return
+
+        enabledField.setBoolean(row, isEnabled)
+        notifyChanged.invoke(row)
+    }
+
     fun createAction(
         context: Context,
         key: String,
@@ -183,6 +275,21 @@ class PreferenceApi(classLoader: ClassLoader) {
 
         fun load(classLoader: ClassLoader, name: String): Class<*>? =
             runCatching { Class.forName(name, false, classLoader) }.getOrNull()
+
+        /**
+         * `setValueInternal(int, boolean)`, found by shape.
+         *
+         * It is the only method the class declares that takes a number and a
+         * flag and returns nothing. Its name is written by the launcher's
+         * shrinker, and so is the name of every field it touches, so nothing
+         * here can be asked for by name.
+         */
+        fun valueSetter(type: Class<*>) = type.declaredMethods.singleOrNull {
+            it.returnType == Void.TYPE &&
+                it.parameterTypes.size == 2 &&
+                it.parameterTypes[0] == Int::class.javaPrimitiveType &&
+                it.parameterTypes[1] == Boolean::class.javaPrimitiveType
+        }?.apply { isAccessible = true }
 
         /**
          * The two-argument constructor, which is what applies the theme.

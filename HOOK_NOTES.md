@@ -1071,122 +1071,342 @@ never reports the hand back — a cancelled gesture, a quick switch to another
 app — is covered by `onAnimationCanceled` and `onAnimationFinished`, which show
 the taskbar outright, and by the two-second safety net behind them.
 
-## Blurring the wallpaper on the home screen
+## Blurring the wallpaper on the home screen (Android 17, re-verified September 9, 2026)
 
-Read off the same device, from
-`/system_ext/priv-app/WallpaperPickerGoogleRelease/WallpaperPickerGoogleRelease.apk`
-as well as the launcher.
+Read off the launcher on the same device, `CP2A.260805.005`.
 
 ```
 com.android.quickstep.util.BaseDepthControllerImpl
-  protected final int mMaxBlurRadius
+  protected final int mMaxBlurRadius            // 90 on a Pixel 8 Pro
   protected int mCurrentBlur
   private float mDepth
+  public final MultiPropertyFactory$MultiProperty stateDepth
+  public final MultiPropertyFactory$MultiProperty widgetDepth
   private void setDepth(float)
   private static float mapDepthToBlur(float)
-  private void applyDepthAndBlur(SurfaceTransaction, boolean, boolean)
   public void applyDepthAndBlur()
-  public boolean shouldBlur()
 
 com.android.launcher3.statehandlers.DepthController extends BaseDepthControllerImpl
 com.android.launcher3.statehandlers.LauncherDepthController extends DepthController
 ```
 
-One float drives the whole effect. `applyDepthAndBlur` computes
+`mCurrentBlur = shouldBlur() ? (int) (mMaxBlurRadius * mapDepthToBlur(mDepth)) : 0`,
+put on the wallpaper surface with `SurfaceProperties.setBackgroundBlurRadius`,
+and the same depth passed to `WallpaperManager.setWallpaperZoomOut` — which is
+why the launcher's own blur comes with the wallpaper pushed back rather than
+only softened.
 
-```
-mCurrentBlur = shouldBlur() ? (int) (mMaxBlurRadius * mapDepthToBlur(mDepth)) : 0
-```
-
-puts that on the wallpaper surface with
-`SurfaceTransaction.SurfaceProperties.setBackgroundBlurRadius`, and passes the
-same depth to `WallpaperManager.setWallpaperZoomOut`, which is why the launcher's
-own blur comes with the wallpaper pushed back rather than only softened.
-
-`mapDepthToBlur` is `Interpolators.clampToProgress(LINEAR, depth, 0f, 0.3f)`, so
-the blur reaches the full radius at a depth of `0.3` and scales linearly below
-it. The module's floor of `0.15` is therefore half of the launcher's maximum.
+`mapDepthToBlur` is `clampToProgress(LINEAR, depth, 0f, 0.3f)`, so the blur
+reaches the full radius at a depth of `0.3`. The module's `0.15` is half of it.
 
 `shouldBlur()` is `mCrossWindowBlursEnabled && !scrimView.isFullyOpaque() &&
-!mPauseBlurs`, so a floor raised here still respects the platform switching
-window blurs off, and still yields to an opaque scrim.
+!mPauseBlurs`, so raising a depth still respects the platform switching window
+blurs off, and still yields to an opaque scrim.
 
-`setDepth` bounds its argument to `0..1`, quantises it, and returns early when
-the value has not moved. Raising its argument is enough to raise the resting
-depth of every state; the launcher's own deeper states are already above the
-floor, so nothing stacks.
+### Where a state's depth comes from
 
-### Gotcha: the depth setter is reached through a synthetic bridge
+`mDepth` is the aggregate of several channels. The one the state machine drives
+is `stateDepth`, and the number it is driven to is the state's own:
+
+```
+DepthController.setState(Object state)
+  stateDepth.setValue(state.getDepth(mContainer))
+
+DepthController.setStateWithAnimation(BaseState state, StateAnimationConfig, PendingAnimation p)
+  p.setFloat(stateDepth, MULTI_PROPERTY_VALUE, state.getDepth(mContainer), interpolator)
+```
+
+```
+com.android.launcher3.LauncherState
+  public final float getDepth(com.android.launcher3.views.ActivityContext)   // 5 code units
+  public float getDepthUnchecked(com.android.launcher3.views.ActivityContext) // returns 0f
+  public static final LauncherState NORMAL   // of type LauncherState$3
+```
+
+`LauncherState$3` — the home state — overrides only `getTransitionDuration`, so
+`NORMAL.getDepth` is the base pair above and answers `0f`.
+
+The call is `invoke-interface BaseState.getDepth`, so grepping a dex dump for
+`LauncherState;.getDepth:` finds nothing. There are five call sites:
+`BaseDepthControllerImpl.setDepth`, `DepthController.setState`,
+`DepthController.setStateWithAnimation`,
+`TaskViewUtils.createRecentsWindowAnimator` and
+`RecentsView.createAdjacentPageAnimForTaskLaunch`. Only the two on
+`DepthController` decide the depth home rests at and the depth it animates
+towards; `setDepth` asks only to decide whether to round its argument off.
+
+The module hooks `LauncherState.getDepth` and answers for `NORMAL` alone,
+recognised by identity. Every other state keeps its own number, and this
+module's number is compared with none of them.
+
+### Gotcha: raising the applied depth desynchronises the state machine
+
+The first version of this tweak held a floor under the depth the launcher ends
+up applying, in `setDepth`, rather than changing what the state reports. That is
+wrong in a way `dumpsys` states plainly:
+
+```
+adb shell dumpsys activity com.google.android.apps.nexuslauncher
+
+    DepthController
+    	mMaxBlurRadius=90
+    	mStateDepth=0.0      <- what the launcher believes home is
+    	mCurrentBlur=44      <- what the wallpaper surface got
+```
+
+The launcher animates a state change from the depth it believes it is at, so
+believing home is `0.0` it starts every transition out of home from zero. The
+blur drops out for the first frames of Overview and of the app drawer, and comes
+back only once the next state has settled. Gating the floor on "the launcher is
+on home", read off `onStateSetStart` and `onStateSetEnd`, does not help: it
+narrows what the floor touches without making the two numbers agree, and it adds
+a second failure — `onResume` runs before `onStateSetStart(NORMAL)` does, so a
+switch flipped in Home settings was applied while the module still believed it
+was somewhere else, and the blur waited for the state after that.
+
+Answered at the state, `mStateDepth` reads `0.15` and `mCurrentBlur` reads `45`.
+The launcher and the wallpaper agree, transitions start from the blurred depth,
+and neither symptom exists to be gated around.
+
+### Gotcha: the ask is five code units behind an interface call
+
+`getDepth` is small enough for ART to inline past a hook. `DepthController.setState`
+and `DepthController.setStateWithAnimation` are deoptimized so the call stays
+real. They are the two that matter; an inlined copy inside `setDepth` would only
+change whether the depth is rounded to 1/256.
+
+For the record, the setter is also reached through a shrunk static bridge, which
+is what an earlier version had to deoptimize instead:
 
 ```
 BaseDepthControllerImpl$1.setValue(BaseDepthControllerImpl, float)   // the DEPTH FloatProperty
-  -> BaseDepthControllerImpl.c(BaseDepthControllerImpl, float)       // static, synthetic, 4 units
+  -> BaseDepthControllerImpl.c(BaseDepthControllerImpl, float)       // static, synthetic
      -> BaseDepthControllerImpl.setDepth(float)                      // private
 ```
 
-The bridge is four code units long and is the only caller, so ART is free to
-inline the setter past a hook on it. Its name is produced by the shrinker, so the
-module deoptimises it by shape instead: the one static method on the class that
-returns nothing and takes a controller and a float.
-
-### The switch, in Wallpaper & Style
+### Gotcha: the launcher blurs its own workspace, not only the wallpaper
 
 ```
-com.android.wallpaper.customization.ui.binder.ThemePickerCustomizationOptionsBinder
-  public final void bind(CustomizationOptionsData, View, List, List, Map, …)
+com.android.launcher3.statehandlers.LauncherDepthController extends DepthController
+  public final boolean blurWorkspaceDepthTargets()
+  public final void onDepthAndBlurApplied()
 
-com.android.wallpaper.picker.customization.ui.CustomizationPickerFragment
-  initCustomizationOptionEntries(CustomizationOptionsData, View, Screen)
+com.android.launcher3.LauncherState
+  public boolean shouldBlurWorkspace(NexusLauncherActivity, LauncherState)
+com.android.launcher3.uioverrides.states.AllAppsState
+  public final boolean shouldBlurWorkspace(NexusLauncherActivity, LauncherState)
 ```
 
-`bind` is the only method of that name on the class, and its `View` is the root
-that holds `id/home_customization_option_container` — a vertical `LinearLayout`
-with `showDividers="middle"`. The entries are inflated and added by
-`initCustomizationOptionEntries` before `bind` runs, so a row appended from a
-hook after `bind` lands under a list the picker has finished building.
+`blurWorkspaceDepthTargets` puts a `RenderEffect` on the launcher's own views:
 
-`ThemePickerCustomizationOptionViewUtil.getOptionEntries` builds the Home screen
-list in order and ends with `GRID`, whose entry is
-`layout/customization_option_entry_grid` and whose title is `string/grid_layout`
-— **Layout**. Appending is therefore what puts the row directly under it.
+```java
+Object target = stateManager.mConfig.targetState;
+if (target == null) target = stateManager.mState;
+boolean should = stateManager.mCurrentStableState.shouldBlurWorkspace(launcher, target);
+RenderEffect effect = should && mCurrentBlur > 0
+        ? RenderEffect.createBlurEffect(mCurrentBlur, mCurrentBlur, tileMode)
+        : null;
+for (View v : launcher.mDepthBlurTargets) v.setRenderEffect(effect);   // Workspace, Hotseat
+```
 
-The card is not drawn by the container. Each entry is given its own background by
-index:
+The receiver is the **stable** state and the argument is the one being headed
+to. `LauncherState` answers `other == ALL_APPS`; `AllAppsState` answers
+`other == ALL_APPS || other == NORMAL`, which is what blurs the workspace on the
+way out of the drawer as well as on the way in. A resource boolean
+(`0x7f050012`) switches the whole thing off, and is false on this build.
 
-| Position | Background |
+It is called from one place: `onDepthAndBlurApplied`, which the base calls after
+it has applied a depth — and it applies one only when the depth has **moved**.
+
+That last sentence is the trap. On a stock home screen the depth carries on past
+the end of the transition to zero, so the effect is recomputed with the settled
+state and cleared. With a home screen that rests at `0.15`, the depth reaches
+its resting value on the last frame of the transition, while the stable state is
+still `AllApps` — so the workspace is blurred, the depth never moves again, and
+nothing recomputes it. The icons, their labels and the search bar stay blurred
+until something else moves the depth. Only the status bar, a window of its own,
+is unaffected.
+
+The fix is to call `blurWorkspaceDepthTargets()` once from
+`QuickstepLauncher.onStateSetEnd`, where the stable state is the settled one.
+Nothing is decided here: the launcher's own answer is asked for again at the
+moment its inputs have changed. Verified in its own log:
+
+```
+adb logcat -s BaseDepthController
+
+  shouldBlurWorkspace: true  targetState: Normal currentStableState: AllApps  mCurrentBlur: 45
+  shouldBlurWorkspace: false targetState: Normal currentStableState: Normal   mCurrentBlur: 45
+```
+
+The second line is the call above, three milliseconds after the transition's
+last frame.
+
+### Gotcha: the launcher switches its own blurs off to come home
+
+```
+com.android.quickstep.util.BaseDepthControllerImpl
+  public void pauseBlursOnWindows(boolean)      // sets mPauseBlurs, then applyDepthAndBlur()
+```
+
+`mPauseBlurs` is one of the three things `shouldBlur()` asks, so while it is set
+`mCurrentBlur` is 0 whatever the depth says. Six call sites set it, and the ones
+that matter here are the two ways home is reached from an app:
+
+| Caller | Gesture |
 |---|---|
-| only child | `drawable/customization_option_entry_singleton_background` |
-| first | `drawable/customization_option_entry_top_background` |
-| last | `drawable/customization_option_entry_bottom_background` |
-| otherwise | `drawable/customization_option_entry_background` |
+| `RectFSpringAnim` / `ScalingWorkspaceRevealAnim` | swipe up to home |
+| `LauncherBackAnimationController.tryStartBackAnimation`, `.finishAnimation` | swipe to go back |
 
-so appending a row also means handing the last background from the row that used
-to be last to the new one, or the list stays rounded above it and square below.
+Each pauses for the length of its animation and unpauses at the end. On a stock
+home screen that is invisible, because home rests at no depth and there is no
+blur to switch off. On a blurred one it reads as the wallpaper snapping sharp
+for the length of the animation and blurring again once it lands.
 
-The entry layout's root `ConstraintLayout` carries no id — only its children do
-(`option_entry_title`, `option_entry_description`, `option_entry_icon_container`)
-— so inflating it a second time adds no duplicate id for the picker's own lookups
-to trip over. The icon slot is sized to `dimen/customization_option_entry_icon_size`
-and rounded by `drawable/customization_option_entry_icon_background`; a switch is
-neither, so the module clears both before putting one there.
+**The pause cannot be skipped, and does not need to be. Three ways of skipping
+it only where it is safe were tried; none holds.** Skipped on a back gesture,
+the icons, their labels and the search bar blur along with the wallpaper — that animation follows an app's
+window off the screen, which puts the launcher's content under the transition
+leash, and `setBackgroundBlurRadius` blurs everything behind the surface it is
+set on. Only the status bar, a window of its own, stays sharp.
 
-### Where that setting lives, and why it is not a provider
-
-`com.google.android.apps.wallpaper` targets API 37 and does not hold
-`QUERY_ALL_PACKAGES`, so package visibility hides this module's own content
-provider from it: a provider it cannot resolve is a setting it cannot store. It
-does hold `WRITE_SECURE_SETTINGS`, and the settings provider is visible to
-everything, so the choice is one secure setting instead:
+Both ways home run through one animation, and it is where the pause is raised:
 
 ```
-Settings.Secure "pixel_launcher_evolved_home_blur_wallpaper"   // 0 or 1
+com.android.quickstep.util.ScalingWorkspaceRevealAnim
+  ScalingWorkspaceRevealAnim(QuickstepLauncher, RectFSpringAnim, RectF, boolean, boolean)
+  private final void addBlurLayer()      // insns size: 1 — return-void
+  private final void applyBlur(float)    // returns at once: blurLayer is never created
 ```
 
-Wallpaper & Style writes it, the launcher reads it, and the launcher watches
-`Settings.Secure.getUriFor` for it so the switch reaches a running launcher
-without a restart. `com.google.android.apps.nexuslauncher` does hold
-`QUERY_ALL_PACKAGES`, so the launcher end was never the problem; the wallpaper
-end was.
+The animation was meant to draw its own blur while the controller's are off — it
+carries a `blurLayer`, a `BLUR_INTERPOLATOR` and the calls to fill it — but
+**`addBlurLayer` is an empty method in this build**, so nothing takes over from
+the pause. That is why the pause looks skippable when it is not.
+
+What the wallpaper actually does through these animations is settled by clearing
+the workspace effect after every pause, below. With that in place, ten gestures
+— swiping up and going back — applied a zero blur on no frame.
+
+What was tried, and why each fails:
+
+- **`mBaseSurfaceOverride`** is null for both gestures at the moment the pause
+  is raised, so it separates nothing.
+- **What the reveal is built with.** A back gesture is handed a `RectFSpringAnim`;
+  a swipe up to home is handed one *sometimes* and nothing the rest of the time,
+  so gating on it leaves the flicker in place for most real swipes.
+- **Skipping only the pause raised inside the reveal.** Going back usually
+  raises its own pause first, from `LauncherBackAnimationController`, so the
+  skip lands on an already-paused controller and changes nothing — *usually*.
+  It is a race: when the reveal gets there first, the back gesture runs
+  unpaused and the whole home screen blurs. Measured both outcomes on the same
+  build, minutes apart.
+
+The launcher's own log is the way to see the flicker rather than guess at it,
+and `grep -c 'Applying blur: 0 '` over one gesture is the measure of it:
+
+```
+adb logcat -s BaseDepthController
+
+  Applying blur: 90 …
+  Applying blur: 0  …   <- about 170ms of it
+  Applying blur: 90 …
+  Applying blur: 45 …
+```
+
+### Gotcha: pausing the blurs leaves the workspace effect behind
+
+`pauseBlursOnWindows` applies depth and blur again, which should recompute
+`blurWorkspaceDepthTargets` with `mCurrentBlur` at zero and clear the effect. It
+does not always: the launcher applies a depth only when the depth has moved, and
+a home screen that rests at a depth is the case where it has not. So the
+workspace keeps the `RenderEffect` it was given while blurs were on, and the
+icons stay smeared for the length of the animation even though the blur behind
+them is off. Asking the launcher for that answer again straight after a pause is
+what clears it.
+
+### Gotcha: the slider row reserves room for an icon
+
+`Preference.mIconSpaceReserved` is false by default, which is why the switch
+rows here need nothing done to them. The theme's slider style sets it, so a
+`SeekBarPreference` built the same way lands 56dp right of every switch above
+and below it. The field survives the shrinker; writing false to it is the whole
+fix.
+
+### Gotcha: SeekBarPreference is renamed all the way down
+
+`androidx.preference.Preference` keeps its member names in this build —
+`mPersistent`, `mEnabled`, `mOnChangeListener`, `notifyChanged` are all
+there — but `androidx.preference.SeekBarPreference` does not: every field and
+method of it is rewritten.
+
+```
+androidx.preference.SeekBarPreference
+  <init>(Context, AttributeSet)
+  c: I   e: I   f: I   g: I        // value, min, max, increment
+  c(int, boolean)                  // setValueInternal
+```
+
+Nothing there can be asked for by name, and letters change with the next
+launcher build. Two things make the row buildable without them:
+
+- **The bounds are the ones it builds itself.** With a null `AttributeSet` the
+  constructor reads `min` with a default of 0 and `android:max` with a default
+  of 100, so a slider is already 0..100 and `setMin`/`setMax` — both dropped —
+  are never wanted. The stored setting carries the same range.
+- **The value is set through the only method of that shape.** `c(int, boolean)`
+  is the one method the class declares that takes a number and a flag and
+  returns nothing, so it is recognised the way the depth bridge is: by shape.
+
+`setEnabled` was dropped as well, so greying the row out writes `mEnabled` on
+`Preference` and calls `notifyChanged`.
+
+### Drawing the slider the way Material 3 Expressive draws one
+
+The launcher's theme leaves the row with the platform's thin track and round
+knob. Material 3 Expressive wants a 16dp track, a 4dp by 44dp handle that is a
+bar, and a 6dp gap holding the track off the handle on both sides.
+
+`onBindViewHolder` keeps its name — it overrides a method of `Preference`, which
+is not renamed — so the bar is reached there, and only for rows whose key
+carries this module's prefix. The bar itself is the one field of type
+`android.widget.SeekBar`.
+
+A `SeekBar` normally clips one drawable over another, which squares off the end
+the clip falls on and leaves nowhere to put a gap, so both halves of the track
+are drawn by one `Drawable` of this module's own instead. A `ProgressBar` hands
+progress to a progress drawable as that drawable's *level* when the drawable is
+not a layer list, so the level is what it reads — and because the drawable is
+installed after the row already has its value, the first level has to be set by
+hand or the track draws empty under a handle that is already halfway across.
+
+Colours are resolved through `android.R.attr.colorAccent`, a framework
+attribute. Looking Material attributes up by name does not work here: the
+launcher's resource names do not survive its build, `getIdentifier` returns 0,
+and the slider comes out white.
+
+### The switch, in Home settings
+
+The switch is a row on the Home Screen page of the launcher's own Home settings,
+stored in this module's own preference file beside every other setting. It is
+read when the launcher comes back to the front rather than on every call, which
+keeps a preference lookup out of every state change: Home settings is the
+activity a person leaves to get back to the launcher, so `onResume` is where a
+change arrives.
+
+What makes the change visible without waiting for the next state change is
+calling `DepthController.setState` again with the state that controller last
+applied — the launcher's own path to the wallpaper rather than a second one.
+The controllers and their states are collected at that same method, which is the
+only place one is handed over. The strength is read there too, so moving the
+slider and coming back applies on the same path as switching it on.
+
+Earlier versions put the switch in **Wallpaper & Style** and stored it in
+`Settings.Secure` under `pixel_launcher_evolved_home_blur_wallpaper`, because
+`com.google.android.apps.wallpaper` does not hold `QUERY_ALL_PACKAGES` and so
+cannot resolve this module's content provider. That hook, that scope and that
+key are all gone. A value left in secure settings by such a build is ignored and
+never read.
 
 ## Gotcha: the row is sized by counting children, not visible ones
 

@@ -15,3 +15,15 @@ data class BoolSetting(
     override val key: String,
     override val default: Boolean,
 ) : Setting<Boolean>
+
+/**
+ * A number within a range.
+ *
+ * The range belongs to the setting rather than to the row that shows it, so a
+ * value read back is inside it whoever wrote it.
+ */
+data class IntSetting(
+    override val key: String,
+    override val default: Int,
+    val range: IntRange,
+) : Setting<Int>

@@ -16,6 +16,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.search.AppDrawerSearchFeatu
 import my.github.MrxSiN.pixellauncherevolved.feature.search.HomeSearchBarFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.LauncherSettingsFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.wallpaper.HomeWallpaperBlurFeature
 
 /**
  * Every tweak the module can install.
@@ -32,6 +33,7 @@ object FeatureRegistry {
         TaskbarTransitionFeature(),
         TaskbarHomeVisibilityFeature(),
         TaskbarAllAppsButtonFeature(),
+        HomeWallpaperBlurFeature(),
         DoubleTapToSleepFeature(),
         HomeSearchBarFeature(),
         HiddenAppsFeature(),

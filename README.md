@@ -46,6 +46,7 @@ frame.
 
 | Tweak | What it does | Root |
 |---|---|:---:|
+| **Blur wallpaper** | Keeps the wallpaper blurred and pushed back while the home screen is showing, with the launcher's own blur. **Blur strength** underneath sets how deep, from nothing to the deepest the launcher's own blur goes; the middle is half of it. A deeper state deepens the blur rather than stacking a second one on it. | — |
 | **Focus home screens** | Gives a home screen page to one of the device's Modes — Bedtime, Driving, Sleeping, whatever you have. While that Mode is on, only its pages show; when it ends the ordinary pages come back and its own go away. Assign them under **Focus pages**. | ✅ |
 | **Double Tap to Sleep** | Two taps on empty workspace send the power-key event through `su`. | ✅ |
 | **Search bar opens app search** | Tapping the home screen search bar opens the app drawer with its search box focused, the way earlier Pixel Launcher versions did, instead of handing the tap to the Google app. The bar's own buttons — logo, microphone, Lens — keep their actions, and a long press still picks the widget up. | — |

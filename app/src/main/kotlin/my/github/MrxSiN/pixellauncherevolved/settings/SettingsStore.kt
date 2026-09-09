@@ -3,6 +3,7 @@ package my.github.MrxSiN.pixellauncherevolved.settings
 import android.content.SharedPreferences
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
+import my.github.MrxSiN.pixellauncherevolved.catalog.IntSetting
 
 /**
  * Read/write access to the settings every feature reads.
@@ -14,6 +15,8 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 interface SettingsStore : SettingsSource {
 
     fun put(setting: BoolSetting, value: Boolean)
+
+    fun put(setting: IntSetting, value: Int)
 }
 
 /**
@@ -28,5 +31,9 @@ class SharedPreferencesStore(
 
     override fun put(setting: BoolSetting, value: Boolean) {
         preferences.edit().putBoolean(setting.key, value).apply()
+    }
+
+    override fun put(setting: IntSetting, value: Int) {
+        preferences.edit().putInt(setting.key, value.coerceIn(setting.range)).apply()
     }
 }

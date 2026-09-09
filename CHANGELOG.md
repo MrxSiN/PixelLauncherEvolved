@@ -4,6 +4,60 @@
 
 ### Added
 
+- **Blur wallpaper**, on the Home Screen page. The wallpaper is blurred and
+  pushed back while the home screen is showing, with the launcher's own blur at
+  half the strength it uses behind the app drawer.
+
+  It says what depth the home screen rests at and lets the launcher draw the
+  result, so the effect is the launcher's own: no blur where the platform has
+  switched cross-window blurs off, none behind an opaque scrim, and a deeper
+  state deepens the blur rather than stacking a second one on it.
+
+  **Blur strength** sits underneath it, greyed out while the switch is off. The
+  middle is what the tweak did before it could be changed; right of it goes as
+  deep as the launcher's own blur ever goes, left of it down to nothing.
+
+  Both rows are drawn the way Material 3 Expressive draws them. The launcher's
+  theme leaves a slider with the platform's old thin track and round knob, and
+  reserves room for an icon no row here has, so the slider is aligned with the
+  switches above it and redrawn with a tall rounded track, a handle that is a
+  bar, and the gap that holds one off the other. Its colours are the launcher's
+  own, so it follows the wallpaper.
+
+  The launcher blurs its own workspace, not only the wallpaper, while the app
+  drawer is the state being left, and it recomputes that only when the depth
+  moves. A home screen that rests at a depth stops it moving on the last frame
+  of the transition, so the workspace was left blurred — icons, labels and the
+  search bar — until something else moved it. The launcher is now asked for that
+  answer again once the state has settled.
+
+  Arriving home from an app no longer leaves the workspace smeared. The launcher
+  switches its own window blurs off for the length of that animation, which is
+  meant to take the blur it puts on the workspace and the hotseat with it — but
+  it recomputes that only when the depth has moved, and a home screen resting at
+  a depth is the case where it has not. The launcher is asked for that answer
+  again straight after it pauses. Measured over ten gestures, swiping up and
+  going back both keep the wallpaper blurred throughout.
+
+  The pause itself is left alone. It cannot be skipped: the animation reparents
+  the launcher's own content under the transition leash, and a blur behind that
+  leash blurs the icons and the search bar along with the wallpaper. Both ways
+  home run through the same animation, and which one it is cannot be told apart
+  where that decision has to be made — `HOOK_NOTES.md` records the three ways
+  that were tried.
+
+  This is the tweak removed in 0.0.3, on a design that answers why it went. What
+  changes is the depth the home state itself reports, not the depth the launcher
+  ends up applying. The launcher animates a state change from the depth it
+  believes it is at, so raising only what it applies leaves it starting every
+  transition out of home from zero — the blur drops out for the first frames of
+  Overview and of the app drawer. Told that home is 0.15, the launcher animates
+  from 0.15 and nothing drops out. Only the home state is answered for, so this
+  module's one number is no longer something the app drawer's depth and Recents'
+  depth have to stay above. The switch is a row in the launcher's own Home
+  settings, so the Wallpaper & Style hook, the extra package scope and the
+  secure setting stay gone.
+
 - Activating or deactivating a Mode now reveals its Focus page with a circular,
   wallpaper-style transition when the launcher becomes visible.
 

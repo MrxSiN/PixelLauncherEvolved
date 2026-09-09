@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.settings
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
+import my.github.MrxSiN.pixellauncherevolved.catalog.IntSetting
 
 /**
  * Read-only view of the stored settings, as a feature sees them.
@@ -12,4 +13,6 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 interface SettingsSource {
 
     operator fun get(setting: BoolSetting): Boolean
+
+    operator fun get(setting: IntSetting): Int
 }

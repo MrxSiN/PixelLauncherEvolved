@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.search
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
+import my.github.MrxSiN.pixellauncherevolved.catalog.IntSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
 
@@ -124,11 +125,15 @@ class SearchResultKindTest {
 
     private object NothingOn : SettingsSource {
         override fun get(setting: BoolSetting): Boolean = setting.default
+
+        override fun get(setting: IntSetting): Int = setting.default
     }
 
     private class On(private vararg val on: BoolSetting) : SettingsSource {
         override fun get(setting: BoolSetting): Boolean =
             on.any { it.key == setting.key } || setting.default
+
+        override fun get(setting: IntSetting): Int = setting.default
     }
 
     private companion object {
