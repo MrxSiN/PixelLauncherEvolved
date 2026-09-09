@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.0.5
+
+### Fixed
+
+- **Focus home screens now notices a Mode that switches itself on.** Only the
+  interruption filter was watched, and Driving and Transit never move it — they
+  run at `ZEN_MODE_OFF` — so nothing reported the change and the pages waited
+  until the launcher was next brought to the front. Switching a Mode by hand
+  looked immediate only because closing the shade hands the launcher back its
+  window focus. The zen configuration tag is watched as well, which the
+  notification service rewrites whenever a rule's state changes at all, whether
+  or not it filters anything.
+- **Reading the Modes no longer happens while the workspace is being built.**
+  It is a call into this module's own app, answered out of a root shell, and it
+  ran again on every bind — including the bind that same reading had just asked
+  for. It happens once now, on the thread that asked to look.
+
+### Changed
+
+- **The Focus page swap is Material 3 Expressive.** It used to cut the
+  workspace to invisible, hold it blank for as long as the model took to bind,
+  then uncover it from the middle over three quarters of a second. Content being
+  replaced now fades and shrinks on an emphasized accelerating curve, and
+  content arriving is sprung into place — a real spring, slightly underdamped,
+  so it overshoots a little before it settles.
+- **The wallpaper keeps its blur through the animation home.** The launcher
+  switches its own window blurs off for the length of that animation, which on a
+  blurred home screen reads as the wallpaper snapping sharp until it lands. That
+  pause is no longer passed on while the tweak is on.
+
+  This has a cost, and it is the reason the approach was dropped once before. A
+  back gesture follows an app's window off the screen, which puts the launcher's
+  own content under the transition leash, and the blur applies to everything
+  behind the surface it is set on — so the icons, their labels and the search
+  bar can blur along with the wallpaper. Switch **Blur wallpaper** off if that
+  is worse for you than the flicker it replaces.
+
 ## 0.0.4
 
 ### Added

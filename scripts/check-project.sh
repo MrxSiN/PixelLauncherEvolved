@@ -446,8 +446,8 @@ grep -q 'my.github.MrxSiN.pixellauncherevolved.focus' "$SRC/focus/FocusContract.
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.0.4"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 4' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.0.5"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 5' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"

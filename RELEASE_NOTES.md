@@ -1,77 +1,54 @@
-# Pixel Launcher Evolved v0.0.4
+# Pixel Launcher Evolved v0.0.5
 
-Fourth alpha. Focus home screens learns the Modes it was missing, the app
-drawer learns to leave apps out, and going home stops stuttering.
-
-## New
-
-- **Hidden apps**, on the App Drawer page: the apps you pick are left out of
-  the drawer, and out of its search, so one that is hidden does not come back
-  the moment its name is typed.
-
-  They are picked in the drawer itself rather than from a list of names: the row
-  opens the app drawer with a tick on every icon, tapping one takes it instead
-  of opening it, and a button in the corner ends it. Apps already hidden are put
-  back for the length of it, ticks on, so one can be recovered. Nothing is
-  written until the button is pressed; leaving the drawer any other way keeps
-  what was already hidden.
-
-  The launcher's own per-tab filter does the hiding, wrapped rather than
-  replaced, so a work app is still a work app. An icon already on the home
-  screen or in the hotseat stays where it was put.
-- **A Focus page arrives with a reveal.** Turning a Mode on or off clips its
-  page in with a circular, wallpaper-style transition once the launcher is
-  visible again, rather than swapping the pages under you.
+Fifth alpha. A Mode that switches itself on now reaches the home screen without
+being asked twice, the page swap is sprung rather than wiped, and the wallpaper
+keeps its blur on the way home.
 
 ## Fixed
 
-- **Going home with the back gesture no longer stutters.** Reading which Modes
-  are on is a call into this module's own app, which answers by shelling out as
-  root: about 130ms with that app already running, about 490ms when the call
-  has to start it. All of it ran on the launcher's UI thread, from the hook that
-  notices the launcher coming forward. The launcher regains window focus part
-  way through the back animation home, so the stall landed inside a running
-  animation. Swiping home never stuttered for the same reason it never looked
-  wrong — focus arrives there once the animation has finished, so the identical
-  stall fell out of sight. The reading now happens on a thread of its own.
-- **A Mode turned on by hand is recognised.** Android reports that as an
-  activation override while leaving the rule's own condition false, so checking
-  the condition alone treated the Mode as off. Closing the Modes sheet over the
-  launcher now applies the chosen page immediately as well, including for Modes
-  such as Driving that never touch Do Not Disturb.
-- **Focus pages shows the page you are choosing.** A page given to a Mode is
-  filtered out of the workspace, so it has no view left to photograph, and the
-  whole set of page pictures was replaced every time one was taken — which
-  dropped exactly the pages the dialog exists to show. A page's last picture is
-  now kept, and written down, so it survives a launcher restart. It works in
-  both directions, because while a Mode is on it is the ordinary pages that are
-  filtered out.
-- **A page with no picture is drawn as a home screen.** Its widgets use the same
-  preview pictures the launcher's own widget picker shows, on a dark surface
-  rather than a near-white panel; its icons are themed when the home screen's
-  are; and it is laid out on the launcher's real grid rather than a guessed four
-  by six, so nothing is the wrong size.
-- **Page previews keep their wallpaper**, including on the first launcher start
-  after a restart, and a page the launcher has not filled in yet is no longer
-  photographed over a good picture of it.
-- **A notification is no longer captured as your wallpaper.** The wallpaper is
-  read off the display, and while the notification shade takes the window focus
-  and was already waited out, a heads-up notification does not — so one arriving
-  as the launcher came forward was captured and then used behind every page
-  preview until the launcher restarted. The display is now read only once the
-  launcher has been in front for longer than such a notification lasts.
-- **Focus pages no longer offers pages that belong to another Mode.** A Mode's
-  own pages stay visible while you edit it.
+- **A Mode that comes on by itself is noticed straight away.** Driving and
+  Transit run without touching Do Not Disturb, so the interruption filter never
+  moves for them and nothing reported the change — the pages waited until the
+  launcher was next brought to the front. Switching a Mode by hand only looked
+  immediate because closing the shade hands the launcher back its window focus.
+  Measured on a Pixel 8 Pro running Android 17: Driving on and off, the filter
+  resting at 0 throughout, and the swap landing about a second and a half after
+  the Mode changed.
+- **Reading the Modes no longer runs while the workspace is being built.** It is
+  a call into this module's own app, answered out of a root shell, and it ran
+  again on every bind — including the bind that reading had itself just asked
+  for. It happens once now, on the thread that asked to look.
 
-## Upgrading from v0.0.3
+## Changed
+
+- **The Focus page swap is Material 3 Expressive.** It used to cut the workspace
+  to invisible, hold it blank for as long as the model took to bind, then
+  uncover it from the middle over three quarters of a second on a plain ease.
+  Content being replaced now fades and shrinks on an emphasized accelerating
+  curve, and content arriving is sprung into place — a real spring, slightly
+  underdamped, so it overshoots a little before it settles.
+- **The wallpaper keeps its blur through the animation home.** The launcher
+  switches its own window blurs off for the length of that animation, which on a
+  blurred home screen reads as the wallpaper snapping sharp until it lands. That
+  pause is no longer passed on while the tweak is on.
+
+## Known issue
+
+The blur change above has a cost, and it is why the approach was dropped once
+before rather than because it was never tried. A back gesture follows an app's
+window off the screen, which puts the launcher's own content under the
+transition leash, and the blur applies to everything behind the surface it is
+set on — so the icons, their labels and the search bar can blur along with the
+wallpaper. Only the status bar, a window of its own, stays sharp.
+
+Swiping up to home is not affected. If the back gesture is worse for you than
+the flicker it replaces, switch **Blur wallpaper** off on the Home Screen page;
+everything else in this build is independent of it.
+
+## Upgrading from v0.0.4
 
 Install over the top and force-stop the Pixel Launcher once. Your existing
 settings and page assignments are kept.
-
-A page that was already assigned to a Mode before this build has never been on
-screen for its picture to be taken, so it is drawn from the model until the
-first time it is visible — turn that Mode on once, or unassign and reassign the
-page, and it is photographed from then on.
 
 ---
 
