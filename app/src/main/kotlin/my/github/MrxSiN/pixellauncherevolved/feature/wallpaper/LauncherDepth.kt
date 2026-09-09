@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.wallpaper
 
+import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
@@ -33,6 +34,15 @@ class LauncherDepth private constructor(
      * own window blurs off for the length of an animation home.
      */
     val pauseBlurs: Method?,
+    /**
+     * `ScalingWorkspaceRevealAnim`'s constructor: the animation both ways home
+     * run through, and where the blur pause is raised.
+     *
+     * Held so the module can tell that a pause belongs to a reveal rather than
+     * to something else. See `HOOK_NOTES.md` for why that is not enough on its
+     * own to decide which pauses may be skipped.
+     */
+    val revealHome: Constructor<*>?,
     private val logger: Logger,
 ) {
 
@@ -99,12 +109,21 @@ class LauncherDepth private constructor(
                 context.logger.warn("The launcher's blur pause is unreachable; the workspace may stay smeared")
             }
 
+            // Taken by shape rather than by signature: the animation has one
+            // constructor, and its parameters name launcher classes that would
+            // each have to be found before the constructor could be asked for.
+            val revealHome = context.findClass(WORKSPACE_REVEAL)
+                ?.declaredConstructors
+                ?.singleOrNull()
+                ?.apply { isAccessible = true }
+
             return LauncherDepth(
                 stateDepth = stateDepth,
                 applyState = applyState,
                 applyStateOverTime = animatedSetState(context, controller),
                 blurWorkspace = blurWorkspace,
                 pauseBlurs = pauseBlurs,
+                revealHome = revealHome,
                 home = home,
                 logger = context.logger,
             )
@@ -145,6 +164,7 @@ class LauncherDepth private constructor(
         private const val ACTIVITY_CONTEXT = "com.android.launcher3.views.ActivityContext"
         private const val DEPTH_CONTROLLER = "com.android.launcher3.statehandlers.DepthController"
         private const val DEPTH_CONTROLLER_BASE = "com.android.quickstep.util.BaseDepthControllerImpl"
+        private const val WORKSPACE_REVEAL = "com.android.quickstep.util.ScalingWorkspaceRevealAnim"
         private const val LAUNCHER_DEPTH_CONTROLLER =
             "com.android.launcher3.statehandlers.LauncherDepthController"
         private const val BASE_STATE = "com.android.launcher3.statemanager.BaseState"

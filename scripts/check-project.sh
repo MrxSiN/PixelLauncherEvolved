@@ -297,12 +297,16 @@ grep -q '"setState"' "$SRC/feature/wallpaper/LauncherDepth.kt"
 # tells the two apart. Everything here fails towards leaving the pause alone.
 grep -q 'pauseBlursOnWindows' "$SRC/feature/wallpaper/LauncherDepth.kt"
 grep -q 'installPausedBlur' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
-# The pause is never skipped: whether the back gesture is protected depends on
-# the order its own controller and the reveal happen to raise theirs, which is a
-# race, and losing it blurs the whole home screen.
-! grep -rq 'ScalingWorkspaceRevealAnim' "$SRC"
+# The pause IS skipped while the tweak is on, which keeps the wallpaper blurred
+# through the animation home at the documented cost: a back gesture blurs the
+# icons and the search bar with it. HOOK_NOTES.md records why the obvious gates
+# on that do not hold. The reveal is watched so a narrower gate has something to
+# be built on, and nothing is gated on it yet.
+grep -q 'ScalingWorkspaceRevealAnim' "$SRC/feature/wallpaper/LauncherDepth.kt"
+grep -q 'return@intercept null' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
+# RectFSpringAnim stays out: a swipe up to home is handed one only sometimes, so
+# gating on it leaves the flicker in place for most real swipes.
 ! grep -rq 'RectFSpringAnim' "$SRC"
-! grep -rq 'revealing' "$SRC"
 # What is done instead is clearing the workspace effect the pause leaves behind.
 grep -q 'refreshBlur' "$SRC/feature/wallpaper/HomeWallpaperBlurFeature.kt"
 

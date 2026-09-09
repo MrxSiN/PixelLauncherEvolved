@@ -67,28 +67,63 @@ class HomeWallpaperBlurFeature : ToggleFeature(Settings.HOME_BLUR_WALLPAPER) {
     }
 
     /**
-     * Clears the workspace effect the launcher leaves behind when it pauses.
+     * Holds the wallpaper's blur through the animation home.
      *
      * Arriving home from an app, the launcher switches its own window blurs off
-     * for the length of the animation, and the wallpaper is sharp until it
-     * lands. That pause cannot be skipped: the animation reparents the
-     * launcher's own content under the transition leash, and a blur behind that
-     * leash blurs the icons and the search bar along with the wallpaper. See
-     * `HOOK_NOTES.md` for the three ways of trying to skip it only where it is
-     * safe, and why none of them holds.
+     * for the length of the animation, and on a blurred home screen that reads
+     * as the wallpaper snapping sharp until it lands. Skipping the pause keeps
+     * the blur, and that is what this does: while the tweak is on, a request to
+     * pause is answered without being passed on.
      *
-     * What is done here does not touch the pause. Pausing applies depth and
-     * blur again, which would recompute what else is blurred with `mCurrentBlur`
-     * at zero — but the launcher applies a depth only when the depth has moved,
-     * and resting at one is the case where it has not. Without this the
-     * workspace keeps the `RenderEffect` it was given while blurs were on, and
-     * the icons stay smeared for the length of the animation.
+     * **This is the approach `HOOK_NOTES.md` records as failing, recovered from
+     * a build rather than written afresh, and it is kept behind that warning
+     * rather than because the warning was answered.** A back gesture follows an
+     * app's window off the screen, which puts the launcher's own content under
+     * the transition leash, and `setBackgroundBlurRadius` blurs everything
+     * behind the surface it is set on — so the icons, their labels and the
+     * search bar blur along with the wallpaper. Only the status bar, a window
+     * of its own, stays sharp. Read that file's three rejected gates before
+     * trying to narrow this: the obvious ones were measured and none held.
+     *
+     * [LauncherDepth.revealHome] is watched so the module knows a pause raised
+     * inside the animation home from any other, which is what such a gate would
+     * be built on. Nothing is gated on it here — the skip is unconditional
+     * while the tweak is on, exactly as recovered.
+     *
+     * When the pause is not skipped it still leaves the workspace effect
+     * behind, so that clearing stays: pausing applies depth and blur again,
+     * which would recompute what else is blurred with `mCurrentBlur` at zero —
+     * but the launcher applies a depth only when the depth has moved, and
+     * resting at one is the case where it has not. Without it the workspace
+     * keeps the `RenderEffect` it was given while blurs were on, and the icons
+     * stay smeared for the length of the animation.
      */
     private fun installPausedBlur(context: FeatureContext, depth: LauncherDepth, blur: HomeBlurDepth) {
         val pause = depth.pauseBlurs ?: return
 
+        // Read by the pause below, which runs on the same thread the animation
+        // is built on, so the two never overlap.
+        var revealing = false
+
+        depth.revealHome?.let { reveal ->
+            context.xposed.hook(reveal).intercept { chain ->
+                revealing = true
+                try {
+                    chain.proceed()
+                } finally {
+                    revealing = false
+                }
+            }
+        }
+
         context.xposed.hook(pause).intercept { chain ->
             val isPausing = chain.getArg(0) == true
+            context.logger.info("Blur pause: pausing=$isPausing revealing=$revealing")
+
+            // Answered without being passed on, so the launcher's blurs stay on
+            // and the wallpaper keeps its blur through the animation.
+            if (blur.isEnabled && isPausing) return@intercept null
+
             chain.proceed().also {
                 if (blur.isEnabled && isPausing) {
                     blur.remembered().forEach { (controller, _) -> depth.refreshBlur(controller) }
