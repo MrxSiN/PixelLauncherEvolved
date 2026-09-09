@@ -76,6 +76,7 @@ class FocusHomeTest {
 
         store.assign("bedtime", setOf(5))
 
+        assertEquals(FocusChange(workspaceChanged = true, modeChanged = false), focus.change())
         assertTrue(focus.hasChanged())
     }
 
@@ -89,6 +90,31 @@ class FocusHomeTest {
         enabled = true
 
         assertTrue(focus.hasChanged())
+    }
+
+    @Test
+    fun modeChangeToSingleAssignedPageInvalidatesOrdinaryHome() {
+        store.assign("bedtime", setOf(5))
+        val focus = focus()
+        assertEquals(listOf(0), focus.screens(listOf(0, 5)))
+
+        source.current = listOf(FocusMode("bedtime", "Bedtime", true))
+
+        assertEquals(FocusChange(workspaceChanged = true, modeChanged = true), focus.change())
+        assertTrue(focus.hasChanged())
+        assertEquals(listOf(5), focus.screens(listOf(0, 5)))
+    }
+
+    @Test
+    fun modeDeactivationIsAlsoAWorkspaceTransition() {
+        store.assign("bedtime", setOf(5))
+        source.current = listOf(FocusMode("bedtime", "Bedtime", true))
+        val focus = focus()
+        assertEquals(listOf(5), focus.screens(listOf(0, 5)))
+
+        source.current = emptyList()
+
+        assertEquals(FocusChange(workspaceChanged = true, modeChanged = true), focus.change())
     }
 
     private fun focus() = FocusHome(

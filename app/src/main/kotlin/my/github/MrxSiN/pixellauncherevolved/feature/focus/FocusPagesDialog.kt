@@ -93,9 +93,9 @@ internal object FocusPagesDialog {
     /**
      * Ticks the pages this Mode should show.
      *
-     * A page belongs to one Mode at a time, so anything ticked here is taken off
-     * whichever other Mode had it. Ticking nothing gives the Mode's pages back
-     * to the ordinary home screen, which is how an assignment is undone.
+     * A page belongs to one Mode at a time, so pages owned by another Mode are
+     * not offered here. Ticking nothing gives the Mode's pages back to the
+     * ordinary home screen, which is how an assignment is undone.
      */
     private fun choosePages(
         context: Context,
@@ -104,15 +104,18 @@ internal object FocusPagesDialog {
         mode: FocusMode,
         previews: Map<Int, FocusPagePreview>,
     ) {
-        val pages = FocusPages.order
-        val owned = store.assignments()[mode.id].orEmpty()
+        val assignments = store.assignments()
+        val pages = selectablePages(FocusPages.order, assignments, mode.id)
+        val owned = assignments[mode.id].orEmpty()
         val previewWidth = dp(context, PREVIEW_WIDTH_DP)
         val adapter = FocusPageAdapter(
             context = context,
             pages = pages,
             previews = previews,
             selected = owned,
-            pageLabel = { number -> resources.getString(R.string.feature_focus_page, number) },
+            pageLabel = { screen ->
+                resources.getString(R.string.feature_focus_page, requireNotNull(FocusPages.numberOf(screen)))
+            },
         )
         val grid = GridView(context).apply {
             numColumns = 2
@@ -203,4 +206,18 @@ internal object FocusPagesDialog {
     private const val DEFAULT_PAGE_ROW_DP = 360
     private const val MAX_PAGE_GRID_DP = 600
     private const val PAGE_GAP_DP = 8
+}
+
+/** Pages not already reserved for a different Mode, in launcher order. */
+internal fun selectablePages(
+    pages: List<Int>,
+    assignments: Map<String, Set<Int>>,
+    modeId: String,
+): List<Int> {
+    val reserved = assignments
+        .filterKeys { it != modeId }
+        .values
+        .flatten()
+        .toSet()
+    return pages.filterNot(reserved::contains)
 }

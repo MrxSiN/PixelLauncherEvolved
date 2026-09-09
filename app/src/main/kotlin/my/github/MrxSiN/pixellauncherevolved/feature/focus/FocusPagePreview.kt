@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.focus
 
 import android.annotation.SuppressLint
+import android.appwidget.AppWidgetManager
 import android.app.Activity
 import android.app.KeyguardManager
 import android.app.WallpaperManager
@@ -15,6 +16,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.hardware.HardwareBuffer
 import android.os.OutcomeReceiver
+import android.os.SystemClock
 import android.util.SparseArray
 import android.view.View
 import android.view.ViewGroup
@@ -50,6 +52,7 @@ internal data class FocusPreviewItem(
     val icon: Drawable?,
     val folderIcons: List<Drawable> = emptyList(),
     val isWidget: Boolean = false,
+    val widgetPreview: Drawable? = null,
 )
 
 private data class PreviewRecord(
@@ -62,6 +65,7 @@ private data class PreviewRecord(
     val spanY: Int,
     val itemType: Int,
     val icon: Drawable?,
+    val widgetPreview: Drawable?,
 )
 
 private object FocusPreviewModel {
@@ -69,6 +73,11 @@ private object FocusPreviewModel {
     @Volatile var wallpaper: Drawable? = null
     @Volatile var snapshots: Map<Int, Bitmap> = emptyMap()
     @Volatile var aspectRatio: Float = DEFAULT_ASPECT_RATIO
+
+    /** The workspace's own grid, or zero until a page has been seen. */
+    @Volatile var columns: Int = 0
+
+    @Volatile var rows: Int = 0
 
     private const val DEFAULT_ASPECT_RATIO = 9f / 20f
 }
@@ -88,7 +97,19 @@ internal class FocusPreviewRecorder(
     private val itemType = Reflect.field(itemInfo, ITEM_TYPE)
     private val targetComponent = Reflect.method(itemInfo, TARGET_COMPONENT)
     private val iconMethods = mutableMapOf<Class<*>, Method?>()
-    private val iconFlags = if (themedIcons(itemInfo.classLoader ?: context.classLoader)) FLAG_THEMED else 0
+    private val widgetIds = mutableMapOf<Class<*>, java.lang.reflect.Field?>()
+
+
+    /** Pages a Mode has taken off the workspace cannot be captured again. */
+    private val snapshots = FocusPageSnapshotStore(context).also { store ->
+        // A page captured since the launcher started is the newer of the two.
+        store.restore { stored, wallpaper ->
+            FocusPreviewModel.snapshots = stored + FocusPreviewModel.snapshots
+            if (FocusPreviewModel.wallpaper == null && wallpaper != null) {
+                FocusPreviewModel.wallpaper = BitmapDrawable(context.resources, wallpaper)
+            }
+        }
+    }
 
     val isUsable: Boolean = listOf(id, container, screen, cellX, cellY, spanX, spanY, itemType)
         .none { it == null }
@@ -107,7 +128,7 @@ internal class FocusPreviewRecorder(
 
     /** Captures the already-laid-out launcher views, including widgets and themed icons. */
     fun capture(activity: Activity) {
-        FocusPageSnapshotter.capture(activity)
+        FocusPageSnapshotter.capture(activity, snapshots)
     }
 
     private fun record(item: Any): PreviewRecord? = runCatching {
@@ -122,8 +143,26 @@ internal class FocusPreviewRecorder(
             spanY = spanY!!.getInt(item),
             itemType = itemType!!.getInt(item),
             icon = icon(item, component),
+            widgetPreview = widgetPreview(item),
         )
     }.getOrNull()
+
+    /**
+     * The widget's own preview picture, for a page that cannot be photographed.
+     *
+     * A page a Mode has taken off the workspace has no widget view to draw, and
+     * a blank rectangle in its place reads as a broken preview rather than as a
+     * widget. This is the same picture the launcher's own widget picker shows.
+     */
+    private fun widgetPreview(item: Any): Drawable? {
+        if (itemType?.getInt(item) != ITEM_TYPE_WIDGET) return null
+        val field = widgetIds.getOrPut(item.javaClass) { Reflect.field(item.javaClass, APP_WIDGET_ID) }
+        val widgetId = runCatching { field?.getInt(item) }.getOrNull() ?: return null
+        return runCatching {
+            AppWidgetManager.getInstance(context)?.getAppWidgetInfo(widgetId)
+                ?.loadPreviewImage(context, 0)
+        }.getOrNull()
+    }
 
     private fun icon(item: Any, component: ComponentName?): Drawable? {
         val method = iconMethods.getOrPut(item.javaClass) {
@@ -134,16 +173,16 @@ internal class FocusPreviewRecorder(
                 Int::class.javaPrimitiveType!!,
             )
         }
-        return runCatching { method?.invoke(item, context, iconFlags) as? Drawable }.getOrNull()
+        // Always ask for the themed icon. The launcher hands one back only when
+        // it has one, which is exactly when themed icons are turned on, so this
+        // needs no setting to read — and the setting this used to read,
+        // Themes.isThemedIconEnabled, is not in the launcher any more, so every
+        // icon came back in full colour while the home screen showed monochrome.
+        return runCatching { method?.invoke(item, context, FLAG_THEMED) as? Drawable }.getOrNull()
             ?: component?.let { activity ->
                 runCatching { context.packageManager.getActivityIcon(activity) }.getOrNull()
             }
     }
-
-    private fun themedIcons(classLoader: ClassLoader): Boolean = runCatching {
-        val themes = Class.forName(THEMES, false, classLoader)
-        Reflect.method(themes, IS_THEMED, Context::class.java)?.invoke(null, context) == true
-    }.getOrDefault(false)
 
     @SuppressLint("MissingPermission")
     private fun loadWallpaper(): Drawable? {
@@ -163,8 +202,8 @@ internal class FocusPreviewRecorder(
         const val ITEM_TYPE = "itemType"
         const val TARGET_COMPONENT = "getTargetComponent"
         const val NEW_ICON = "newIcon"
-        const val THEMES = "com.android.launcher3.util.Themes"
-        const val IS_THEMED = "isThemedIconEnabled"
+        const val APP_WIDGET_ID = "appWidgetId"
+        const val ITEM_TYPE_WIDGET = 4
         const val FLAG_THEMED = 1
     }
 }
@@ -282,8 +321,28 @@ private object ActiveWallpaperCapture {
 private object FocusPageSnapshotter {
     private var wallpaperCaptured = false
     private var awaitingWindowFocus = false
+    private var store: FocusPageSnapshotStore? = null
 
-    fun capture(activity: Activity) = capture(activity, RETRY_LIMIT)
+    /**
+     * When the launcher last became the window in front, or zero.
+     *
+     * The wallpaper is read off the display, so whatever else the display is
+     * showing is read with it. The notification shade takes the window focus
+     * and is already waited out, but a heads-up notification does not take it,
+     * and one arriving as the launcher came forward was captured and then used
+     * as the wallpaper for the rest of the launcher's life. Notifications like
+     * that show for a few seconds, so the wallpaper is read only once the
+     * launcher has held focus for longer than one lasts.
+     */
+    private var focusedSince = 0L
+
+    /** The pages the workspace held last, so a change of set can be noticed. */
+    private var held: Set<Int> = emptySet()
+
+    fun capture(activity: Activity, store: FocusPageSnapshotStore) {
+        this.store = store
+        capture(activity, RETRY_LIMIT)
+    }
 
     /**
      * Snapshots the pages now, and the wallpaper behind them once.
@@ -315,6 +374,15 @@ private object FocusPageSnapshotter {
             return
         }
 
+        // Waiting this out costs nothing on screen — the launcher is only
+        // hidden for the capture itself — so it waits rather than spends a
+        // retry, which would run out long before a notification does.
+        val settle = remainingSettle()
+        if (settle > 0) {
+            activity.window.decorView.postDelayed({ capture(activity, retriesLeft) }, settle)
+            return
+        }
+
         wallpaperCaptured = true
         ActiveWallpaperCapture.capture(activity) { bitmap ->
             // The shade can be pulled down while the display is being sampled,
@@ -322,6 +390,7 @@ private object FocusPageSnapshotter {
             // anything else is dropped and the capture is left to be retried.
             if (bitmap != null && isSettled(activity)) {
                 FocusPreviewModel.wallpaper = BitmapDrawable(activity.resources, bitmap)
+                store?.saveWallpaper(bitmap)
             } else {
                 wallpaperCaptured = false
             }
@@ -347,7 +416,7 @@ private object FocusPageSnapshotter {
                     if (!hasFocus) return
                     root.viewTreeObserver.removeOnWindowFocusChangeListener(this)
                     awaitingWindowFocus = false
-                    root.postDelayed({ capture(activity) }, RETRY_DELAY_MS)
+                    root.postDelayed({ capture(activity, RETRY_LIMIT) }, RETRY_DELAY_MS)
                 }
             },
         )
@@ -362,7 +431,11 @@ private object FocusPageSnapshotter {
      * page. Both moments are skipped rather than captured.
      */
     private fun isSettled(activity: Activity): Boolean {
-        if (!activity.hasWindowFocus()) return false
+        if (!activity.hasWindowFocus()) {
+            focusedSince = 0L
+            return false
+        }
+        if (focusedSince == 0L) focusedSince = SystemClock.uptimeMillis()
         val workspace = workspace(activity) ?: return false
         val moving = runCatching {
             Reflect.method(workspace.javaClass, PAGE_IN_TRANSITION)?.invoke(workspace) as? Boolean
@@ -371,6 +444,38 @@ private object FocusPageSnapshotter {
             Reflect.field(workspace.javaClass, BEING_DRAGGED)?.getBoolean(workspace)
         }.getOrNull()
         return moving != true && dragged != true
+    }
+
+    /** How much longer the launcher must hold focus before the display is read. */
+    private fun remainingSettle(): Long {
+        if (focusedSince == 0L) return WALLPAPER_SETTLE_MS
+        val held = SystemClock.uptimeMillis() - focusedSince
+        return (WALLPAPER_SETTLE_MS - held).coerceAtLeast(0L)
+    }
+
+    /** Whether a page has anything on it yet, so a picture of it is worth taking. */
+    private fun hasItems(page: View): Boolean = runCatching {
+        val container = Reflect.field(page.javaClass, SHORTCUTS)?.get(page) as? ViewGroup
+        (container?.childCount ?: 0) > 0
+    }.getOrDefault(true)
+
+    /**
+     * The grid a page is laid out on, read from the page itself.
+     *
+     * A page with no snapshot is drawn cell by cell, so it needs the same grid
+     * the launcher uses or its icons and widgets come out the wrong size. The
+     * count is held in fields rather than behind getters on this launcher.
+     */
+    private fun rememberGrid(page: View?) {
+        if (page == null) return
+        runCatching {
+            val x = Reflect.field(page.javaClass, COUNT_X)?.getInt(page) ?: return
+            val y = Reflect.field(page.javaClass, COUNT_Y)?.getInt(page) ?: return
+            if (x > 0 && y > 0) {
+                FocusPreviewModel.columns = x
+                FocusPreviewModel.rows = y
+            }
+        }
     }
 
     private fun workspace(activity: Activity): ViewGroup? =
@@ -382,6 +487,7 @@ private object FocusPageSnapshotter {
         if (root.width <= 0 || root.height <= 0 || workspace.childCount == 0) return
 
         val hotseat = Reflect.field(activity.javaClass, HOTSEAT)?.get(activity) as? View
+        rememberGrid(workspace.getChildAt(0))
         val screenAt = Reflect.method(
             workspace.javaClass,
             SCREEN_FOR_PAGE,
@@ -402,6 +508,13 @@ private object FocusPageSnapshotter {
                     ?: continue
                 if (screenId < 0) continue
 
+                // A page the launcher has not filled in yet is not a picture of
+                // that page. Capturing it would replace a good snapshot, and
+                // the wallpaper being in hand no longer says the workspace is
+                // ready, because the wallpaper is now restored from disk before
+                // the launcher has laid anything out.
+                if (!hasItems(page)) continue
+
                 val renderNode = RenderNode("Focus page $screenId").apply {
                     setPosition(0, 0, targetWidth, targetHeight)
                 }
@@ -414,8 +527,56 @@ private object FocusPageSnapshotter {
                 put(screenId, bitmap)
             }
         }
-        if (captured.isNotEmpty()) FocusPreviewModel.snapshots = captured
+        if (captured.isNotEmpty()) {
+            // Before the wallpaper is in hand a page is drawn on a flat fill.
+            // That stands in for a page which has no snapshot at all, but it
+            // must never replace one taken, or restored from disk, with the
+            // wallpaper behind it — which is what emptied the previews of their
+            // wallpaper on every launcher start.
+            val fresh = if (wallpaper != null) {
+                captured
+            } else {
+                captured.filterKeys { it !in FocusPreviewModel.snapshots }
+            }
+            val snapshots = if (fresh.isEmpty()) FocusPreviewModel.snapshots else kept(fresh)
+            FocusPreviewModel.snapshots = snapshots
+
+            // The set changes when an assignment is made or a Mode turns on or
+            // off, which is exactly when a page stops being capturable. Writing
+            // then, rather than on every visit home, keeps a page that can no
+            // longer be photographed without re-encoding the ones that can.
+            // Not before the wallpaper is in hand: the first capture of a
+            // launcher start draws pages on a flat fill, and writing that down
+            // would replace a good page with a blank one.
+            if (captured.keys != held && wallpaper != null) {
+                held = captured.keys
+                store?.save(snapshots)
+            }
+        }
         FocusPreviewModel.aspectRatio = root.width.toFloat() / root.height
+    }
+
+    /**
+     * Keeps the last snapshot of a page the workspace is not holding.
+     *
+     * A page given to a Mode is filtered out of the binding, so it has no view
+     * to draw and no snapshot can be taken of it. Replacing the whole set on
+     * every capture therefore erased exactly the pages the Focus pages dialog
+     * is there to show, and each one fell back to being drawn from the model:
+     * widgets as empty boxes, icons without their labels. It works in both
+     * directions, because while a Mode is on it is the ordinary pages that are
+     * filtered out.
+     *
+     * A page the launcher no longer has at all is dropped, so a deleted one
+     * does not hold a bitmap for the life of the process. The catalogue is
+     * empty only before the first binding, and nothing is dropped then.
+     */
+    private fun kept(captured: Map<Int, Bitmap>): Map<Int, Bitmap> {
+        val known = FocusPages.order.toHashSet()
+        val carried = FocusPreviewModel.snapshots.filterKeys {
+            it !in captured && (known.isEmpty() || it in known)
+        }
+        return carried + captured
     }
 
     private fun createHardwareBitmap(node: RenderNode, width: Int, height: Int): Bitmap? =
@@ -475,12 +636,18 @@ private object FocusPageSnapshotter {
     }
 
     private const val WORKSPACE = "mWorkspace"
+    private const val SHORTCUTS = "mShortcutsAndWidgets"
+    private const val COUNT_X = "mCountX"
+    private const val COUNT_Y = "mCountY"
     private const val HOTSEAT = "mHotseat"
     private const val SCREEN_FOR_PAGE = "getScreenIdForPageIndex"
     private const val PAGE_IN_TRANSITION = "isPageInTransition"
     private const val BEING_DRAGGED = "mIsBeingDragged"
     private const val RETRY_LIMIT = 3
     private const val RETRY_DELAY_MS = 400L
+
+    /** Longer than a heads-up notification stays on screen. */
+    private const val WALLPAPER_SETTLE_MS = 6_000L
     private const val CREATE_HARDWARE_BITMAP = "createHardwareBitmap"
     private const val SNAPSHOT_WIDTH_PX = 320
 }
@@ -496,8 +663,16 @@ internal class LauncherPagePreviewSource : FocusPagePreviewSource {
             .filter { it.container == CONTAINER_HOTSEAT }
             .sortedBy(PreviewRecord::screen)
             .mapNotNull(PreviewRecord::icon)
-        val columns = maxOf(DEFAULT_COLUMNS, desktop.maxOfOrNull { it.cellX + it.spanX } ?: 0)
-        val rows = maxOf(DEFAULT_ROWS, desktop.maxOfOrNull { it.cellY + it.spanY } ?: 0)
+        // The launcher's own grid when a page has been seen, and the largest
+        // cell any item reaches otherwise, so nothing is ever drawn outside it.
+        val columns = maxOf(
+            FocusPreviewModel.columns.takeIf { it > 0 } ?: DEFAULT_COLUMNS,
+            desktop.maxOfOrNull { it.cellX + it.spanX } ?: 0,
+        )
+        val rows = maxOf(
+            FocusPreviewModel.rows.takeIf { it > 0 } ?: DEFAULT_ROWS,
+            desktop.maxOfOrNull { it.cellY + it.spanY } ?: 0,
+        )
         val snapshots = FocusPreviewModel.snapshots
         val wallpaper = FocusPreviewModel.wallpaper
         val aspectRatio = FocusPreviewModel.aspectRatio
@@ -519,6 +694,7 @@ internal class LauncherPagePreviewSource : FocusPagePreviewSource {
                             emptyList()
                         },
                         isWidget = record.itemType == ITEM_TYPE_WIDGET,
+                        widgetPreview = record.widgetPreview,
                     )
                 },
                 hotseatIcons = hotseat,

@@ -208,10 +208,10 @@ Three things follow from that:
   feature skips that screen when the active Mode does not own it, avoiding an
   empty page at the front.
 
-Modes are looked at when the launcher comes back to the front, and whenever Do
-Not Disturb changes. Nothing polls on a timer. A Mode that changes while the
-home screen is already showing applies on the next return to it, unless it moved
-Do Not Disturb, which most do — Driving and Transit are the ones that do not.
+Modes are looked at whenever the launcher regains window focus, and whenever Do
+Not Disturb changes. Nothing polls on a timer. This includes closing the Modes
+sheet over the home screen, which does not pause and resume the launcher; Driving
+and Transit also work even though they do not change Do Not Disturb.
 
 </details>
 

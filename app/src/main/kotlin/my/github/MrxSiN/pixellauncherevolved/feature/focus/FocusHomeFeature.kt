@@ -4,10 +4,12 @@ import android.os.Handler
 import android.os.Looper
 
 import android.util.SparseArray
+import android.view.View
 
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.util.concurrent.Executor
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
@@ -90,6 +92,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             logger = context.logger,
         )
         val previews = FocusPreviewRecorder(itemInfo, context.appContext)
+        val reveal = FocusPageReveal(context.logger)
         if (!previews.isUsable) {
             context.logger.warn("The launcher's item positions are unavailable; Focus page previews will be empty")
         }
@@ -99,7 +102,8 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         hideBoundItems(context, callbacks, screenId, container, focus, previews)
         hideEmptyPages(context, focus)
         hideItems(context, callbacks, screenId, container, focus)
-        watch(context, workspace, toArray, focus, previews)
+        revealAfterBinding(context, workspace, reveal)
+        watch(context, workspace, toArray, focus, previews, reveal)
 
         context.logger.info("Focus home screens ready")
     }
@@ -311,6 +315,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         toArray: Method,
         focus: FocusHome,
         previews: FocusPreviewRecorder,
+        reveal: FocusPageReveal,
     ) {
         val launcher = context.findClass(LAUNCHER)
         if (launcher == null) {
@@ -324,6 +329,18 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             return
         }
 
+        val handler = Handler(Looper.getMainLooper())
+
+        // Reading the Modes is slow enough to be seen, so it is never done on
+        // the thread that is drawing. See FocusRefresher for what that cost is.
+        val refresher = FocusRefresher(
+            read = focus::change,
+            apply = { change, waitForHomeTransition ->
+                applyChange(change, model, context, reveal, waitForHomeTransition)
+            },
+            main = Executor { handler.post(it) },
+        )
+
         // The activity is remembered from its own hook rather than looked up.
         // The static route to the model is a Dagger singleton the shrinker
         // rewrites; the activity that is running holds the same model in a field
@@ -336,15 +353,77 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
                     PREVIEW_CAPTURE_DELAY_MS,
                 )
             }
-            if (focus.hasChanged()) rebuild(model, context)
         }
 
-        val handler = Handler(Looper.getMainLooper())
+        // Opening Modes from the shade takes window focus without pausing the
+        // launcher. Regaining focus is therefore the foreground signal; an
+        // onResume-only check misses Modes such as Driving that do not alter DND.
+        val baseActivity = context.findClass(BASE_ACTIVITY)
+        if (baseActivity == null) {
+            context.logger.warn(
+                "The launcher's window focus is unavailable; some Mode changes apply on the next reload",
+            )
+        } else {
+            context.hookAfter(
+                baseActivity,
+                ON_WINDOW_FOCUS_CHANGED,
+                Boolean::class.javaPrimitiveType!!,
+            ) { activity, args ->
+                if (activity === current?.get() && args.firstOrNull() == true) {
+                    reveal.onWindowFocused()
+                    refresher.request(waitForHomeTransition = true)
+                }
+            }
+        }
+
         trackCommittedPages(context, workspace, toArray, focus, model, handler)
 
         watcher = FocusWatcher(context.appContext) {
-            if (focus.hasChanged()) rebuild(model, context)
+            refresher.request(waitForHomeTransition = false)
         }.also { it.start(handler) }
+    }
+
+    /** Reloads for a change already read off the UI thread. Called on it. */
+    private fun applyChange(
+        change: FocusChange,
+        model: Field,
+        context: FeatureContext,
+        reveal: FocusPageReveal,
+        waitForHomeTransition: Boolean,
+    ) {
+        // Hide before asking the model to bind. Starting the clip only after
+        // the bind lets the completed page draw for a frame first, which makes
+        // the transition look instant—most visibly when a Mode turns off.
+        if (change.modeChanged) reveal.request(waitForHomeTransition)
+        if (!rebuild(model, context) && change.modeChanged) reveal.cancel()
+    }
+
+    /**
+     * Uses the last stable workspace operation in a complete model bind.
+     *
+     * Pixel Launcher's named finish-binding callback is currently in an inline
+     * generated class. The workspace cleanup it ends with is a stable launcher
+     * method, and [FocusPageReveal] ignores every call unless a Mode reload is
+     * pending.
+     */
+    private fun revealAfterBinding(
+        context: FeatureContext,
+        workspace: Class<*>,
+        reveal: FocusPageReveal,
+    ) {
+        val bindingEnd = workspace.declaredMethods.firstOrNull {
+            it.name == REMOVE_EXTRA_EMPTY_SCREEN_DELAYED && it.parameterTypes.size == 3
+        }
+        if (bindingEnd == null) {
+            context.logger.warn("The launcher's binding completion is unavailable; Focus page reveal is disabled")
+            return
+        }
+
+        context.xposed.hook(bindingEnd).intercept { chain ->
+            val result = chain.proceed()
+            reveal.onWorkspaceBound(chain.thisObject as? View)
+            result
+        }
     }
 
     /**
@@ -393,16 +472,17 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
     }
 
     /** Asks the launcher's model to bind the workspace again, through the filter. */
-    private fun rebuild(model: Field, context: FeatureContext) {
-        runCatching {
-            val activity = current?.get() ?: return
-            val launcherModel = model.get(activity) ?: return
+    private fun rebuild(model: Field, context: FeatureContext): Boolean = runCatching {
+        val activity = current?.get() ?: return false
+        val launcherModel = model.get(activity) ?: return false
 
-            launcherModel.javaClass
-                .getMethod(FORCE_RELOAD, String::class.java)
-                .invoke(launcherModel, RELOAD_REASON)
-        }.onFailure { context.logger.warn("The workspace could not be rebuilt for the new focus", it) }
+        launcherModel.javaClass
+            .getMethod(FORCE_RELOAD, String::class.java)
+            .invoke(launcherModel, RELOAD_REASON)
+        true
     }
+        .onFailure { context.logger.warn("The workspace could not be rebuilt for the new focus", it) }
+        .getOrDefault(false)
 
     private fun Class<*>.method(name: String, vararg types: Class<*>): Method? =
         runCatching { getMethod(name, *types) }.getOrNull()
@@ -418,6 +498,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         const val ITEM_INFO = "com.android.launcher3.model.data.ItemInfo"
         const val WORKSPACE = "com.android.launcher3.Workspace"
         const val LAUNCHER = "com.android.launcher3.Launcher"
+        const val BASE_ACTIVITY = "com.android.launcher3.BaseActivity"
 
         const val WORKSPACE_DATA = "com.android.launcher3.model.data.WorkspaceData\$MutableWorkspaceData"
         const val COLLECT_SCREENS = "collectWorkspaceScreens"
@@ -429,9 +510,11 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         const val BIND_ITEMS = "bindItems"
         const val STRIP = "stripEmptyScreens"
         const val INSERT_SCREEN = "insertNewWorkspaceScreen"
+        const val REMOVE_EXTRA_EMPTY_SCREEN_DELAYED = "removeExtraEmptyScreenDelayed"
         const val COMMIT_EMPTY_SCREENS = "commitExtraEmptyScreens"
         const val SCREEN_ORDER = "mScreenOrder"
         const val ON_RESUME = "onResume"
+        const val ON_WINDOW_FOCUS_CHANGED = "onWindowFocusChanged"
         const val WRAP = "wrap"
         const val TO_ARRAY = "toArray"
         const val SCREEN_ID = "screenId"
@@ -505,13 +588,20 @@ internal class FocusHome(
         container.getInt(item) != CONTAINER_DESKTOP || screenId.getInt(item) in visible
     }.getOrDefault(true)
 
-    /** Whether settings, assignments, pages, or active Mode changed the result. */
-    fun hasChanged(): Boolean = runCatching {
+    /** What changed since the last workspace bind. */
+    fun change(): FocusChange = runCatching {
         val next = plan(FocusPages.order)
-        next.screens != shownScreens || next.modeId != shownFor
+        val modeChanged = next.modeId != shownFor
+        FocusChange(
+            workspaceChanged = next.screens != shownScreens || modeChanged,
+            modeChanged = modeChanged,
+        )
     }
         .onFailure { logger.warn("The Mode that is on could not be read", it) }
-        .getOrDefault(false)
+        .getOrDefault(FocusChange.NONE)
+
+    /** Whether settings, assignments, pages, or active Mode changed the result. */
+    fun hasChanged(): Boolean = change().workspaceChanged
 
     private fun plan(all: List<Int>): FocusState {
         if (!isEnabled()) return FocusState(all, null)
@@ -549,4 +639,13 @@ internal class FocusHome(
     }
 
     private data class FocusState(val screens: List<Int>, val modeId: String?)
+}
+
+internal data class FocusChange(
+    val workspaceChanged: Boolean,
+    val modeChanged: Boolean,
+) {
+    companion object {
+        val NONE = FocusChange(workspaceChanged = false, modeChanged = false)
+    }
 }

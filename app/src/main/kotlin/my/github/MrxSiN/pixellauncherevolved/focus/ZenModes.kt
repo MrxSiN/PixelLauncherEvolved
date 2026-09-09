@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
  * same way. Without root there are no Modes to offer and the feature says so,
  * rather than silently offering one Mode and pretending that is all of them.
  */
-class ZenModes(private val shell: RootShell = RootShell()) {
+class ZenModes(private val shell: CommandRunner = RootShell()) {
 
     /** Whether Modes can be read at all, which here means whether root answers. */
     fun isGranted(): Boolean = snapshot().isReadable
@@ -61,7 +61,13 @@ class ZenModes(private val shell: RootShell = RootShell()) {
         val name = NAME.find(block)?.groupValues?.get(1)?.trim() ?: return null
         if (ENABLED.find(block)?.groupValues?.get(1) != "TRUE") return null
 
-        val isActive = STATE.find(block)?.groupValues?.get(1) == "STATE_TRUE"
+        // A manual choice overrides the rule owner's condition. Android keeps
+        // the underlying state unchanged, so the override must win explicitly.
+        val isActive = when (OVERRIDE.find(block)?.groupValues?.get(1)) {
+            "OVERRIDE_ACTIVATE" -> true
+            "OVERRIDE_DEACTIVATE" -> false
+            else -> STATE.find(block)?.groupValues?.get(1) in ACTIVE_STATES
+        }
 
         // The manual rule is Do Not Disturb turned on by hand. It carries no
         // name of its own, so it is given the one Settings shows for it.
@@ -101,6 +107,8 @@ class ZenModes(private val shell: RootShell = RootShell()) {
         val ID = Regex("""^id=([^,]+),""")
         val STATE = Regex("""state=(STATE_[A-Z_]+)""")
         val ENABLED = Regex("""enabled=([A-Z]+)""")
+        val OVERRIDE = Regex("""conditionOverride=(OVERRIDE_[A-Z_]+)""")
+        val ACTIVE_STATES = setOf("STATE_TRUE", "STATE_UNKNOWN")
 
         /**
          * The name, up to the field the dump always writes after it.
@@ -113,10 +121,14 @@ class ZenModes(private val shell: RootShell = RootShell()) {
 }
 
 /** Runs one command as root and hands back what it printed. */
-class RootShell {
+fun interface CommandRunner {
+    fun run(command: String): String?
+}
+
+class RootShell : CommandRunner {
 
     /** Null when root is unavailable, refused, or the command did not finish. */
-    fun run(command: String): String? {
+    override fun run(command: String): String? {
         val process = runCatching {
             ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
         }.getOrNull() ?: return null

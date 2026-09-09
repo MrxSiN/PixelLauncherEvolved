@@ -1,8 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.0.4
 
 ### Added
+
+- Activating or deactivating a Mode now reveals its Focus page with a circular,
+  wallpaper-style transition when the launcher becomes visible.
 
 - **Hidden apps**, on the App Drawer page: the apps you pick are left out of
   the drawer, and out of its search, so one that is hidden does not come back
@@ -18,6 +21,54 @@
   The launcher's own per-tab filter does the hiding, wrapped rather than
   replaced, so a work app is still a work app. An icon already on the home
   screen or in the hotseat stays where it was put.
+
+### Fixed
+
+- Focus home screens now recognises a Mode turned on manually. Android reports
+  that as an activation override while leaving the rule's condition false, so
+  checking only the condition treated the active Mode as off. Closing the Modes
+  sheet over the launcher also applies the selected page immediately, including
+  for Modes that do not change Do Not Disturb.
+- **Focus pages** no longer offers pages assigned to another Mode. A Mode's own
+  pages remain visible when editing it.
+- A page given to a Mode keeps its real preview in **Focus pages**. The page is
+  filtered out of the workspace, so it has no view to photograph, and the whole
+  set of page snapshots was replaced on every capture — which dropped exactly
+  the pages the dialog is there to show. They fell back to being drawn from the
+  model: widgets as empty boxes, icons without their labels. A page's last
+  snapshot is now kept, and written down, so it survives a launcher restart.
+- Focus page previews no longer lose their wallpaper on a launcher start. The
+  wallpaper is read off the display only once the launcher has settled, so the
+  first pages captured had none behind them and replaced the ones that did. A
+  page captured without it now stands in only for a page that has no picture at
+  all, and the wallpaper itself is kept between starts.
+- A page the launcher has not filled in yet is no longer captured. Its picture
+  was the wallpaper and nothing else, and it replaced the real one.
+- Icons in a page drawn from the model are themed when the home screen's are.
+  The launcher no longer has the setting this asked for, Themes
+  .isThemedIconEnabled, so every icon came back in full colour beside a
+  monochrome home screen. The themed icon is now simply asked for: the launcher
+  hands one back only when it has one.
+- A page drawn from the model uses the launcher's own grid, read from the page,
+  rather than a guessed four by six, so its icons and widgets are the size they
+  are on the home screen.
+- A page with no snapshot of its own is drawn as a home screen rather than as
+  a blank one. Its widgets are drawn with the same preview pictures the
+  launcher's widget picker uses, on a dark surface instead of a near-white
+  panel, and the search bar and folders follow the launcher's own colours.
+- The wallpaper is no longer read off the display while a notification is on
+  it. The shade takes the window focus and was already waited out, but a
+  heads-up notification does not take it, so one arriving as the launcher came
+  forward was captured and then used as the wallpaper for every page preview
+  until the launcher restarted. The display is now read only once the launcher
+  has been in front for longer than such a notification lasts.
+- Going home with the back gesture no longer stutters. Reading which Modes are
+  on is a call into this module's own app, which answers by shelling out as
+  root, and it ran on the launcher's UI thread: 130ms with that app already up,
+  490ms when the call had to start it. The launcher regains window focus
+  part way through the back animation home, so the stall landed inside a running
+  animation. Swiping home never stuttered because focus arrives there once the
+  animation has finished. The reading now happens on its own thread.
 
 ## 0.0.3
 

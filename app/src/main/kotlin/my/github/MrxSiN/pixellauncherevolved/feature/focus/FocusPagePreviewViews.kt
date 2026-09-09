@@ -167,9 +167,9 @@ internal class FocusPagePreviewView(
             page.right - page.width() * 0.08f,
             page.top + page.height() * 0.86f,
         )
-        paint.color = Color.argb(190, 235, 235, 240)
+        paint.color = Color.argb(140, 18, 18, 22)
         canvas.drawRoundRect(search, search.height() / 2f, search.height() / 2f, paint)
-        paint.color = Color.argb(150, 60, 65, 75)
+        paint.color = Color.argb(190, 225, 220, 210)
         canvas.drawCircle(search.left + search.height() * 0.5f, search.centerY(), search.height() * 0.18f, paint)
 
         val hotseatY = page.top + page.height() * 0.92f
@@ -182,18 +182,56 @@ internal class FocusPagePreviewView(
         }
     }
 
+    /**
+     * A widget on a page with no snapshot of its own.
+     *
+     * The surface is dark because the launcher's is: a near-white panel over a
+     * wallpaper was the one thing that made a page drawn from the model read as
+     * broken rather than as a home screen. The widget's own preview picture is
+     * drawn on it when the provider has one, and its app icon when it does not.
+     */
     private fun drawWidget(canvas: Canvas, bounds: RectF, item: FocusPreviewItem) {
         val inset = min(bounds.width(), bounds.height()) * 0.08f
         val widget = RectF(bounds).apply { inset(inset, inset) }
-        paint.color = Color.argb(190, 238, 238, 244)
-        canvas.drawRoundRect(widget, dp(5).toFloat(), dp(5).toFloat(), paint)
+        val corner = dp(5).toFloat()
+
+        paint.color = Color.argb(115, 18, 18, 22)
+        canvas.drawRoundRect(widget, corner, corner, paint)
+
+        val preview = item.widgetPreview
+        if (preview != null && preview.intrinsicWidth > 0 && preview.intrinsicHeight > 0) {
+            clip.reset()
+            clip.addRoundRect(widget, corner, corner, Path.Direction.CW)
+            canvas.withClip(clip) {
+                // Fitted inside the footprint, not filled: the surface already
+                // carries the widget's size, and cropping the picture to it
+                // loses whatever the widget is recognised by.
+                val scale = min(
+                    widget.width() / preview.intrinsicWidth,
+                    widget.height() / preview.intrinsicHeight,
+                )
+                val drawWidth = preview.intrinsicWidth * scale
+                val drawHeight = preview.intrinsicHeight * scale
+                val left = widget.centerX() - drawWidth / 2f
+                val top = widget.centerY() - drawHeight / 2f
+                preview.setBounds(
+                    left.roundToInt(),
+                    top.roundToInt(),
+                    (left + drawWidth).roundToInt(),
+                    (top + drawHeight).roundToInt(),
+                )
+                preview.draw(this)
+            }
+            return
+        }
+
         val size = min(widget.width(), widget.height()) * 0.34f
         drawDrawable(canvas, item.icon, widget.centerX(), widget.centerY(), size)
     }
 
     private fun drawFolder(canvas: Canvas, bounds: RectF, icons: List<android.graphics.drawable.Drawable>) {
         val size = min(bounds.width(), bounds.height()) * 0.58f
-        paint.color = Color.argb(185, 225, 225, 235)
+        paint.color = Color.argb(120, 18, 18, 22)
         canvas.drawRoundRect(
             bounds.centerX() - size / 2f,
             bounds.centerY() - size / 2f,
@@ -214,7 +252,7 @@ internal class FocusPagePreviewView(
     private fun drawIcon(canvas: Canvas, bounds: RectF, icon: android.graphics.drawable.Drawable?) {
         val size = min(bounds.width(), bounds.height()) * 0.58f
         if (icon == null) {
-            paint.color = Color.argb(210, 230, 230, 235)
+            paint.color = Color.argb(120, 18, 18, 22)
             canvas.drawCircle(bounds.centerX(), bounds.centerY(), size / 2f, paint)
         } else {
             drawDrawable(canvas, icon, bounds.centerX(), bounds.centerY(), size)
@@ -398,7 +436,7 @@ internal class FocusPageAdapter(
     private val pages: List<Int>,
     private val previews: Map<Int, FocusPagePreview>,
     selected: Set<Int>,
-    private val pageLabel: (Int) -> String,
+    private val pageLabel: (screen: Int) -> String,
 ) : BaseAdapter() {
 
     private val checked = BooleanArray(pages.size) { index -> pages[index] in selected }
@@ -413,7 +451,7 @@ internal class FocusPageAdapter(
         val screen = getItem(position)
         val preview = requireNotNull(previews[screen])
         val density = context.resources.displayMetrics.density
-        val view = FocusPagePreviewView(context, preview, pageLabel(position + 1)).apply {
+        val view = FocusPagePreviewView(context, preview, pageLabel(screen)).apply {
             checked = this@FocusPageAdapter.checked[position]
             setOnClickListener {
                 this@FocusPageAdapter.checked[position] = !this@FocusPageAdapter.checked[position]
