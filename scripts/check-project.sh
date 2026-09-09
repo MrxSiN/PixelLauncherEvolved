@@ -192,6 +192,26 @@ grep -q 'fun read' "$SRC/feature/search/HomeSearchBarFeature.kt"
 grep -q 'requestFocusExplicitly' "$SRC/feature/search/HomeSearchBarFeature.kt"
 grep -q 'HOME_SEARCH_OPENS_DRAWER' "$SRC/catalog/Settings.kt"
 grep -q 'HomeSearchBarFeature' "$SRC/hook/FeatureRegistry.kt"
+
+# Which views inside the widget are its buttons is one rule, asked from both
+# sides: one tweak wants the taps that miss them, the other a press that hits.
+grep -q 'object SearchWidgetButtons' "$SRC/feature/search/SearchWidgetButtons.kt"
+! grep -q 'FULL_WIDTH' "$SRC/feature/search/HomeSearchBarFeature.kt"
+
+# Holding the Lens button opens the camera. The button carries no id and its
+# description is in the phone's language, so it is taken as the rightmost of the
+# bar's own buttons. The Google app refuses the deep link unless it is started
+# for a result by a caller it can name, which the launcher activity is.
+grep -q 'google://lens' "$SRC/feature/search/LensLongPressFeature.kt"
+grep -q 'startActivityForResult' "$SRC/feature/search/LensLongPressFeature.kt"
+grep -q 'maxByOrNull' "$SRC/feature/search/LensLongPressFeature.kt"
+# The launcher's own long press is called off, or it would offer to move the
+# widget while the camera opens.
+grep -q 'cancelLongPress' "$SRC/feature/search/LensLongPressFeature.kt"
+# A press too short to be a long one is handed back to the button it landed on.
+grep -q 'performClick' "$SRC/feature/search/LensLongPressFeature.kt"
+grep -q 'HOME_LENS_LONG_PRESS' "$SRC/catalog/Settings.kt"
+grep -q 'LensLongPressFeature' "$SRC/hook/FeatureRegistry.kt"
 grep -q 'Binder.getCallingUid' "$SRC/lock/ScreenLockProvider.kt"
 
 # App drawer search results are filtered where the launcher merges its two

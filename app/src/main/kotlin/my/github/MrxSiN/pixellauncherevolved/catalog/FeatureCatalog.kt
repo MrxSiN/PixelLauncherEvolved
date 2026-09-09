@@ -41,6 +41,12 @@ object FeatureCatalog {
             page = CatalogPage.HOME_SCREEN,
         ),
         CatalogEntry(
+            setting = Settings.HOME_LENS_LONG_PRESS,
+            titleRes = R.string.feature_home_lens_long_press_title,
+            summaryRes = R.string.feature_home_lens_long_press_summary,
+            page = CatalogPage.HOME_SCREEN,
+        ),
+        CatalogEntry(
             setting = Settings.FOCUS_HOME_SCREENS,
             titleRes = R.string.feature_focus_home_screens_title,
             summaryRes = R.string.feature_focus_home_screens_summary,

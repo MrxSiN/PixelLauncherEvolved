@@ -24,6 +24,9 @@ object Settings {
     val HOME_DOUBLE_TAP_TO_SLEEP = BoolSetting("home_double_tap_to_sleep", default = false)
     val HOME_SEARCH_OPENS_DRAWER = BoolSetting("home_search_opens_drawer", default = false)
 
+    /** Holding the search bar's Lens button opens the camera rather than the widget menu. */
+    val HOME_LENS_LONG_PRESS = BoolSetting("home_lens_long_press", default = false)
+
     /**
      * Parts of the app drawer's search results a person can switch off. Each
      * one names a group the platform's search service returns; hiding a group

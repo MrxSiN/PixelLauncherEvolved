@@ -2,7 +2,6 @@ package my.github.MrxSiN.pixellauncherevolved.feature.search
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.graphics.Rect
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -165,30 +164,8 @@ private class SearchBarTaps(
      * field, and several narrower ones for the logo, the microphone and Lens.
      * Only the narrow ones are somebody else's tap.
      */
-    private fun hitsAButton(widget: ViewGroup, event: MotionEvent): Boolean {
-        val bounds = Rect()
-        val x = event.rawX.toInt()
-        val y = event.rawY.toInt()
-
-        return widget.descendants().any { child ->
-            child.isClickable &&
-                child.width < widget.width * FULL_WIDTH &&
-                child.getGlobalVisibleRect(bounds) &&
-                bounds.contains(x, y)
-        }
-    }
-
-    private fun View.descendants(): Sequence<View> = sequence {
-        yield(this@descendants)
-        if (this@descendants is ViewGroup) {
-            for (index in 0 until childCount) yieldAll(getChildAt(index).descendants())
-        }
-    }
-
-    private companion object {
-        /** Anything narrower than this much of the bar is a button, not the field. */
-        const val FULL_WIDTH = 0.8f
-    }
+    private fun hitsAButton(widget: ViewGroup, event: MotionEvent): Boolean =
+        SearchWidgetButtons.anyContains(widget, event.rawX.toInt(), event.rawY.toInt())
 }
 
 /**
