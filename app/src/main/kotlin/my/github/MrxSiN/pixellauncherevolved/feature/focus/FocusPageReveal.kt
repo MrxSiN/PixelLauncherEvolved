@@ -3,17 +3,26 @@ package my.github.MrxSiN.pixellauncherevolved.feature.focus
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.view.View
-import android.view.ViewAnimationUtils
-import android.view.animation.PathInterpolator
 
 import java.lang.ref.WeakReference
 
-import kotlin.math.hypot
-
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 
-/** Reveals a newly-bound Focus page once the launcher is visible. */
-internal class FocusPageReveal(private val logger: Logger) {
+/**
+ * Swaps one Focus page for another once the launcher is ready to be looked at.
+ *
+ * Only the sequencing is here. A Mode changes, the outgoing page is sent away,
+ * the launcher rebinds its whole model, and the incoming page may not be shown
+ * until three things are true at once: the bind has finished, the window has
+ * focus, and any home transition the launcher was already playing is over.
+ * Missing any one of them shows a half-built home screen.
+ *
+ * What the going and the coming look like is [FocusRevealMotion]'s business.
+ */
+internal class FocusPageReveal(
+    private val logger: Logger,
+    private val motion: FocusRevealMotion = MaterialExpressiveMotion(),
+) {
 
     @Volatile
     private var pending = false
@@ -35,7 +44,10 @@ internal class FocusPageReveal(private val logger: Logger) {
         scheduled = false
         val view = workspace?.get()
         this.waitForHomeTransition = waitForHomeTransition || view?.hasWindowFocus() != true
-        view?.visibility = View.INVISIBLE
+
+        // Played rather than cut, because the model takes long enough to bind
+        // that a page vanishing between two frames is the part that was seen.
+        if (view != null) play(motion.exit(view))
     }
 
     /** A failed reload must never leave the workspace hidden. */
@@ -44,16 +56,29 @@ internal class FocusPageReveal(private val logger: Logger) {
         pending = false
         bound = false
         scheduled = false
-        workspace?.get()?.visibility = View.VISIBLE
+        running?.cancel()
+        running = null
+        workspace?.get()?.let(motion::settle)
     }
 
     /** Called at the stable end of the workspace's complete-model bind. */
     fun onWorkspaceBound(view: View?) {
         if (view == null) return
+
+        // A recreated activity brings a new workspace, and the animation still
+        // running belongs to the old one.
+        if (workspace?.get() !== view) {
+            running?.cancel()
+            running = null
+        }
         workspace = WeakReference(view)
+
         if (pending) {
             bound = true
-            view.visibility = View.INVISIBLE
+            // Already hidden when the exit is still playing or has finished;
+            // this covers the bind that arrives with no exit ever having run,
+            // because the workspace did not exist when the Mode changed.
+            if (running == null) motion.hide(view)
         }
         revealWhenReady(view)
     }
@@ -89,30 +114,21 @@ internal class FocusPageReveal(private val logger: Logger) {
         pending = false
         bound = false
         waitForHomeTransition = false
-        view.visibility = View.VISIBLE
-        animate(view)
-    }
 
-    private fun animate(view: View) {
-        val width = view.width
-        val height = view.height
-        if (!view.isAttachedToWindow || width <= 0 || height <= 0) return
-
-        running?.cancel()
-        val centerX = width / 2
-        val centerY = height / 2
-        val radius = hypot(centerX.toFloat(), centerY.toFloat())
-        val animator = ViewAnimationUtils.createCircularReveal(
-            view,
-            centerX,
-            centerY,
-            0f,
-            radius,
-        ).apply {
-            duration = REVEAL_DURATION_MS
-            interpolator = REVEAL_INTERPOLATOR
+        // A workspace with no size cannot be animated into view, and leaving it
+        // hidden because of that would be worse than showing it at once.
+        if (!view.isAttachedToWindow || view.width <= 0 || view.height <= 0) {
+            motion.settle(view)
+            return
         }
 
+        play(motion.enter(view))
+        logger.info("Focus page reveal played")
+    }
+
+    /** One animation at a time: a newer Mode change always wins the workspace. */
+    private fun play(animator: Animator) {
+        running?.cancel()
         running = animator
         animator.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
@@ -120,12 +136,9 @@ internal class FocusPageReveal(private val logger: Logger) {
             }
         })
         animator.start()
-        logger.info("Focus page reveal played")
     }
 
     private companion object {
-        const val REVEAL_DURATION_MS = 750L
         const val HOME_TRANSITION_DELAY_MS = 400L
-        val REVEAL_INTERPOLATOR = PathInterpolator(0.4f, 0f, 0.2f, 1f)
     }
 }

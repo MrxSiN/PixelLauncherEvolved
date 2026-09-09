@@ -117,6 +117,35 @@ class FocusHomeTest {
         assertEquals(FocusChange(workspaceChanged = true, modeChanged = true), focus.change())
     }
 
+    /**
+     * Reading the Modes is a root-shell call into another app. Binding must not
+     * pay for it, and must not pay for it twice.
+     */
+    @Test
+    fun bindingDoesNotReadTheModesAgain() {
+        store.assign("bedtime", setOf(5))
+        val focus = focus()
+
+        focus.change()
+        val afterLooking = source.reads
+
+        focus.screens(listOf(0, 5))
+        focus.addedScreens(listOf(9))
+
+        assertEquals(afterLooking, source.reads)
+    }
+
+    /** Nothing has been read at the launcher's first bind, so that one reads. */
+    @Test
+    fun theFirstBindReadsTheModesItself() {
+        store.assign("bedtime", setOf(5))
+        source.current = listOf(FocusMode("bedtime", "Bedtime", true))
+        val focus = focus()
+
+        assertEquals(listOf(5), focus.screens(listOf(0, 5)))
+        assertEquals(1, source.reads)
+    }
+
     private fun focus() = FocusHome(
         isEnabled = { enabled },
         store = store,
@@ -145,8 +174,13 @@ private class FakeStore : FocusStore {
 
 private class FakeSource : FocusSource {
     var current = emptyList<FocusMode>()
+    var reads = 0
+        private set
 
-    override fun modes(): List<FocusMode> = current
+    override fun modes(): List<FocusMode> {
+        reads++
+        return current
+    }
 
     override fun isReadable(): Boolean = true
 }

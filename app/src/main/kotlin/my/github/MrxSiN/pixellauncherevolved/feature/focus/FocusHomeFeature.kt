@@ -552,6 +552,20 @@ internal class FocusHome(
     @Volatile
     private var shownScreens: List<Int> = emptyList()
 
+    /**
+     * The Modes that were on at the last read, or null before any read at all.
+     *
+     * Asking the source costs a call into this module's own app, which answers
+     * out of a root shell and starts itself first if it has to — between about
+     * 130ms and 490ms, measured. Planning runs on every workspace bind, so
+     * asking there put that whole cost on the thread doing the binding, and put
+     * it there again for a change [change] had already read moments earlier off
+     * a background thread. What is on is read once, by whoever asked to look,
+     * and the planning works from what that read found.
+     */
+    @Volatile
+    private var activeModes: Set<String>? = null
+
     /** The screens to bind, out of the ones the launcher would have bound. */
     fun screens(all: List<Int>): List<Int> {
         // Remembered before anything is filtered, because this is the only place
@@ -588,8 +602,14 @@ internal class FocusHome(
         container.getInt(item) != CONTAINER_DESKTOP || screenId.getInt(item) in visible
     }.getOrDefault(true)
 
-    /** What changed since the last workspace bind. */
+    /**
+     * What changed since the last workspace bind.
+     *
+     * This is the one place the Modes are read, and it is called from a
+     * background thread before every reload it asks for. See [activeModes].
+     */
     fun change(): FocusChange = runCatching {
+        read()
         val next = plan(FocusPages.order)
         val modeChanged = next.modeId != shownFor
         FocusChange(
@@ -625,8 +645,15 @@ internal class FocusHome(
     private fun winner(assignments: Map<String, Set<Int>>): String? = FocusPlan.winner(
         assignments = assignments,
         priority = store.priority(),
-        active = source.modes().filter { it.isActive }.map { it.id }.toSet(),
+        // Read here only when nothing has been read yet, which is the launcher's
+        // first bind. Showing the ordinary home screen and correcting it a
+        // moment later would be a worse first frame than one slow one.
+        active = activeModes ?: read(),
     )
+
+    /** Asks the source what is on now, and remembers it for the planning. */
+    private fun read(): Set<String> =
+        source.modes().filter { it.isActive }.map { it.id }.toSet().also { activeModes = it }
 
     private companion object {
         /**

@@ -419,6 +419,23 @@ grep -q 'dumpsys notification --zen' "$SRC/focus/ZenModes.kt"
 grep -q 'ProcessBuilder("su"' "$SRC/focus/ZenModes.kt"
 grep -q 'callingPackage != LAUNCHER_PACKAGE' "$SRC/focus/FocusProvider.kt"
 
+# A Mode that comes on by itself has to be noticed by itself. The interruption
+# filter is not enough on its own: Driving and Transit never move it, so the
+# configuration tag is watched as well, and it is written for every rule change.
+grep -q 'zen_mode_config_etag' "$SRC/focus/FocusSource.kt"
+
+# Reading the Modes is a root shell in another process, so it happens once per
+# prompt, on the thread that asked to look, and never again while binding.
+grep -q 'activeModes ?: read()' "$SRC/feature/focus/FocusHomeFeature.kt"
+[ "$(grep -c 'source.modes()' "$SRC/feature/focus/FocusHomeFeature.kt")" = 1 ]
+
+# The page swap is Material 3 Expressive: content leaves before it is replaced,
+# and what arrives is sprung into place rather than wiped in.
+! grep -q 'createCircularReveal' "$SRC/feature/focus/FocusRevealMotion.kt"
+grep -q 'class SpringInterpolator' "$SRC/feature/focus/FocusRevealMotion.kt"
+grep -q 'fun exit(view: View): Animator' "$SRC/feature/focus/FocusRevealMotion.kt"
+! grep -q 'ViewAnimationUtils' "$SRC/feature/focus/FocusPageReveal.kt"
+
 # The provider authority is written out in code and templated in the manifest;
 # they have to stay the same string.
 grep -q 'my.github.MrxSiN.pixellauncherevolved.focus' "$SRC/focus/FocusContract.kt"

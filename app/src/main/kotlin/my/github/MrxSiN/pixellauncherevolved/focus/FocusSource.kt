@@ -101,16 +101,25 @@ data class FocusSnapshot(
 /**
  * Tells the launcher when to look at the modes again.
  *
- * Nothing pushes a mode change to a process that does not own the rule, and the
- * modes that matter most are the ones that prove it: Driving and Transit run
- * without touching Do Not Disturb at all, so watching the zen setting alone
- * would miss them entirely.
+ * Nothing pushes a mode change to a process that does not own the rule, so the
+ * launcher has to notice for itself.
  *
- * So there are two prompts, and neither of them is a timer. The zen setting is
- * watched because it is free and catches every mode that silences the phone,
- * which is most of them. Everything else is caught by looking again whenever the
- * launcher comes back to the front, which is the only moment the home screen has
- * to be right.
+ * Two settings are watched, and neither of them is a timer. `zen_mode` is the
+ * interruption filter, which catches every Mode that silences the phone. On its
+ * own it is not enough, and the Modes that prove it are the ones people notice
+ * most: Driving and Transit come on without touching Do Not Disturb, so the
+ * filter never moves and an observer on it never reports. Those used to be
+ * caught only when the launcher next came to the front, which is why a Mode
+ * switched by hand applied at once and a Mode that switched itself appeared to
+ * hang until the home screen was touched.
+ *
+ * `zen_mode_config_etag` is what closes that gap. The notification service
+ * rewrites it whenever the zen configuration changes at all, and a rule turning
+ * itself on is such a change whether or not it filters anything, so every
+ * automatic Mode reports through it.
+ *
+ * Coming back to the front is still watched elsewhere, as the backstop for a
+ * Mode that somehow moved while nothing was listening.
  */
 class FocusWatcher(
     private val context: Context,
@@ -127,18 +136,25 @@ class FocusWatcher(
             override fun onChange(selfChange: Boolean) = onChanged()
         }
         observer = watcher
-        context.contentResolver.registerContentObserver(
-            // The platform's own name for this setting is not public API, so it
-            // is written out. Watching a setting that does not exist costs an
-            // observer that never reports, which is what happens anyway when
-            // every Mode in use leaves Do Not Disturb alone.
-            Settings.Global.getUriFor(ZEN_MODE),
-            false,
-            watcher,
-        )
+        for (setting in WATCHED) {
+            context.contentResolver.registerContentObserver(
+                Settings.Global.getUriFor(setting),
+                false,
+                watcher,
+            )
+        }
     }
 
     private companion object {
+
+        /**
+         * The platform's own names for these are not public API, so they are
+         * written out. Watching a setting that does not exist costs an observer
+         * that never reports, which is the same as not watching it.
+         */
         const val ZEN_MODE = "zen_mode"
+        const val ZEN_MODE_CONFIG_ETAG = "zen_mode_config_etag"
+
+        val WATCHED = listOf(ZEN_MODE, ZEN_MODE_CONFIG_ETAG)
     }
 }
