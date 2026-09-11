@@ -1,4 +1,4 @@
-package my.github.MrxSiN.pixellauncherevolved.feature.focus
+package my.github.MrxSiN.pixellauncherevolved.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows

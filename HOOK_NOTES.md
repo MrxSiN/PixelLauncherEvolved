@@ -1614,3 +1614,120 @@ with no keyboard.
 The widget's context is wrapped, so the launcher behind it is found by
 unwrapping `ContextWrapper` until something implements `StatefulContainer`
 rather than by casting what the view was handed.
+
+## Naming a settings page
+
+```
+com.android.launcher3.settings.SettingsActivity$LauncherSettingsFragment
+  public void onCreatePreferences(Bundle, String)
+```
+
+The launcher names an open settings page by calling
+`Activity.setTitle(preferenceScreen.mTitle)` at the end of `onCreatePreferences`,
+once for the page it found under a root key and once for the screen it inflated.
+Nothing else writes that title, so a page this module builds in place of that
+call has to set both the screen's title and the activity's, or it opens under
+the name of the screen it was opened from.
+
+`res/layout-v31/settings_activity.xml` is a `CollapsingToolbarLayout` 226dp tall
+over the fragment, so every page of Home settings — the launcher's own included
+— shows its name as a large expanded title rather than beside the back arrow.
+
+## Settings palette
+
+Read off a Pixel 8 Pro on Android 17, in dark theme:
+
+| Role | Value | Where the settings app uses it |
+|---|---|---|
+| `system_surface_bright_dark` | `#2F2B27` | The fill of a settings card |
+| `system_surface_container_dark` | `#1C1917` | The screen behind the cards |
+| `system_surface_container_high_dark` | `#221F1C` | — |
+
+These are framework resources, so they read the same inside the launcher, which
+is what lets this module's rows be filled with the colour the settings app fills
+its own with rather than with a copy of it.
+
+## Showing the Overview actions
+
+```
+com.android.quickstep.views.OverviewActionsView
+  public void updateHiddenFlags(int, boolean)
+  private int mHiddenFlags
+  private void updateActionButtonsVisibility()
+  R.id.action_buttons                 // the LinearLayout holding the buttons
+com.google.android.apps.nexuslauncher.overview.NexusOverviewActionsView
+  public void onFinishInflate()       // calls super, so a hook on the base runs
+```
+
+`mHiddenFlags` is not the edge where the buttons become visible: it is rewritten
+on every frame of the Overview transition and reads 0 throughout, including
+while Overview is closed. The actions view's own alpha is no better — it also
+sits at 1 with Overview closed, because what is not visible then is the view
+above it.
+
+What does change is the alpha of `R.id.action_buttons`: the launcher ramps it
+from 0 to 1 across the Overview opening, reaching 1 on the frame the task cards
+settle — measured at about 340ms for a button press on a Pixel 8 Pro, and longer
+or shorter for a gesture depending on how it was thrown.
+
+That ramp is both the signal and the thing worth replacing. It is read as the
+progress of the opening and the buttons are placed from it, so their arrival ends
+exactly when it does whatever the transition's length; a clock of this module's
+own would have to guess that length in advance and would be wrong every time
+someone scrubbed the gesture. The alpha is watched with a pre-draw listener
+registered in `onFinishInflate`.
+
+Placing them every frame, rather than starting an animator, also covers what the
+launcher does in the middle of that ramp: `updateActionButtonsVisibility` adds and
+removes buttons there — this module's own Clear all among them — and one arriving
+at full opacity beside the others would flicker.
+
+The ramp only happens coming from the home screen. Coming to Overview from an app
+the row is put up with its alpha already at 1 on the first frame it is shown, and
+late: measured on a Pixel 8 Pro, `TaskView.setFullscreenProgress` reaches 0 — the
+card has landed — about 215ms before the row is shown at all. That gap belongs to
+the launcher and cannot be closed from here; the row's ancestors are not visible
+until it ends.
+
+So the two openings are told apart by `setFullscreenProgress` falling to zero. A
+card that has just landed says this is the opening from an app, and the arrival
+starts on the first frame the row can be drawn rather than waiting to find out
+whether a fade is coming. Without that signal a few opaque frames are waited out
+instead, because from the home screen the row is briefly opaque before the
+launcher starts its fade.
+
+One more thing about the fade: a button's opacity is its own times the row's. An
+arrival spread evenly over the fade therefore does its moving while the row is
+still too faint to see it, and what is left reads as a plain fade. The arrival is
+mapped onto the part of the fade above 0.3, and each button reaches full opacity
+in the first part of its own span, so the movement happens where it can be seen.
+
+## Starting split screen from a card
+
+```
+com.android.quickstep.views.TaskView
+  public List getTaskContainers()
+  public RecentsView getRecentsView()
+com.android.quickstep.views.RecentsView
+  public void initiateSplitSelect(TaskContainer)
+  public void initiateSplitSelect(TaskContainer, int stagePosition, StatsLogManager$EventEnum)
+  public RecentsPagedOrientationHandler getPagedOrientationHandler()
+com.android.quickstep.orientation.RecentsPagedOrientationHandler
+  List getSplitPositionOptions(com.android.launcher3.DeviceProfile)
+com.android.launcher3.util.SplitConfigurationOptions$SplitPositionOption
+  public int stagePosition
+```
+
+The one-argument overload asks the orientation handler for a default position,
+and `PortraitPagedViewHandler` throws `IllegalStateException: Default position
+available only for large screens` — so on a phone it is unusable. The launcher's
+own menu never calls it: `TaskShortcutFactory$SplitSelectSystemShortcut.onClick`
+passes a stage position read from the handler's offered options, along with
+`StatsLogManager$LauncherEvent.LAUNCHER_APP_ICON_MENU_SPLIT_LEFT_TOP` or
+`…_RIGHT_BOTTOM`. This module does the same, taking the first offered option as
+the menu does, and falls back to the one-argument call when a build answers with
+no options.
+
+The device profile the handler wants comes from
+`RecentsViewContainer.containerFromContext(Context).getDeviceProfile()`, the same
+entry point the clear-all action uses to find the recents view.

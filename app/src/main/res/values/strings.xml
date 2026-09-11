@@ -26,6 +26,8 @@
 
     <string name="feature_overview_bubble_title">Show Bubble launcher button</string>
     <string name="feature_overview_bubble_summary">Reopen a Recents card’s app as a floating bubble.</string>
+    <string name="feature_overview_split_title">Show Split screen button</string>
+    <string name="feature_overview_split_summary">Pick a Recents card to share the screen with another app.</string>
     <string name="feature_overview_hide_screenshot_title">Hide Screenshot button</string>
     <string name="feature_overview_hide_screenshot_summary">Remove Screenshot from the Recents action row.</string>
     <string name="feature_overview_hide_select_title">Hide Select button</string>

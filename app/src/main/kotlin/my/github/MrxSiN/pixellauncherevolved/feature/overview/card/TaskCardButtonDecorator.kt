@@ -1,29 +1,32 @@
-package my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble
+package my.github.MrxSiN.pixellauncherevolved.feature.overview.card
 
 import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
 
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
-import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewCloser
-import my.github.MrxSiN.pixellauncherevolved.feature.overview.TaskTargetResolver
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.TaskViewGeometry
 
 /**
- * Owns the bubble button of a single Overview task card.
+ * Owns one injected button on every Overview task card.
  *
- * The card is a `FrameLayout`, so the button is added as its last child and
- * then positioned by hand against the thumbnail rectangle. Doing the placement
- * explicitly keeps the button pinned to the visible snapshot corner in every
+ * A card is a `FrameLayout`, so a button is added as its last child and then
+ * positioned by hand against the thumbnail rectangle. Doing the placement
+ * explicitly keeps a button pinned to the visible snapshot corner in every
  * Overview layout: grid, carousel, and split.
+ *
+ * Which bottom corner a button takes is asked for on every layout rather than
+ * fixed, so a button that moves aside for another when a setting is switched
+ * moves on the next frame rather than on the next launcher start.
  */
-class OverviewBubbleDecorator(
+class TaskCardButtonDecorator(
     private val isEnabled: () -> Boolean,
-    private val buttonFactory: BubbleButtonFactory,
-    private val targetResolver: TaskTargetResolver,
+    /** Whether this particular card can do the thing the button does. */
+    private val isAvailable: (ViewGroup) -> Boolean,
+    private val corner: () -> TaskCardCorner,
+    private val factory: TaskCardButtonFactory,
     private val geometry: TaskViewGeometry,
-    private val overviewCloser: OverviewCloser,
-    private val bubbleLauncher: BubbleLauncher,
+    private val onClick: (ViewGroup) -> Unit,
     private val logger: Logger,
 ) {
 
@@ -34,7 +37,7 @@ class OverviewBubbleDecorator(
 
     /**
      * Re-anchors the button, and hides it when the feature is switched off or
-     * the card has nothing to bubble.
+     * the card has nothing to act on.
      *
      * The setting is read here rather than at install time so that turning the
      * feature on or off reaches a running launcher on the next frame.
@@ -52,7 +55,7 @@ class OverviewBubbleDecorator(
             return
         }
 
-        if (targetResolver.resolve(taskView) == null) {
+        if (!isAvailable(taskView)) {
             button.visibility = View.GONE
             return
         }
@@ -70,24 +73,9 @@ class OverviewBubbleDecorator(
         if (!isEnabled() || findButton(taskView) != null) return
 
         try {
-            taskView.addView(buttonFactory.create(taskView.context) { launch(taskView) })
+            taskView.addView(factory.create(taskView.context) { onClick(taskView) })
         } catch (error: Throwable) {
-            logger.warn("Unable to add a bubble button to an Overview card", error)
-        }
-    }
-
-    /**
-     * Overview is put away first so the bubble settles over whatever it
-     * covered; a bubble raised over a collapsing Overview would be hidden by it.
-     */
-    private fun launch(taskView: ViewGroup) {
-        val target = targetResolver.resolve(taskView) ?: return
-        val context = taskView.context
-
-        overviewCloser.close(taskView) {
-            if (bubbleLauncher.launch(context, target)) {
-                logger.info("Requested bubble for ${target.intent.component}")
-            }
+            logger.warn("Unable to add the ${factory.tag} button to an Overview card", error)
         }
     }
 
@@ -101,14 +89,26 @@ class OverviewBubbleDecorator(
             View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY),
         )
 
-        val margin = buttonFactory.marginPixels(taskView.context)
-        val right = thumbnailBounds.right - margin
+        val margin = factory.marginPixels(taskView.context)
         val bottom = thumbnailBounds.bottom - margin
-        button.layout(right - width, bottom - height, right, bottom)
+        val left = when (corner()) {
+            TaskCardCorner.START -> thumbnailBounds.left + margin
+            TaskCardCorner.END -> thumbnailBounds.right - margin - width
+        }
+
+        button.layout(left, bottom - height, left + width, bottom)
     }
 
     private fun findButton(taskView: ViewGroup): View? =
         (taskView.childCount - 1 downTo 0)
             .map(taskView::getChildAt)
-            .firstOrNull { it.tag == BubbleButtonFactory.VIEW_TAG }
+            .firstOrNull { it.tag == factory.tag }
 }
+
+/**
+ * The bottom corner of a task card's thumbnail a button sits in.
+ *
+ * Named for the reading direction rather than for a side, so a right-to-left
+ * layout puts a button where a person there expects it.
+ */
+enum class TaskCardCorner { START, END }

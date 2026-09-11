@@ -4,15 +4,10 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
-import android.animation.TimeInterpolator
 import android.animation.ValueAnimator
 import android.view.View
-import android.view.animation.PathInterpolator
 
-import kotlin.math.cos
-import kotlin.math.exp
-import kotlin.math.sin
-import kotlin.math.sqrt
+import my.github.MrxSiN.pixellauncherevolved.core.ExpressiveMotion
 
 /**
  * How a Focus page leaves the screen and how the next one arrives.
@@ -92,7 +87,7 @@ internal class MaterialExpressiveMotion : FocusRevealMotion {
             view.scaleTo(HIDDEN_SCALE),
         )
         duration = EXIT_DURATION_MS
-        interpolator = EMPHASIZED_ACCELERATE
+        interpolator = ExpressiveMotion.EMPHASIZED_ACCELERATE
         onCompleted { hide(view) }
     }
 
@@ -101,11 +96,11 @@ internal class MaterialExpressiveMotion : FocusRevealMotion {
 
         val fade = ObjectAnimator.ofFloat(view, View.ALPHA, view.alpha, 1f).apply {
             duration = ENTER_FADE_DURATION_MS
-            interpolator = EMPHASIZED_DECELERATE
+            interpolator = ExpressiveMotion.EMPHASIZED_DECELERATE
         }
         val grow = view.scaleTo(1f).apply {
             duration = ENTER_SCALE_DURATION_MS
-            interpolator = SPATIAL_SPRING
+            interpolator = ExpressiveMotion.spatialSpring(ENTER_SCALE_DURATION_MS)
         }
 
         return AnimatorSet().apply {
@@ -160,74 +155,5 @@ internal class MaterialExpressiveMotion : FocusRevealMotion {
         const val EXIT_DURATION_MS = 150L
         const val ENTER_FADE_DURATION_MS = 250L
         const val ENTER_SCALE_DURATION_MS = 400L
-
-        /** Material 3's emphasized accelerate, for content being taken away. */
-        val EMPHASIZED_ACCELERATE = PathInterpolator(0.3f, 0f, 0.8f, 0.15f)
-
-        /** Material 3's emphasized decelerate, for content arriving. */
-        val EMPHASIZED_DECELERATE = PathInterpolator(0.05f, 0.7f, 0.1f, 1f)
-
-        /**
-         * Material 3 Expressive's fast spatial spring.
-         *
-         * The damping ratio and stiffness are the specification's own numbers
-         * for movement that should feel quick and alive, rather than the calmer
-         * default meant for things that merely reposition themselves.
-         */
-        val SPATIAL_SPRING = SpringInterpolator(
-            dampingRatio = 0.6f,
-            stiffness = 800f,
-            durationMs = ENTER_SCALE_DURATION_MS,
-        )
-    }
-}
-
-/**
- * A spring's journey to rest, written as a curve an animator can run on.
- *
- * Material 3 Expressive describes its spatial motion as springs rather than as
- * eases: a value is not walked to its destination, it is pulled there and
- * settles, overshooting slightly on the way. Android's animators want a
- * function of elapsed fraction, so the spring's closed-form step response is
- * evaluated here rather than integrated frame by frame. That keeps the feel of
- * a spring with no physics runtime to depend on, and leaves a curve a unit test
- * can check.
- *
- * @param dampingRatio how quickly the oscillation dies away. Below one, because
- * at one and above there is no overshoot left and no spring worth the name.
- * @param stiffness the spring constant for a unit mass, so the undamped
- * frequency is its square root. Higher is faster and tighter.
- * @param durationMs how much real time one full pass of the animator covers,
- * needed because the curve is written in seconds and an animator counts in
- * fractions.
- */
-internal class SpringInterpolator(
-    dampingRatio: Float,
-    stiffness: Float,
-    private val durationMs: Long,
-) : TimeInterpolator {
-
-    init {
-        require(dampingRatio > 0f && dampingRatio < 1f) {
-            "A spring that overshoots needs a damping ratio between 0 and 1, not $dampingRatio"
-        }
-        require(stiffness > 0f) { "A spring needs a positive stiffness, not $stiffness" }
-    }
-
-    private val damping = dampingRatio.toDouble()
-    private val naturalFrequency = sqrt(stiffness.toDouble())
-    private val dampedFrequency = naturalFrequency * sqrt(1.0 - damping * damping)
-
-    override fun getInterpolation(input: Float): Float {
-        val seconds = input.toDouble() * durationMs / MILLIS_PER_SECOND
-        val decay = exp(-damping * naturalFrequency * seconds)
-        val swing = cos(dampedFrequency * seconds) +
-            damping * naturalFrequency / dampedFrequency * sin(dampedFrequency * seconds)
-
-        return (1.0 - decay * swing).toFloat()
-    }
-
-    private companion object {
-        const val MILLIS_PER_SECOND = 1000.0
     }
 }

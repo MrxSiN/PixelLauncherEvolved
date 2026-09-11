@@ -80,12 +80,19 @@ class LauncherSettingsFeature : LauncherFeature {
             return
         }
 
-        val section = SettingsSection(api, resources, context.settings, context.logger) {
+        val section = SettingsSection(
+            api = api,
+            resources = resources,
+            settings = context.settings,
+            modulePackage = context.xposed.moduleApplicationInfo.packageName,
+            logger = context.logger,
+        ) {
             context.logger.info("Restart requested from Home settings; ending the launcher process")
             Process.killProcess(Process.myPid())
         }
 
         installExpressiveSlider(context, api)
+        installExpressiveRows(context, api)
 
         context.xposed.hook(createPreferences).intercept { chain ->
             val rootKey = chain.args.getOrNull(ROOT_KEY_ARGUMENT) as? String
@@ -136,6 +143,46 @@ class LauncherSettingsFeature : LauncherFeature {
     }
 
     /**
+     * Draws this module's own pages as the cards Android 17 settings is made
+     * of.
+     *
+     * Only the rows of a page this module builds are drawn this way. The
+     * launcher's own rows keep the look the launcher gives them, and so does
+     * this module's section in Home settings, which is a few rows among the
+     * launcher's on a screen the launcher lays out.
+     *
+     * A row only has a view once it is bound, and the bind is the one place
+     * that knows which view a recycled row ended up with, so the drawing
+     * happens there. Every preference in the screen passes through this one
+     * method — a subclass that overrides it calls up to this one first — which
+     * is also what lets a view handed on from one of this module's rows to one
+     * of the launcher's be given back the way the launcher drew it.
+     */
+    private fun installExpressiveRows(context: FeatureContext, api: PreferenceApi) {
+        val bind = api.rowBind
+        if (!api.hasRowPlacement || bind == null) {
+            context.logger.warn("Home settings does not expose its rows; they keep the launcher's own look")
+            return
+        }
+
+        val placements = ExpressiveRowPlacements(api, PAGE_KEY_PREFIX)
+
+        context.xposed.hook(bind).intercept { chain ->
+            chain.proceed().also {
+                val row = chain.thisObject
+                val holder = chain.args.getOrNull(HOLDER_ARGUMENT)
+                if (row != null && holder != null) {
+                    runCatching {
+                        api.rowViewOf(holder)?.let { view ->
+                            ExpressiveRowView.applyTo(view, placements.placementOf(row))
+                        }
+                    }.onFailure { error -> context.logger.warn("Unable to draw the settings row", error) }
+                }
+            }
+        }
+    }
+
+    /**
      * This module's own resources, read from inside the launcher.
      *
      * Titles and summaries are described once, in this module's `strings.xml`,
@@ -155,6 +202,9 @@ class LauncherSettingsFeature : LauncherFeature {
 
         /** `onCreatePreferences(Bundle savedInstanceState, String rootKey)`. */
         const val ROOT_KEY_ARGUMENT = 1
+
+        /** `onBindViewHolder(PreferenceViewHolder holder)`. */
+        const val HOLDER_ARGUMENT = 0
         const val KEY_PREFIX = "ple_"
         const val PAGE_KEY_PREFIX = KEY_PREFIX + "page_"
     }
@@ -173,6 +223,8 @@ private class SettingsSection(
     private val api: PreferenceApi,
     private val resources: Resources,
     private val settings: SettingsStore,
+    /** This module's own package, which its providers are addressed by. */
+    private val modulePackage: String,
     private val logger: Logger,
     private val onRestart: () -> Unit,
 ) {
@@ -208,8 +260,19 @@ private class SettingsSection(
         )
     }
 
+    /**
+     * Opens one of this module's pages, named after itself.
+     *
+     * The launcher names an open page by setting the activity's title from the
+     * screen it built. This page is built here rather than there, so the same
+     * has to be said here: without it the page opens under the title of the
+     * screen it was opened from.
+     */
     fun showPage(fragment: Any, page: CatalogPage) {
-        api.showRootScreen(fragment) { populate(it, page) }
+        val title = resources.getString(page.titleRes)
+        val context = api.showRootScreen(fragment, PAGE_KEY_PREFIX + page.key, title) { populate(it, page) }
+
+        context.activityOrNull()?.title = title
     }
 
     private fun populate(screen: Any, page: CatalogPage) {
@@ -307,7 +370,7 @@ private class SettingsSection(
         if (!settings[Settings.FOCUS_HOME_SCREENS]) return
 
         val store = SharedPreferencesFocusStore(LauncherSettings.preferences(context))
-        val source = ProviderFocusSource(context.contentResolver, logger)
+        val source = ProviderFocusSource(context.contentResolver, modulePackage, logger)
 
         api.add(
             screen,

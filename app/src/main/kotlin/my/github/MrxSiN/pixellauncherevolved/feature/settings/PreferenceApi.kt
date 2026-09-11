@@ -58,6 +58,25 @@ class PreferenceApi(classLoader: ClassLoader) {
         it.type == android.widget.SeekBar::class.java
     }?.apply { isAccessible = true }
 
+    /**
+     * `Preference.onBindViewHolder(PreferenceViewHolder)`, and the row view a
+     * bind fills in.
+     *
+     * Every row in the screen passes through this one method: a subclass that
+     * overrides it calls up to this one first, so a hook here sees the
+     * launcher's own rows as well as this module's. The name survives the
+     * shrinker for the reason the slider's does — it overrides a method of the
+     * library's own base class.
+     *
+     * The view is read off the holder by type rather than by name, because the
+     * holder's class is shrunk too. `RecyclerView.ViewHolder` declares exactly
+     * one field of type `View`, which is the row.
+     */
+    val rowBind: java.lang.reflect.Method? = preference?.declaredMethods?.singleOrNull {
+        it.name == "onBindViewHolder" && it.parameterTypes.size == 1
+    }
+    private val rowViewFields = mutableMapOf<Class<*>, java.lang.reflect.Field?>()
+
     private val setTitle = preference?.let { Reflect.method(it, "setTitle", CharSequence::class.java) }
     private val setSummary = preference?.let { Reflect.method(it, "setSummary", CharSequence::class.java) }
     private val setKey = preference?.let { Reflect.method(it, "setKey", String::class.java) }
@@ -69,6 +88,22 @@ class PreferenceApi(classLoader: ClassLoader) {
     }
     private val setPreferenceScreen = fragment?.let { owner ->
         screen?.let { Reflect.method(owner, "setPreferenceScreen", it) }
+    }
+
+    /**
+     * What a row sits in, and what else sits in it.
+     *
+     * A bound row says nothing about where in the screen it is, and where it is
+     * decides which corners its card is rounded on. The hierarchy already holds
+     * that: a row knows the group it was added to, and the group holds its
+     * children in the order they are drawn.
+     */
+    private val parentField = preference?.let { Reflect.field(it, "mParentGroup") }
+    private val visibleField = preference?.let { Reflect.field(it, "mVisible") }
+    private val childrenField = group?.let { owner ->
+        Reflect.field(owner, "mPreferences")
+            ?: owner.declaredFields.singleOrNull { List::class.java.isAssignableFrom(it.type) }
+                ?.apply { isAccessible = true }
     }
 
     private val contextField = preference?.let { Reflect.field(it, "mContext") }
@@ -110,6 +145,33 @@ class PreferenceApi(classLoader: ClassLoader) {
     /** A row's key, which is what says whether it is one of this module's. */
     fun keyOf(row: Any): String? = keyField?.get(row) as? String
 
+    /**
+     * Whether this build lets a row be placed among the rows it is drawn with.
+     *
+     * Separate from [isUsable] because a launcher that has shrunk the hierarchy
+     * away should lose the card styling rather than the whole section.
+     */
+    val hasRowPlacement: Boolean =
+        rowBind != null && parentField != null && childrenField != null && category != null
+
+    /** The group a row was added to, or none while it is unattached. */
+    fun parentOf(row: Any): Any? = parentField?.get(row)
+
+    /** A group's rows, in the order they are drawn. */
+    fun childrenOf(group: Any): List<Any> =
+        (childrenField?.get(group) as? List<*>)?.filterNotNull().orEmpty()
+
+    /** Whether a row is a heading rather than a row of the card below it. */
+    fun isCategory(row: Any): Boolean = category?.isInstance(row) == true
+
+    /** Whether a row is drawn at all. A hidden one is not part of any card. */
+    fun isVisible(row: Any): Boolean = visibleField?.getBoolean(row) ?: true
+
+    /** The view a bound row is drawn into, for a row that wants restyling. */
+    fun rowViewOf(holder: Any): android.view.View? =
+        rowViewFields.getOrPut(holder.javaClass) { rowViewField(holder.javaClass) }
+            ?.get(holder) as? android.view.View
+
     /** The themed context a preference was built with, which new rows must share. */
     fun contextOf(preference: Any): Context = contextField!!.get(preference) as Context
 
@@ -129,13 +191,35 @@ class PreferenceApi(classLoader: ClassLoader) {
         persistentField!!.setBoolean(row, false)
     }
 
-    /** Builds and then installs one of this module's own pages atomically. */
-    fun showRootScreen(fragment: Any, populate: (Any) -> Unit) {
+    /**
+     * Builds and then installs one of this module's own pages atomically.
+     *
+     * The page carries its own title, which is what the screen is named after
+     * once it is open: the launcher titles a page it opened itself from the
+     * title of the screen it built, and a page built here has to say the same
+     * thing rather than leave the parent screen's name standing over it. It
+     * carries its own key too, which is what a row drawn later asks to find out
+     * that it belongs to one of this module's pages.
+     *
+     * Returns the context the page was built with, which is the one the page is
+     * shown in.
+     */
+    fun showRootScreen(
+        fragment: Any,
+        key: String,
+        title: CharSequence,
+        populate: (Any) -> Unit,
+    ): Context {
         val context = Reflect.method(fragment.javaClass, "requireContext")!!.invoke(fragment) as Context
         val root = screenConstructor!!.newInstance(context, null)
         attachToHierarchy!!.invoke(root, preferenceManagerField!!.get(fragment))
+        setKey!!.invoke(root, key)
+        setTitle!!.invoke(root, title)
+        persistentField!!.setBoolean(root, false)
         populate(root)
         setPreferenceScreen!!.invoke(fragment, root)
+
+        return context
     }
 
     /**
@@ -275,6 +359,25 @@ class PreferenceApi(classLoader: ClassLoader) {
 
         fun load(classLoader: ClassLoader, name: String): Class<*>? =
             runCatching { Class.forName(name, false, classLoader) }.getOrNull()
+
+        /**
+         * `RecyclerView.ViewHolder.itemView`, found by type.
+         *
+         * The type has to match exactly rather than merely be a view: the
+         * holder also carries a reference to the list it belongs to, and a
+         * `RecyclerView` is itself a `View`.
+         */
+        fun rowViewField(type: Class<*>): java.lang.reflect.Field? {
+            var current: Class<*>? = type
+            while (current != null) {
+                current.declaredFields
+                    .singleOrNull { it.type == android.view.View::class.java }
+                    ?.let { return it.apply { isAccessible = true } }
+                current = current.superclass
+            }
+
+            return null
+        }
 
         /**
          * `setValueInternal(int, boolean)`, found by shape.

@@ -46,6 +46,13 @@ object Settings {
         BoolSetting("overview_hide_taskbar_all_apps", default = false)
 
     val OVERVIEW_BUBBLE_BUTTON = BoolSetting("overview_bubble_button", default = true)
+
+    /**
+     * Starts the launcher's own split selection from a task card. It shares the
+     * thumbnail's corner with [OVERVIEW_BUBBLE_BUTTON], sitting to the left of
+     * that one while both are on.
+     */
+    val OVERVIEW_SPLIT_BUTTON = BoolSetting("overview_split_button", default = true)
     val OVERVIEW_HIDE_SCREENSHOT = BoolSetting("overview_hide_screenshot", default = false)
     val OVERVIEW_HIDE_SELECT = BoolSetting("overview_hide_select", default = false)
     val OVERVIEW_CLEAR_ALL_IN_ACTIONS = BoolSetting("overview_clear_all_in_actions", default = false)

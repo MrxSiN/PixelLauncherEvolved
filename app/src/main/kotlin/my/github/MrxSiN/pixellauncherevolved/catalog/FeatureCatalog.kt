@@ -71,6 +71,12 @@ object FeatureCatalog {
             page = CatalogPage.OVERVIEW,
         ),
         CatalogEntry(
+            setting = Settings.OVERVIEW_SPLIT_BUTTON,
+            titleRes = R.string.feature_overview_split_title,
+            summaryRes = R.string.feature_overview_split_summary,
+            page = CatalogPage.OVERVIEW,
+        ),
+        CatalogEntry(
             setting = Settings.OVERVIEW_CLEAR_ALL_IN_ACTIONS,
             titleRes = R.string.feature_overview_clear_all_in_actions_title,
             summaryRes = R.string.feature_overview_clear_all_in_actions_summary,

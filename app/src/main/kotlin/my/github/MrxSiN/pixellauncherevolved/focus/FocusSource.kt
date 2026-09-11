@@ -40,10 +40,11 @@ interface FocusSource {
  */
 class ProviderFocusSource(
     private val resolver: ContentResolver,
+    private val modulePackage: String,
     private val logger: Logger,
 ) : FocusSource {
 
-    override fun snapshot(): FocusSnapshot = query(FocusContract.SNAPSHOT) { cursor ->
+    override fun snapshot(): FocusSnapshot = query(FocusContract.snapshot(modulePackage)) { cursor ->
         val id = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ID)
         val name = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_NAME)
         val active = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ACTIVE)
@@ -65,7 +66,7 @@ class ProviderFocusSource(
         FocusSnapshot(readable, modes)
     } ?: FocusSnapshot(isReadable = false, modes = emptyList())
 
-    override fun modes(): List<FocusMode> = query(FocusContract.MODES) { cursor ->
+    override fun modes(): List<FocusMode> = query(FocusContract.modes(modulePackage)) { cursor ->
         val id = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ID)
         val name = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_NAME)
         val active = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ACTIVE)
@@ -83,7 +84,7 @@ class ProviderFocusSource(
         }
     }.orEmpty()
 
-    override fun isReadable(): Boolean = query(FocusContract.ACCESS) { cursor ->
+    override fun isReadable(): Boolean = query(FocusContract.access(modulePackage)) { cursor ->
         cursor.moveToFirst() &&
             cursor.getInt(cursor.getColumnIndexOrThrow(FocusContract.COLUMN_GRANTED)) != 0
     } == true

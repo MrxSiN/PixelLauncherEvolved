@@ -88,7 +88,11 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             // effect on the next binding rather than the next launcher start.
             isEnabled = { context.settings[toggle] },
             store = SharedPreferencesFocusStore(LauncherSettings.preferences(context.appContext)),
-            source = ProviderFocusSource(context.appContext.contentResolver, context.logger),
+            source = ProviderFocusSource(
+                resolver = context.appContext.contentResolver,
+                modulePackage = context.xposed.moduleApplicationInfo.packageName,
+                logger = context.logger,
+            ),
             logger = context.logger,
         )
         val previews = FocusPreviewRecorder(itemInfo, context.appContext)

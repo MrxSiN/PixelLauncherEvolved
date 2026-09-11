@@ -74,11 +74,13 @@ grep -q 'fun method' "$SRC/core/Reflect.kt"
 grep -q 'runCatching' "$SRC/hook/FeatureRegistry.kt"
 grep -q 'isEnabled(context.settings)' "$SRC/hook/FeatureRegistry.kt"
 
-# Bubble feature: the three TaskView members the button depends on.
+# Card buttons: the three TaskView members every one of them depends on, hooked
+# once for all of them.
 grep -q 'com.android.quickstep.views.TaskView' "$SRC/feature/overview/OverviewBubbleFeature.kt"
-grep -q '"onFinishInflate"' "$SRC/feature/overview/OverviewBubbleFeature.kt"
-grep -q '"onLayout"' "$SRC/feature/overview/OverviewBubbleFeature.kt"
-grep -q '"setFullscreenProgress"' "$SRC/feature/overview/OverviewBubbleFeature.kt"
+grep -q 'com.android.quickstep.views.TaskView' "$SRC/feature/overview/OverviewSplitButtonFeature.kt"
+grep -q '"onFinishInflate"' "$SRC/feature/overview/card/TaskCardHooks.kt"
+grep -q '"onLayout"' "$SRC/feature/overview/card/TaskCardHooks.kt"
+grep -q '"setFullscreenProgress"' "$SRC/feature/overview/card/TaskCardHooks.kt"
 
 # Bubble transport: the platform binder path, with a nullable bar location.
 grep -q 'com.android.quickstep.SystemUiProxy' "$SRC/feature/overview/bubble/SystemUiProxyBubbleLauncher.kt"
@@ -90,7 +92,7 @@ grep -q 'com.android.wm.shell.shared.bubbles.logging.EntryPoint' "$SRC/feature/o
 grep -q 'getRunningTaskView' "$SRC/feature/overview/OverviewCloser.kt"
 grep -q 'launchWithAnimation' "$SRC/feature/overview/OverviewCloser.kt"
 grep -q 'startHome' "$SRC/feature/overview/OverviewCloser.kt"
-grep -q 'overviewCloser.close' "$SRC/feature/overview/bubble/OverviewBubbleDecorator.kt"
+grep -q 'overviewCloser.close' "$SRC/feature/overview/bubble/BubbleAction.kt"
 
 # Task resolution reads the recorded launch intent rather than guessing one.
 grep -q '"baseIntent"' "$SRC/feature/overview/TaskTargetResolver.kt"
@@ -101,9 +103,15 @@ grep -q 'getFirstTask' "$SRC/feature/overview/TaskTargetResolver.kt"
 grep -q 'getThumbnailBounds' "$SRC/feature/overview/TaskViewGeometry.kt"
 
 # Button styling is borrowed from the launcher, at Material 3 medium FAB size.
-grep -q 'ic_bubble_button' "$SRC/feature/overview/bubble/BubbleButtonFactory.kt"
-grep -q 'CIRCLE_DP = 56' "$SRC/feature/overview/bubble/BubbleButtonFactory.kt"
-grep -q 'GLYPH_DP = 24' "$SRC/feature/overview/bubble/BubbleButtonFactory.kt"
+grep -q 'ic_bubble_button' "$SRC/feature/overview/OverviewBubbleFeature.kt"
+grep -q 'CIRCLE_DP = 56' "$SRC/feature/overview/card/TaskCardButtonFactory.kt"
+grep -q 'GLYPH_DP = 24' "$SRC/feature/overview/card/TaskCardButtonFactory.kt"
+
+# Split screen goes through the launcher's own selection, started from the card's
+# task container the way the card's own menu starts it.
+grep -q 'initiateSplitSelect' "$SRC/feature/overview/split/SplitScreenAction.kt"
+grep -q 'getTaskContainers' "$SRC/feature/overview/split/SplitScreenAction.kt"
+grep -q 'ic_split_horizontal' "$SRC/feature/overview/OverviewSplitButtonFeature.kt"
 
 # The action row is recomputed, and its clear-all button uses the launcher label.
 grep -q 'updateActionButtonsVisibility' "$SRC/feature/overview/OverviewActionsFeature.kt"
@@ -436,13 +444,21 @@ grep -q 'activeModes ?: read()' "$SRC/feature/focus/FocusHomeFeature.kt"
 # The page swap is Material 3 Expressive: content leaves before it is replaced,
 # and what arrives is sprung into place rather than wiped in.
 ! grep -q 'createCircularReveal' "$SRC/feature/focus/FocusRevealMotion.kt"
-grep -q 'class SpringInterpolator' "$SRC/feature/focus/FocusRevealMotion.kt"
+# The spring itself is shared: the page swap and the Overview action buttons are
+# two animations of one system, and two copies of those numbers would be two
+# things to keep in agreement.
+grep -q 'class SpringInterpolator' "$SRC/core/ExpressiveMotion.kt"
+grep -q 'ExpressiveMotion.spatialSpring' "$SRC/feature/focus/FocusRevealMotion.kt"
 grep -q 'fun exit(view: View): Animator' "$SRC/feature/focus/FocusRevealMotion.kt"
 ! grep -q 'ViewAnimationUtils' "$SRC/feature/focus/FocusPageReveal.kt"
 
-# The provider authority is written out in code and templated in the manifest;
-# they have to stay the same string.
-grep -q 'my.github.MrxSiN.pixellauncherevolved.focus' "$SRC/focus/FocusContract.kt"
+# The provider authority is the module's own package with a suffix, asked for at
+# runtime rather than written out: a copy of the package here outlives a rename
+# of the package itself, which is how the launcher once ended up asking an
+# authority that no longer existed.
+grep -q 'AUTHORITY_SUFFIX: String = ".focus"' "$SRC/focus/FocusContract.kt"
+! grep -q 'content://my\.' "$SRC/focus/FocusContract.kt"
+grep -q 'moduleApplicationInfo.packageName' "$SRC/feature/focus/FocusHomeFeature.kt"
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.

@@ -11,20 +11,33 @@ import android.net.Uri
 object FocusContract {
 
     /**
-     * Matches `${applicationId}.focus` in the manifest, written out because the
-     * build config class this module would read it from is not generated.
-     * `check-project.sh` holds the two together.
+     * Appended to the module's own package name, as `${applicationId}.focus` in
+     * the manifest is.
+     *
+     * The package itself is never written here. The reader runs inside the
+     * launcher, where the module's package is something to be asked for rather
+     * than assumed, and a copy of it kept in this file is a copy that survives
+     * the package being renamed — which is exactly how the launcher came to be
+     * asking an authority that no longer existed.
      */
-    const val AUTHORITY: String = "my.github.MrxSiN.pixellauncherevolved.focus"
+    const val AUTHORITY_SUFFIX: String = ".focus"
 
     /** Every mode, one row each. */
-    val MODES: Uri = Uri.parse("content://$AUTHORITY/modes")
+    fun modes(modulePackage: String): Uri = uri(modulePackage, MODES_PATH)
 
     /** Access and modes from one root-backed snapshot. */
-    val SNAPSHOT: Uri = Uri.parse("content://$AUTHORITY/snapshot")
+    fun snapshot(modulePackage: String): Uri = uri(modulePackage, SNAPSHOT_PATH)
 
     /** One row saying whether modes can be read at all. */
-    val ACCESS: Uri = Uri.parse("content://$AUTHORITY/access")
+    fun access(modulePackage: String): Uri = uri(modulePackage, ACCESS_PATH)
+
+    private fun uri(modulePackage: String, path: String): Uri =
+        Uri.parse("content://$modulePackage$AUTHORITY_SUFFIX/$path")
+
+    /** The paths above, which the provider answers by. */
+    const val MODES_PATH: String = "modes"
+    const val SNAPSHOT_PATH: String = "snapshot"
+    const val ACCESS_PATH: String = "access"
 
     const val COLUMN_ID: String = "id"
     const val COLUMN_NAME: String = "name"

@@ -1,11 +1,12 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.overview
 
-import android.view.ViewGroup
-
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
-import my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble.BubbleButtonFactory
-import my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble.OverviewBubbleDecorator
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble.BubbleAction
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble.SystemUiProxyBubbleLauncher
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.card.TaskCardButtonDecorator
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.card.TaskCardButtonFactory
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.card.TaskCardCorner
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.card.decorateTaskCards
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 
@@ -15,6 +16,9 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * Android 17 can bubble any app, but the only entry point is a long-press on an
  * app icon. Once an app is already running, Recents is where users reach for
  * it, so the same action belongs on the task card.
+ *
+ * It keeps the trailing bottom corner of the thumbnail; the split screen
+ * button, when that is switched on too, takes the leading one.
  */
 class OverviewBubbleFeature : ToggleFeature(Settings.OVERVIEW_BUBBLE_BUTTON) {
 
@@ -25,40 +29,38 @@ class OverviewBubbleFeature : ToggleFeature(Settings.OVERVIEW_BUBBLE_BUTTON) {
             return
         }
 
-        val decorator = OverviewBubbleDecorator(
-            // Read on every layout pass, so switching the feature on or off
-            // reaches a running launcher without a restart.
-            isEnabled = { context.settings[toggle] },
-            buttonFactory = BubbleButtonFactory(),
+        val action = BubbleAction(
             targetResolver = TaskViewTargetResolver(context.logger),
-            geometry = TaskViewGeometry(),
             overviewCloser = RecentsViewOverviewCloser(context.logger),
             bubbleLauncher = SystemUiProxyBubbleLauncher(context.classLoader, context.logger),
             logger = context.logger,
         )
 
-        context.hookAfter(taskView, "onFinishInflate") { card, _ ->
-            decorator.onTaskViewInflated(card as ViewGroup)
-        }
+        val decorator = TaskCardButtonDecorator(
+            // Read on every layout pass, so switching the feature on or off
+            // reaches a running launcher without a restart.
+            isEnabled = { context.settings[toggle] },
+            isAvailable = action::canBubble,
+            corner = { TaskCardCorner.END },
+            factory = TaskCardButtonFactory(
+                tag = VIEW_TAG,
+                iconResources = listOf(ICON_RESOURCE),
+                labelResource = LABEL_RESOURCE,
+                fallbackLabel = "Bubble",
+            ),
+            geometry = TaskViewGeometry(),
+            onClick = action::run,
+            logger = context.logger,
+        )
 
-        context.hookAfter(
-            taskView,
-            "onLayout",
-            Boolean::class.javaPrimitiveType!!,
-            Int::class.javaPrimitiveType!!,
-            Int::class.javaPrimitiveType!!,
-            Int::class.javaPrimitiveType!!,
-            Int::class.javaPrimitiveType!!,
-        ) { card, _ -> decorator.onTaskViewLaidOut(card as ViewGroup) }
-
-        context.hookAfter(
-            taskView,
-            "setFullscreenProgress",
-            Float::class.javaPrimitiveType!!,
-        ) { card, args -> decorator.onFullscreenProgress(card as ViewGroup, args[0] as Float) }
+        context.decorateTaskCards(taskView, decorator)
     }
 
     private companion object {
         const val TASK_VIEW_CLASS = "com.android.quickstep.views.TaskView"
+        const val VIEW_TAG = "pixellauncherevolved:bubble_button"
+
+        const val ICON_RESOURCE = "ic_bubble_button"
+        const val LABEL_RESOURCE = "bubble"
     }
 }

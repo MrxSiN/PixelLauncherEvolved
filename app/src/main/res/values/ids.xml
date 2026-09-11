@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The tag a restyled settings row remembers its original look under. A view
+      tag key has to be a resource id, and this module's ids stay its own inside
+      the launcher's process because they come from this package's resources.
+    -->
+    <item name="ple_row_original" type="id" />
+</resources>

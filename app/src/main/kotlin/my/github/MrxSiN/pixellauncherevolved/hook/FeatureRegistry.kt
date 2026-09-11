@@ -10,8 +10,10 @@ import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarHomeVisibilit
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarOnlyFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarTransitionFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewActionsFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewActionsMotionFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewBubbleFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewClearAllButtonFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewSplitButtonFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.search.AppDrawerSearchFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.search.HomeSearchBarFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppFeature
@@ -42,8 +44,10 @@ object FeatureRegistry {
         WebSearchAppFeature(),
         FocusHomeFeature(),
         OverviewBubbleFeature(),
+        OverviewSplitButtonFeature(),
         OverviewActionsFeature(),
         OverviewClearAllButtonFeature(),
+        OverviewActionsMotionFeature(),
     )
 
     /**

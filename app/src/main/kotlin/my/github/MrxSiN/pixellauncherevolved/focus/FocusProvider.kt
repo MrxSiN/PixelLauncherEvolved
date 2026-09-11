@@ -98,8 +98,10 @@ class FocusProvider : ContentProvider() {
 
     private companion object {
         const val LAUNCHER_PACKAGE = "com.google.android.apps.nexuslauncher"
-        const val SNAPSHOT = "snapshot"
-        const val MODES = "modes"
-        const val ACCESS = "access"
+
+        // The paths the reader asks by, so the two cannot drift apart.
+        const val SNAPSHOT = FocusContract.SNAPSHOT_PATH
+        const val MODES = FocusContract.MODES_PATH
+        const val ACCESS = FocusContract.ACCESS_PATH
     }
 }
