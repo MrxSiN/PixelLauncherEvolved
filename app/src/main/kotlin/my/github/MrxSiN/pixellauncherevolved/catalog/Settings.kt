@@ -11,6 +11,14 @@ object Settings {
 
     val TASKBAR_ONLY = BoolSetting("taskbar_only", default = false)
     val TABLET_MODE = BoolSetting("tablet_mode", default = false)
+
+    /**
+     * Lays Recents out as the grid a tablet shows, while the workspace keeps
+     * its phone grid and no taskbar appears. One of the three layout choices in
+     * [my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog.layoutModes].
+     */
+    val OVERVIEW_ONLY = BoolSetting("overview_only", default = false)
+
     /** Blurs the wallpaper while the home screen is the state the launcher is in. */
     val HOME_BLUR_WALLPAPER = BoolSetting("home_blur_wallpaper", default = false)
 

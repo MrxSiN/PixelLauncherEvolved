@@ -107,6 +107,12 @@ object FeatureCatalog {
             page = CatalogPage.TABLET_LAYOUT,
         ),
         CatalogEntry(
+            setting = Settings.OVERVIEW_ONLY,
+            titleRes = R.string.feature_overview_only_title,
+            summaryRes = R.string.feature_overview_only_summary,
+            page = CatalogPage.TABLET_LAYOUT,
+        ),
+        CatalogEntry(
             setting = Settings.OVERVIEW_HIDE_TASKBAR_ALL_APPS,
             titleRes = R.string.feature_overview_hide_taskbar_all_apps_title,
             summaryRes = R.string.feature_overview_hide_taskbar_all_apps_summary,
@@ -114,7 +120,25 @@ object FeatureCatalog {
         ),
     )
 
+    /**
+     * The layout choices that are three answers to one question.
+     *
+     * Each says how much of the tablet layout the launcher should adopt, so at
+     * most one of them can be on. The settings section settles that from this
+     * list rather than from a rule of its own, which is what lets a fourth
+     * answer be added here and nowhere else.
+     */
+    val layoutModes: List<BoolSetting> = listOf(
+        Settings.TABLET_MODE,
+        Settings.TASKBAR_ONLY,
+        Settings.OVERVIEW_ONLY,
+    )
+
     fun entriesIn(page: CatalogPage): List<CatalogEntry> = entries.filter { it.page == page }
+
+    /** The layout choices switching [setting] on has to switch off, or none. */
+    fun layoutModesExcludedBy(setting: BoolSetting): List<BoolSetting> =
+        if (setting in layoutModes) layoutModes.filterNot { it == setting } else emptyList()
 }
 
 /** A tweak as the settings section shows it. */

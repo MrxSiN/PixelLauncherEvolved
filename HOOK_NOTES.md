@@ -910,6 +910,573 @@ The same animation builds both directions. Sampled at
 `animator_duration_scale` 20, app-to-home now shows whole icons from the first
 frame they are visible, and home-to-app is unchanged.
 
+## Tablet Overview only (Android 17, verified September 12, 2026)
+
+Recents is a grid on a large screen and a single row of cards on a phone, and
+every part of the launcher decides which from one field:
+
+```
+com.android.launcher3.deviceprofile.DeviceProperties
+  public final boolean isLargeScreen
+```
+
+reached by direct field access, never through a getter. The state answers from
+it:
+
+```java
+// com.android.launcher3.uioverrides.states.OverviewState
+public boolean displayOverviewTasksAsGrid(DeviceProfile dp) {
+    return dp.mDeviceProperties.isLargeScreen;
+}
+// com.android.quickstep.views.RecentsView
+public boolean showAsGrid() {
+    return mOverviewGridEnabled
+        || (mCurrentGestureEndTarget != null
+            && stateFromGestureEndTarget(mCurrentGestureEndTarget)
+                   .displayOverviewTasksAsGrid(getDeviceProfile()));
+}
+```
+
+and so does everything that lays a card out — `BaseContainerInterface`'s
+`calculateTaskSize`, `calculateGridSize`, `calculateModalTaskSize` and
+`getTaskDimension`, `TaskView.isGridTask`, `updateTaskSize` and `updatePivots`,
+a dozen methods of `RecentsView`, `TaskViewSimulator`, and
+`OverviewActionsView.updateForIsTablet`.
+
+### Why the field can be rewritten after the profile is built
+
+The same field is what the workspace, the app drawer, the hotseat and the
+taskbar are measured from — but they are measured **once**, inside
+`DeviceProfile$Builder.build()`, which reads
+`LauncherDisplayInfo.isLargeScreen(WindowBounds)` for itself and derives
+`WorkspaceProfile`, `AllAppsProfile`, `HotseatProfile` and `TaskbarProfile`
+before it returns. Recents reads the stored field again on every layout.
+
+So rewriting `DeviceProfile.mDeviceProperties.isLargeScreen` to true **after**
+`build()` has returned reaches Recents and nothing that was already sized. That
+is what separates this from tablet mode, which changes the `isLargeScreen` call
+itself and therefore changes the grid with it, and from taskbar only, which
+rewrites `TaskbarConfiguration` instead.
+
+The rewrite applies to every profile the process builds, for the reason given
+under *one process, one profile* above.
+
+### Gotcha: the grid dimensions are zero on a phone
+
+Grid Overview is not only a different arrangement; it has its own dimensions,
+and they live in `OverviewProfile`:
+
+```
+com.android.launcher3.deviceprofile.OverviewProfile
+  public OverviewProfile(int taskMarginPx, int taskIconSizePx,
+      int taskIconDrawableSizePx, int taskIconDrawableSizeGridPx,
+      int actionsHeight, int actionsTopMarginPx, int pageSpacing,
+      int rowSpacing, int gridSideMargin)
+```
+
+constructed only in `DeviceProfile$Builder.build()`, from nine dimension
+resources read through a `createConfigurationContext` whose
+`smallestScreenWidthDp` is computed from the window bounds. Five of the nine are
+qualified, and the three the grid is made of resolve to **nothing** below
+`sw600dp`:
+
+| Resource | Field | phone | `sw600dp` | `sw720dp` |
+|---|---|---|---|---|
+| `overview_grid_side_margin` | `gridSideMargin` | **0dp** | 64dp | — |
+| `overview_grid_row_spacing` | `rowSpacing` | **0dp** | 28dp | 36dp |
+| `task_thumbnail_icon_drawable_size_grid` | `taskIconDrawableSizeGridPx` | **0dp** | 44dp | — |
+| `overview_page_spacing` | `pageSpacing` | 16dp | 36dp | 44dp |
+| `overview_task_margin` | `taskMarginPx` | 16dp | 12dp | 16dp |
+
+A grid laid out on the phone's numbers therefore has no space between its rows,
+no margin to sit inside and no icon on a card, and the previews are drawn at the
+size a single row of full-height cards is measured for. Reading the same nine
+against a `smallestScreenWidthDp` of **600** — `#4416` in
+`LauncherDisplayInfo.isLargeScreen`, which is 600.0f — and writing them back
+over the built `OverviewProfile` is what sizes the previews for the grid.
+
+Only that one value is overridden; density and orientation stay as the launcher
+is running, so a dimension with a `land` answer — `overview_actions_top_margin`
+— still resolves to it.
+
+### The launcher's own surfaces read the same field
+
+Outside `com.android.quickstep` and Overview's own states, these read
+`isLargeScreen` while the launcher runs, and none of them is Recents:
+
+```
+com.android.launcher3.Launcher.initDeviceProfile(InvariantDeviceProfile)
+com.android.launcher3.DropTargetBar.setInsets(Rect)
+com.android.launcher3.Workspace.isSignificantMove(float, int)
+com.android.launcher3.QuickstepTransitionManager.getLauncherContentAnimator(int, boolean, boolean)
+com.android.launcher3.allapps.ActivityAllAppsContainerView.setInsets(Rect)
+com.android.launcher3.model.data.AppPairInfo.isLaunchable(Context)
+com.android.launcher3.states.RotationHelper.onDeviceProfileChanged(DeviceProfile)
+com.android.launcher3.touch.AbstractStateChangeTouchController.onDragEnd(float)
+com.android.launcher3.uioverrides.QuickstepLauncher.getSupportedShortcuts(ItemInfo)
+com.android.launcher3.views.AbstractSlideInView.onDragEnd(float)
+com.android.launcher3.views.Snackbar.getDismissTimeout(ActivityContext)
+com.android.launcher3.widget.LauncherAppWidgetProviderInfo.initSpans(Context, InvariantDeviceProfile)
+```
+
+Two of them are why the field cannot simply be left true:
+`ActivityAllAppsContainerView.setInsets` zeroes the drawer's left and right
+margins on a large screen, and `RotationHelper.onDeviceProfileChanged` sets
+`mIgnoreAutoRotateSettings` from it, which would let the home screen rotate
+freely. Each is given the phone's answer back for the length of its own call.
+
+### The Overview action row is four separate decisions
+
+A tablet has no Screenshot, Select or Clear all under Overview — it offers those
+from the task menu — and the launcher acts on that in four places, none of which
+is the state or the alphas:
+
+```
+com.android.quickstep.views.RecentsView.setInsets(Rect)
+    mActionsView.updateHiddenFlags(HIDDEN_LARGE_SCREEN /* 32 */, isLargeScreen);
+com.android.quickstep.views.OverviewActionsView.updateForIsTablet()
+    updateSplitButtonHiddenFlags(FLAG_IS_NOT_TABLET /* 1 */, !isLargeScreen);
+com.android.quickstep.views.OverviewActionsView.getBottomMargin()
+    isLargeScreen ? taskbarHeight + actionsTopMarginPx
+                  : heightPx - mTaskSize.bottom - actionsTopMarginPx - actionsHeight
+com.android.quickstep.BaseContainerInterface.calculateGridSize(DeviceProfile, Rect)
+    claimedBelow += isLargeScreen ? 0 : actionsTopMarginPx + actionsHeight
+```
+
+so keeping the row means answering all four, and each was visible on its own:
+
+| Left alone | What it looked like |
+|---|---|
+| `updateHiddenFlags` | the row in the hierarchy at `0,2704 1344x288` with no children |
+| `updateSplitButtonHiddenFlags` | a fourth button in the row: it gave up its side margins for the full `0..1344`, and Clear all came out 232px wide against 350 |
+| `getBottomMargin` | the row **266px** below the stock one, against the gesture bar, because with no taskbar its large-screen position measures from zero |
+| `calculateGridSize` | the cards laid out over the row — this is the rectangle everything is measured inside, and `calculateLargeTileSize` insets it, a grid card being half of that |
+
+Neither the state nor the alphas were ever the cause:
+`OverviewState.getVisibleElements` reads `isPhone`, not `isLargeScreen`, and still
+carried the actions bit; `animateActionsViewIn` does return early on
+`showAsGrid()`, but only for the swipe-up path, and the row was missing coming
+from the Recents button too; scrolling the grid changed nothing, so
+`getIndexScrollAlpha` was not it either.
+
+Measured against stock Recents afterwards, horizontally exact:
+
+| | `action_buttons` | Screenshot | Select | Clear all |
+|---|---|---|---|---|
+| stock | `x=98..1245` | `98..498` | `546..847` | `895..1245` |
+| Overview only | `x=98..1245` | `98..498` | `546..847` | `895..1245` |
+
+Vertically the row sits directly under the cards in both — a 71px gap under the
+last card row — but 36px lower in absolute terms, `y=2546..2690` against
+`2510..2654`, because the grid's own rectangle comes out 37px below the phone's
+single card. Both are 2094px tall; the grid's is centred 37px further down.
+
+### Gotcha: the screen classification cannot be stepped back inside Overview
+
+The first attempt gave `RecentsView.setInsets` the phone answer for the length of
+the call, the way the home surfaces get it, and it worked: it clears the flag,
+and because `setInsets` also recomputes Overview's own task rectangle, a phone's
+reserved the row's space and the placement came out matching stock exactly.
+
+It also made the app-to-Overview transition jitter, and had to. `setInsets` is
+called while the app window is still animating, and the cards are laid out from
+the same field on the gesture thread, so every window in which that field reads
+phone is a frame of the transition measured as a phone's. The home surfaces are
+safe from this only because none of them is measuring while Overview is, which
+is not an assumption: logging every entry and exit across a swipe from an app
+into Overview counted **zero**.
+
+So inside Overview each decision is answered on its own, deterministically —
+a flag forced, a margin computed, a rectangle's bottom edge rewritten — and the
+shared field is never moved.
+
+### The app chip is the same size on a card a quarter the width
+
+```
+com.android.quickstep.views.IconAppChipView          // R.id.icon on a task card
+  public void setMaxWidth(int)
+  private void updateChipSize()
+  private int maxWidth                 // starts at Integer.MAX_VALUE
+  private int collapsedMenuDefaultWidth
+  private int minWidthAllowed
+  private int appIconSize
+com.android.quickstep.views.TaskView
+  public void updateTaskSize(Rect, Rect)
+  public boolean isGridTask()
+  public float getNonGridScale()       // full card width / this card's width
+```
+
+The chip — app icon, app name, chevron — is laid out from unqualified
+dimensions, so it is the same size on a grid card as on a full-height one. A
+tablet gets away with that because its grid cards are wide. Measured here, a grid
+card is **451x1005** and the chip **439x156**: 97% of the card's width, against
+45% of a full-height card's.
+
+The collapsed width is
+
+```java
+getCollapsedBackgroundWidth()
+    = min(maxWidth, collapsedMenuDefaultWidth) + backgroundMarginTopStart
+```
+
+so `maxWidth` decides nothing until it is lowered below the default — which is
+what `setMaxWidth` is for, and what the launcher itself calls for the two halves
+of a split card. Dividing `collapsedMenuDefaultWidth` by `getNonGridScale()`
+gives the chip the same share of a grid card that it has of a full one, and
+brought it to **210x156**, 47% of the card.
+
+`calculateCollapsedTextWidth` gives the app name whatever is left above
+`minWidthAllowed`, and at first attempt that was **14px** — one clipped
+character, which reads as damage rather than as a name. A title that would come
+out narrower than the app icon beside it is therefore dropped, by asking for
+`minWidthAllowed` itself, and the chip becomes an icon and a chevron. A wider
+grid card keeps its name.
+
+### Gotcha: the thumbnail was never the thing that was wrong
+
+Worth recording because it looked like it was. With the grid on, the previews
+measured **451x1005** inside cards of **451x1005** — exactly the screen's 0.449
+aspect, filling the card. `calculateGridTaskSize` derives them from
+`getTaskDimension`, which is the screen, so they cannot come out any other shape.
+What made the cards look wrong was the chip drawn on top of them.
+
+### What the app-to-Overview gesture actually runs through
+
+Worth writing down, because two plausible causes of jitter turned out not to be
+causes at all.
+
+**It is not dropped frames.** `dumpsys gfxinfo` across the gesture: 156 frames,
+**0 janky**, 50th and 95th percentile 5ms. Anything visible in it is a geometry
+step, not a missed deadline.
+
+**The simulator already knows about the grid.** The gesture animates a
+`SurfaceControl` through `TaskViewSimulator`, and it does not aim at the
+full-height card and then hand over to a grid one:
+
+```java
+// TaskViewSimulator.setDp
+mIsGridTask = dp.mDeviceProperties.isLargeScreen && !mIsDesktopTask;
+// TaskViewSimulator.calculateTaskSize
+if (mIsGridTask) {
+    mSizeStrategy.calculateGridTaskSize(mContext, mDp, mFullTaskSize, handler);
+    mSizeStrategy.calculateTaskSize(mContext, mDp, mCarouselTaskSize, handler);
+} else {
+    mSizeStrategy.calculateTaskSize(mContext, mDp, mFullTaskSize, handler);
+    mCarouselTaskSize.set(mFullTaskSize);
+}
+```
+
+so it lands on the grid rectangle, and it reaches it through
+`calculateGridTaskSize` → `calculateLargeTileSize` → `calculateGridSize` — the
+same call this tweak rewrites for the action row. That rewrite is therefore on
+the gesture thread, and every field it reads is resolved once at install rather
+than looked up per call.
+
+### The 84px snap: Recents disagrees with itself about being a grid
+
+The task cards jumped sideways on the frame the swipe-up-from-an-app gesture
+finished. Measured off a recording, decoded frame by frame and cross-correlated
+for a horizontal shift, the tail read
+
+```
+f172 -7   f173 -2   f174 0   f175 +84   f176 0   f177 0
+```
+
+— deceleration to a dead stop, two still frames, then **84px in one frame**. Band
+by band on that frame: both card rows +84, the action row 0, the status bar 0,
+nothing vertical. A pager scroll correction and nothing else.
+
+Hooking `PagedView.scrollTo(int, int)` and logging a stack whenever the scroll
+moved 40px or more named it outright:
+
+```
+SCROLLPROBE d=84 from=5472 to=5556 ::
+  PagedView.updateCurrentPageScroll | PagedView.setCurrentPage
+  | RecentsView.updateOrientationHandler | RecentsView.onGestureAnimationEnd
+  | AbsSwipeUpHandler.setupLauncherUiAfterSwipeUpToRecentsAnimation
+```
+
+paired with a `d=-84 from=5556 to=5472` out of `PagedView.onLayout`. Two page
+scroll bases, 84px apart, and the gesture's end jumps from one to the other.
+
+They come from the two halves of
+
+```java
+public boolean showAsGrid() {
+    return mOverviewGridEnabled
+        || (mCurrentGestureEndTarget != null
+            && stateFromGestureEndTarget(mCurrentGestureEndTarget)
+                   .displayOverviewTasksAsGrid(getDeviceProfile()));
+}
+```
+
+Only the second half is this tweak's. `mOverviewGridEnabled` is a flag the
+launcher turns **off** — `LauncherRecentsView.onStateTransitionComplete` clears
+it when the state is not a grid, and nothing outside the tablet path sets it — so
+a layout with no gesture in flight computes the phone's page scrolls while
+`onGestureAnimationEnd` computes the grid's. `PagedView.getPageScrolls` consults
+`showAsGrid()`, which is how that reaches the scroll.
+
+Answering it once, `showAsGrid()` forced true, removes the disagreement: probe
+silent on three runs, and the settle clean on four recordings afterwards.
+
+### Gotcha: three wrong suspects, and how each was cleared
+
+Worth recording, because each looked convincing:
+
+- **The phone-answer flips.** Logging every `asPhone` entry and exit across the
+  gesture counted **zero**. None of the home surfaces runs during it.
+- **Dropped frames.** `dumpsys gfxinfo` over the gesture: 156 frames, **0 janky**,
+  50th and 95th percentile 5ms.
+- **The app chip.** Three versions were built to stop it laying out during the
+  transition, and the snap survived all three. Disabling the chip *and* the
+  action row and leaving only the core grid still reproduced it, which is what
+  finally pointed at `showAsGrid`.
+
+The repro matters too, because the obvious gestures do not produce it: `input
+swipe` lands on home, and a slow dwell reaches Overview without ever snapping.
+What reproduces it is a **decelerating** fling —
+
+```
+input motionevent DOWN 672 2950
+  MOVE 672 {2750 2450 2050 1750 1550 1420 1360 1340 1335}
+  UP   672 1335
+```
+
+— and even then only intermittently, so measure it rather than watch it. Record
+with `screenrecord --size 672x1496` to keep the frame rate near 60: a capture
+that drops to ~25fps hides a one-frame jump entirely, which cost two rounds of
+false negatives.
+
+### Gotcha: touching the app chip while a card is laid out drags the cards sideways
+
+`IconAppChipView.updateChipSize` ends in `setLayoutParams`, and a `requestLayout`
+inside a `PagedView` sends it back through its page scrolls. Capping the chip
+from `TaskView.updateTaskSize` — which is where the launcher works the ratio out,
+and which is inside the pager's own layout — therefore moved the task cards on
+the x-axis as the app-to-Overview gesture finished.
+
+Measured off a `screenrecord`, decoded frame by frame and cross-correlated
+against the previous frame for a horizontal shift, the tail of that transition
+read
+
+```
+f408 -13   f409 -8   f410 -3   f411 0   f412 0   f413 +84   f414 0   f415 0 …
+```
+
+— a clean deceleration to a dead stop, two still frames, then **84px in one
+frame**, and still for good after. Edge tracking agreed: every card edge moved by
+the same 84, `326→242`, `419→335`, `455→371`, `666→582`, `791→708`. With the same
+gesture and the same build minus the chip and the action row, the tail was
+`-23, -16, -12, -8, -2, 0, 0, 0 …` and no jump.
+
+Two smaller versions did not fix it, and it is worth recording why: capping only
+when the value changed, and then writing the widths straight onto the layout
+parameters without `setLayoutParams` at all. Neither is enough, because any
+change to a chip's measurement while its card is in the pager's layout is a
+change the pager answers.
+
+`onFinishInflate` is not outside the transition either, which cost another
+round: `RecentsView` inflates a task card when it binds a task, and that is part
+of Overview opening, so an `updateChipSize` there is a `requestLayout` in the
+middle of the gesture like any other. Measured off a recording of the real fling
+with the cap moved there, both card rows still moved **+84px in the frame after
+the animation came to rest** — and, measured band by band, the action row and the
+status bar did not move at all and nothing moved vertically. A pager scroll
+correction, and nothing else.
+
+**So the chip is capped in `onFinishInflate` and without asking for a layout even
+there.** A view that has not been measured yet has no layout to invalidate, so
+the two widths are written straight onto the layout parameters the chip and its
+title already carry and its own first measure reads them. Writing them that way
+to a chip already on screen would not be safe — that is exactly what the pager
+answers.
+
+### Where the chip's ratio comes from without a card to measure
+
+`getNonGridScale()` is what the launcher works out in `updateTaskSize`, and at
+inflation there is no card size to work it out from. The device profile has it,
+though: a grid card is half of the large tile, less the row spacing, and both
+keep the screen's aspect, so
+
+```
+gridHeight = (largeTileHeight - rowSpacing) / 2
+ratio      = largeTileWidth / gridWidth
+           = 2 * largeTileHeight / (largeTileHeight - rowSpacing)
+```
+
+which needs only the large tile, and the launcher is asked for that directly:
+
+```
+com.android.quickstep.views.RecentsViewContainer
+  public static Context containerFromContext(Context)      // -> the launcher
+com.android.launcher3.views.ActivityContext
+  DeviceProfile getDeviceProfile()
+com.android.quickstep.LauncherActivityInterface
+  public static final DaggerSingletonObject INSTANCE       // .get(Context)
+com.android.quickstep.BaseContainerInterface
+  private void calculateLargeTileSize(Context, DeviceProfile, Rect)
+```
+
+It is asked once and the answer kept: it is a property of the profile, not of any
+card. The cap it produces is **210x156** on a **451x1005** card, the same number
+the per-card ratio gave, which is the check that the arithmetic matches the
+launcher's own.
+
+A build that no longer offers any of that leaves the chip the size it was drawn.
+A wide chip is worth less than a snapping transition.
+
+### Gotcha: the thumbnail was never the thing that was wrong
+
+Worth recording because it looked like it was. With the grid on, the previews
+measured **451x1005** inside cards of **451x1005** — exactly the screen's 0.449
+aspect, filling the card. `calculateGridTaskSize` derives them from
+`getTaskDimension`, which is the screen, so they cannot come out any other shape.
+What made the cards look wrong was the chip drawn on top of them.
+
+### What the app-to-Overview gesture actually runs through
+
+Worth writing down, because two plausible causes of jitter turned out not to be
+causes at all.
+
+**It is not dropped frames.** `dumpsys gfxinfo` across the gesture: 156 frames,
+**0 janky**, 50th and 95th percentile 5ms. Anything visible in it is a geometry
+step, not a missed deadline.
+
+**The simulator already knows about the grid.** The gesture animates a
+`SurfaceControl` through `TaskViewSimulator`, and it does not aim at the
+full-height card and then hand over to a grid one:
+
+```java
+// TaskViewSimulator.setDp
+mIsGridTask = dp.mDeviceProperties.isLargeScreen && !mIsDesktopTask;
+// TaskViewSimulator.calculateTaskSize
+if (mIsGridTask) {
+    mSizeStrategy.calculateGridTaskSize(mContext, mDp, mFullTaskSize, handler);
+    mSizeStrategy.calculateTaskSize(mContext, mDp, mCarouselTaskSize, handler);
+} else {
+    mSizeStrategy.calculateTaskSize(mContext, mDp, mFullTaskSize, handler);
+    mCarouselTaskSize.set(mFullTaskSize);
+}
+```
+
+so it lands on the grid rectangle, and it reaches it through
+`calculateGridTaskSize` → `calculateLargeTileSize` → `calculateGridSize` — the
+same call this tweak rewrites for the action row. That rewrite is therefore on
+the gesture thread, and every field it reads is resolved once at install rather
+than looked up per call.
+
+### Gotcha: laying the app chip out drags the cards sideways
+
+`IconAppChipView.updateChipSize` ends in `setLayoutParams`, and a `requestLayout`
+inside a `PagedView` sends it back through its page scrolls — so capping the chip
+while the app-to-Overview gesture is running moves the task cards on the x-axis.
+
+Capping it fewer times was not enough. The first version asked for the chip's
+default back whenever `isGridTask()` was false or `getNonGridScale()` had no
+answer yet, and a card mid-gesture answers both ways, so the cap flipped between
+capped and uncapped and paid for a pager layout each time; instrumented across
+one swipe, **58** evaluations and **8** applications. Tightening only, never
+restoring, brought that to one per chip — and it still snapped. It is the layout
+itself that is not affordable here, not how many of them there are.
+
+So the two widths that method would write are written straight onto the layout
+parameters the views already hold, and `setLayoutParams` is never called:
+
+```java
+// IconAppChipView.updateChipSize(), collapsed
+appTitle.getLayoutParams().width =
+    calculateCollapsedTextWidth(getCollapsedBackgroundLtrBounds().width());
+appTitle.setLayoutParams(lp);        // <- not called
+getLayoutParams().width = getChipWidth();
+setLayoutParams(lp);                 // <- not called
+```
+
+The pass already running picks the widths up and the pager is never asked to lay
+itself out again. Both widths are still the launcher's own, asked of
+`getChipWidth`, `getCollapsedBackgroundLtrBounds` and
+`calculateCollapsedTextWidth`, so a build that changes how a chip is measured
+changes this with it. Only the collapsed widths are written: the expanded chip is
+the task menu standing open, which is not something a card is resized underneath,
+and the launcher runs its own `updateChipSize` on that transition.
+
+Measured after: chip **210x156** on a **451x1005** card, unchanged.
+
+### Gotcha: the thumbnail was never the thing that was wrong
+
+Worth recording because it looked like it was. With the grid on, the previews
+measured **451x1005** inside cards of **451x1005** — exactly the screen's 0.449
+aspect, filling the card. `calculateGridTaskSize` derives them from
+`getTaskDimension`, which is the screen, so they cannot come out any other shape.
+What made the cards look wrong was the chip drawn on top of them.
+
+### What the app-to-Overview gesture actually runs through
+
+Worth writing down, because two plausible causes of jitter turned out not to be
+causes at all.
+
+**It is not dropped frames.** `dumpsys gfxinfo` across the gesture: 156 frames,
+**0 janky**, 50th and 95th percentile 5ms. Anything visible in it is a geometry
+step, not a missed deadline.
+
+**The simulator already knows about the grid.** The gesture animates a
+`SurfaceControl` through `TaskViewSimulator`, and it does not aim at the
+full-height card and then hand over to a grid one:
+
+```java
+// TaskViewSimulator.setDp
+mIsGridTask = dp.mDeviceProperties.isLargeScreen && !mIsDesktopTask;
+// TaskViewSimulator.calculateTaskSize
+if (mIsGridTask) {
+    mSizeStrategy.calculateGridTaskSize(mContext, mDp, mFullTaskSize, handler);
+    mSizeStrategy.calculateTaskSize(mContext, mDp, mCarouselTaskSize, handler);
+} else {
+    mSizeStrategy.calculateTaskSize(mContext, mDp, mFullTaskSize, handler);
+    mCarouselTaskSize.set(mFullTaskSize);
+}
+```
+
+so it lands on the grid rectangle, and it reaches it through
+`calculateGridTaskSize` → `calculateLargeTileSize` → `calculateGridSize` — the
+same call this tweak rewrites for the action row. That rewrite is therefore on
+the gesture thread, and every field it reads is resolved once at install rather
+than looked up per call.
+
+### Gotcha: re-capping the app chip drags the cards sideways
+
+`updateChipSize` ends in `setLayoutParams`, and a `requestLayout` inside a
+`PagedView` sends it back through its page scrolls — so a chip re-capped on every
+pass moves the task cards on the x-axis under the app-to-Overview gesture, which
+is exactly what it did.
+
+The cap is applied from `TaskView.updateTaskSize`, which is where the launcher
+works the ratio out, and the first version asked for the chip's default back
+whenever `isGridTask()` was false or `getNonGridScale()` had not been worked out
+yet. A card mid-gesture answers both ways, so the cap flipped between capped and
+uncapped and paid for a whole-pager layout each time.
+
+**The cap is therefore only ever tightened.** A card that is not a grid card, or
+one without a ratio yet, is left exactly as it is rather than handed its default
+back. Instrumented across one swipe from an app into Overview afterwards: **58**
+evaluations, **8** applications — one per chip — with the ratio constant at
+`2.0864744` throughout, so the answer stops moving after the first pass that
+knows it.
+
+Nothing else is asked for either: no `invalidate` on the card, no post.
+
+Sizing it from inside `updateChipSize` instead, so the launcher's own pass does
+the work, does not work: the launcher only calls that when the chip opens or
+closes, so a chip on a card that has just been resized is never told. Measured,
+the chip stayed at its full 439px.
+
+### Gotcha: profiles are built off the UI thread
+
+`DeviceProfile$Builder.build()` was seen running on both the launcher's main
+thread and a background thread during one start, so the rewrite and the
+put-it-back are guarded rather than assumed to be single-threaded. The surfaces
+that are put back are all on the UI thread, and Recents neither lays out nor
+runs a gesture while one of them is measuring itself.
+
 ## Gotcha: the window manager lends the taskbar to the app (verified September 7, 2026)
 
 Swiping from an app into Overview sometimes drew the taskbar across the bottom
@@ -1701,6 +2268,43 @@ arrival spread evenly over the fade therefore does its moving while the row is
 still too faint to see it, and what is left reads as a plain fade. The arrival is
 mapped onto the part of the fade above 0.3, and each button reaches full opacity
 in the first part of its own span, so the movement happens where it can be seen.
+
+## Bringing a card's own buttons up with the app chip
+
+The bubble and split buttons this module injects are children of the task card,
+added at inflation and placed on every layout, so they were on screen from the
+first frame a card existed — while the launcher's own app chip was still fading
+in. The two are the same kind of thing on the same card and should arrive
+together.
+
+Nothing needs timing for that. The chip's opacity **is** the launcher's account
+of how far Overview has arrived, and it is composed onto the view, so the view's
+own alpha is the one place that sees the result of every property writing to it:
+
+```
+com.android.quickstep.views.IconAppChipView     // R.id.icon on a task card
+  private MultiValueAlpha multiValueAlpha       // composes onto View.setAlpha
+```
+
+so a button is given `chip.getAlpha()`, times the fade it already had for a card
+growing back into its app. Logged across one swipe into Overview, the chip ramps
+
+```
+0.0  0.067  0.142  0.208  0.275  0.35  0.417  0.483  0.558
+0.625  0.692  0.767  0.833  0.908  0.975
+```
+
+and the buttons now follow it frame for frame, at whatever speed the gesture ran.
+
+`TaskView.setAnimateToIconAlpha` looks like the property to hook instead and is
+not: its only callers are `SwipeUpAnimationLogic$SpringAnimationRunner` and
+`TaskView.resetViewTransforms`, so it sees the spring path and nothing else.
+
+A card with no chip leaves its buttons as opaque as the card. The follow is a
+pre-draw listener, because the opacity moves every frame with no layout to hang
+it off — one float read per card per frame, only while the card is in the window
+— and a button is created at alpha zero so it cannot flash for the frame before
+the chip is first asked about.
 
 ## Starting split screen from a card
 

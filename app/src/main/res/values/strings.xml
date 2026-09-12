@@ -22,7 +22,7 @@
     <string name="settings_page_overview">Overview</string>
     <string name="settings_page_overview_summary">The buttons on and under each Recents card.</string>
     <string name="settings_page_tablet_layout">Tablet Layout (Experimental)</string>
-    <string name="settings_page_tablet_layout_summary">Tablet grid and taskbar. Needs a restart.</string>
+    <string name="settings_page_tablet_layout_summary">Tablet grid, taskbar and Recents. Needs a restart.</string>
 
     <string name="feature_overview_bubble_title">Show Bubble launcher button</string>
     <string name="feature_overview_bubble_summary">Reopen a Recents card’s app as a floating bubble.</string>
@@ -35,9 +35,11 @@
     <string name="feature_overview_clear_all_in_actions_title">Show Clear all button</string>
     <string name="feature_overview_clear_all_in_actions_summary">Add Clear all beside Screenshot and Select.</string>
     <string name="feature_tablet_mode_title">Full tablet layout</string>
-    <string name="feature_tablet_mode_summary">Tablet grid and taskbar. Migrates the workspace. Turns off Taskbar only.</string>
+    <string name="feature_tablet_mode_summary">Tablet grid, taskbar and Recents. Migrates the workspace. Turns off the other two.</string>
     <string name="feature_taskbar_only_title">Taskbar Only</string>
-    <string name="feature_taskbar_only_summary">The tablet taskbar, phone grid. Turns off Full tablet layout.</string>
+    <string name="feature_taskbar_only_summary">The tablet taskbar. Phone grid and Recents. Turns off the other two.</string>
+    <string name="feature_overview_only_title">Overview Only</string>
+    <string name="feature_overview_only_summary">The tablet Recents grid. Phone grid and no taskbar. Turns off the other two.</string>
     <string name="feature_overview_hide_taskbar_all_apps_title">Hide app drawer button</string>
     <string name="feature_overview_hide_taskbar_all_apps_summary">Take it out of the taskbar while Recents is open. Needs a taskbar.</string>
 

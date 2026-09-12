@@ -5,6 +5,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.apps.HideAppsPickerFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusHomeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.gesture.DoubleTapToSleepFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.OverviewOnlyFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarAllAppsButtonFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarHomeVisibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarOnlyFeature
@@ -32,6 +33,7 @@ object FeatureRegistry {
         LauncherSettingsFeature(),
         TabletModeFeature(),
         TaskbarOnlyFeature(),
+        OverviewOnlyFeature(),
         TaskbarTransitionFeature(),
         TaskbarHomeVisibilityFeature(),
         TaskbarAllAppsButtonFeature(),

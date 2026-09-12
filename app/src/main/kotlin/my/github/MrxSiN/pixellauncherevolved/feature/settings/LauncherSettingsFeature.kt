@@ -491,13 +491,14 @@ private class SettingsSection(
     }
 
     /**
-     * Writes one setting, greys its companion row with it, and settles the pair
-     * that cannot both be on.
+     * Writes one setting, greys its companion row with it, and settles the
+     * choices that cannot all be on.
      *
-     * Tablet mode and tablet taskbar only are two answers to the same question,
-     * so switching one on switches the other off, on screen as well as in the
-     * store. Without the second half a person would be looking at two switches
-     * that both read on while only one of them is.
+     * The layout modes are several answers to the same question, so switching
+     * one on switches the others off, on screen as well as in the store.
+     * Without the second half a person would be looking at switches that all
+     * read on while only one of them is. Which modes those are belongs to
+     * [FeatureCatalog], so a mode added there needs no rule here.
      */
     private fun apply(
         setting: BoolSetting,
@@ -508,17 +509,11 @@ private class SettingsSection(
         settings.put(setting, value)
         companions[setting]?.let { api.setEnabled(it, value) }
 
-        if (value) {
-            val opposite = when (setting) {
-                Settings.TABLET_MODE -> Settings.TASKBAR_ONLY
-                Settings.TASKBAR_ONLY -> Settings.TABLET_MODE
-                else -> null
-            }
+        if (!value) return
 
-            if (opposite != null) {
-                settings.put(opposite, false)
-                switches[opposite]?.let { api.setChecked(it, false) }
-            }
+        for (excluded in FeatureCatalog.layoutModesExcludedBy(setting)) {
+            settings.put(excluded, false)
+            switches[excluded]?.let { api.setChecked(it, false) }
         }
     }
 
