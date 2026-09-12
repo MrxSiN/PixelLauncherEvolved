@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.0.7
 
 ### Added
 
@@ -38,19 +38,22 @@
   it does in stock, 36px lower in absolute terms because the grid's own
   rectangle is centred that much further down.
 
-  The app chip on each card is fitted to the card it sits on, when the chip is
-  inflated. Resizing it asks the Recents pager for a layout, and the pager
-  answers a layout by running its page scrolls again, so fitting it while a card
-  was on screen moved the task cards sideways under the gesture into Overview —
-  measured off a recording at 84px in a single frame, after the animation had
-  already come to rest. It is now done before the chip has a parent to disturb,
-  from a ratio worked out once from the device profile rather than from each
-  card, so nothing of this tweak runs during the transition. It is laid out
-  from unqualified dimensions, so on a grid card a phone's width it covered
-  nearly the whole width of every preview; it is now capped in the same
-  proportion the launcher caps it at for the halves of a split card, and its
-  name is dropped rather than clipped to a single character when there is no
-  room for it.
+  The app chip on each card is fitted to the card it sits on. It is laid out from
+  unqualified dimensions, so on a grid card a phone's width it covered nearly the
+  whole of every preview; it is now capped in the same proportion the launcher
+  caps it at for the halves of a split card, and its name is dropped rather than
+  clipped to a single character when there is no room for it. Resizing a chip
+  asks the Recents pager for a layout, and the pager answers a layout by running
+  its page scrolls again, so the fit is done when the chip is inflated and
+  without asking for one: the widths are written onto the layout parameters it
+  already carries, from a ratio worked out once from the device profile.
+
+- **The bubble and split buttons on a Recents card arrive with the card's app
+  chip.** They were added when a card was inflated and drawn from that frame on,
+  so they were already sitting on a card the launcher was still fading the chip
+  onto. A button now takes the chip's own opacity, which is the launcher's
+  account of how far Overview has arrived, so the two land together at whatever
+  speed the gesture ran.
 
 ## 0.0.6
 
@@ -72,13 +75,6 @@
   takes is the half the launcher's menu would have chosen: asked of the
   orientation handler, because the shorter call that works this out for itself
   refuses to on a phone.
-
-- **The bubble and split buttons on a Recents card arrive with the card's app
-  chip.** They were added when a card was inflated and drawn from that frame on,
-  so they were already sitting on a card the launcher was still fading the chip
-  onto. A button now takes the chip's own opacity, which is the launcher's
-  account of how far Overview has arrived, so the two land together at whatever
-  speed the gesture ran.
 
 ### Fixed
 

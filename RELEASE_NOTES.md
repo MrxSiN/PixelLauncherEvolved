@@ -1,65 +1,80 @@
-# Pixel Launcher Evolved v0.0.6
+# Pixel Launcher Evolved v0.0.7
 
-Sixth alpha. Recents cards get a split screen button, the Recents action buttons
-arrive instead of appearing, this module's own settings pages are drawn the way
-Android 17 settings is, and Focus pages opens again.
+Seventh alpha. One tweak: **Overview Only**, a third choice on the Tablet Layout
+page, which gives Recents the grid a tablet lays it out as while the workspace
+keeps its phone grid and no taskbar appears.
 
-## Added
+The launcher decides the whole tablet layout from a single boolean, but it
+measures the workspace, the app drawer, the hotseat and the taskbar from it once
+while the device profile is being built and reads it again on every Recents
+layout — so this rewrites it after that profile is finished, and hands the
+phone's answer back to the dozen of the launcher's own surfaces that read it
+later. Recents keeps the Screenshot, Select and Clear all row a phone has, and
+the grid's own dimensions are read against the width the launcher itself calls
+large, because three of the nine resolve to zero below `sw600dp`.
 
-- **Show Split screen button**, on the Overview page. Every Recents card gets a
-  button that starts the launcher's own split selection, so an app can be paired
-  with another without the long press and menu that was the only way in.
+Two things about the swipe into Overview were measured off screen recordings
+rather than guessed at, and both are fixed: the task cards jumped 84px sideways
+on the frame the gesture finished, because Recents only agreed it was a grid
+while a gesture was in flight; and the app chip is now fitted to its card without
+ever asking the Recents pager for a layout, which is what the pager answers by
+running its page scrolls again.
 
-  It sits in the bottom corner of the thumbnail, and moves to the opposite
-  bottom corner while the bubble button is on, so the two are at either end of
-  the card rather than crowding one side. Which corner it takes is decided every
-  time a card is laid out, so switching the bubble button off brings it back
-  across on the next frame.
+The bubble and split buttons on a card now arrive with that chip instead of from
+the frame their card was inflated.
 
-  What the button starts is the launcher's own selection, begun the way the
-  card's own menu begins it, so the prompt, the toast when an app refuses to
-  split, and the animation are all the launcher's. Which half the first app
-  takes is the half the launcher's menu would have chosen: asked of the
-  orientation handler, because the shorter call that works this out for itself
-  refuses to on a phone.
+This is still an alpha, and Tablet Layout is still marked experimental. A layout
+choice needs a launcher restart to take effect.
 
-## Fixed
+### Added
 
-- **Focus pages opens again, and Focus home screens can read the Modes.** The
-  launcher asks this module's app for them through a content provider, and the
-  authority it asked by was written out in full — so moving the module to the
-  `io.github.mrxsin` package in 0.0.5 left the launcher asking for a provider
-  that no longer existed, which reads on screen as root not being granted. The
-  authority is now the module's package plus a suffix, asked for at runtime the
-  way the screen-lock provider already did, so a rename cannot separate the two
-  again.
+- **Overview Only**, a third choice on the Tablet Layout page. It gives Recents
+  the grid a tablet lays it out as, while the workspace keeps its phone grid and
+  no taskbar appears. The three layout choices are answers to the same question,
+  so switching one on switches the other two off.
 
-## Changed
+  The launcher decides the whole tablet layout from one boolean on the device
+  profile, but it measures the workspace, the app drawer, the hotseat and the
+  taskbar from it once, while that profile is being built, and reads it again on
+  every Recents layout. This tweak rewrites it after the profile is finished, so
+  it reaches Recents and nothing that was already sized, and puts the phone's
+  answer back for the length of each call from the launcher's own home surfaces
+  — the drawer's insets and the auto-rotate setting among them.
 
-- **The Overview action buttons arrive rather than fade up with the
-  background.** The launcher fades the row holding Screenshot, Select and Clear
-  all across the whole Overview opening, so they were lit and in place while the
-  task cards were still moving. They now rise into place on a Material 3
-  Expressive spring, each a moment behind the one before it, and the last of
-  them comes to rest as the cards do.
+  Overview's own dimensions are rewritten with it. Three of the nine the grid is
+  built from resolve to zero below `sw600dp`, so a grid laid out on a phone's
+  numbers would have no space between its rows, no margin to sit inside and no
+  icon on a card; they are read again against the width the launcher itself
+  calls large.
 
-  Coming from the home screen the arrival is driven by how far the opening has
-  got rather than by a clock of its own, so it lands with the transition whether
-  that was a flung gesture or a slow drag, and follows a gesture a person scrubs
-  back and forth. Coming from an app there is no such transition left to land
-  with — the launcher puts the row up already opaque, about 215ms after the app
-  has finished shrinking into its card — so the arrival starts on the first
-  frame the buttons can be drawn and runs on a clock from there.
+  Recents is laid out as a grid whether or not a gesture is running. The launcher
+  decides that from a flag it only ever turns off, so a layout with no gesture in
+  flight worked the page scrolls out as a phone's while the end of the swipe-up
+  worked them out as a grid's — and the task cards jumped 84px sideways on the
+  frame the gesture finished. Both sides now get the same answer.
 
-- **This module's own settings pages are drawn the way Android 17 settings is.**
-  Each row is a filled, rounded shape, and a run of rows shares the rounded ends
-  of a single card. The fill is the platform's own bright surface — the colour
-  the settings app fills its cards with — so it follows the wallpaper and the
-  dark theme. Home settings itself is untouched, this module's section in it
-  included: those rows sit among the launcher's own on a screen the launcher
-  lays out, so they keep the launcher's look.
+  The Screenshot, Select and Clear all row is kept, with the three buttons a
+  phone's row holds and the side margins it holds them in. A tablet offers those
+  from the task menu instead, so the launcher hides the row, puts a Split button
+  in it, places what is left against the taskbar, and lets the cards have the
+  space — four separate decisions, each answered on its own. Horizontally the
+  row now matches stock Recents exactly; vertically it sits under the cards as
+  it does in stock, 36px lower in absolute terms because the grid's own
+  rectangle is centred that much further down.
 
-- **A page of this module's settings is named after itself.** The pages are
-  built by this module rather than by the launcher's own navigation, and the
-  launcher names an open page from the screen it built itself, so these opened
-  under the title of the screen they were opened from.
+  The app chip on each card is fitted to the card it sits on. It is laid out from
+  unqualified dimensions, so on a grid card a phone's width it covered nearly the
+  whole of every preview; it is now capped in the same proportion the launcher
+  caps it at for the halves of a split card, and its name is dropped rather than
+  clipped to a single character when there is no room for it. Resizing a chip
+  asks the Recents pager for a layout, and the pager answers a layout by running
+  its page scrolls again, so the fit is done when the chip is inflated and
+  without asking for one: the widths are written onto the layout parameters it
+  already carries, from a ratio worked out once from the device profile.
+
+- **The bubble and split buttons on a Recents card arrive with the card's app
+  chip.** They were added when a card was inflated and drawn from that frame on,
+  so they were already sitting on a card the launcher was still fading the chip
+  onto. A button now takes the chip's own opacity, which is the launcher's
+  account of how far Overview has arrived, so the two land together at whatever
+  speed the gesture ran.
