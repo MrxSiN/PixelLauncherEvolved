@@ -141,10 +141,20 @@ private class TaskbarLauncherView private constructor(
         hasBeenResumed.invoke(activityOf.get(interactorOf.get(instance ?: return false))) == true
     }.getOrDefault(false)
 
-    /** States [inFront] to the taskbar, through the launcher's own entry point. */
+    /**
+     * States [inFront] to the taskbar, through the launcher's own entry point.
+     *
+     * Any argument past the first is passed false, which is what the launcher
+     * itself passes for an ordinary report: the second says the launcher is
+     * only visible behind a desktop, which suppresses `FLAG_RESUMED`, and the
+     * third asks for the change without its animation. Both are exactly what
+     * the one-argument entry point of `CP2A.260805.005` did.
+     */
     fun tell(inFront: Boolean) {
         val instance = controller?.get() ?: return
-        runCatching { visibilityChanged.invoke(instance, inFront) }
+        val arguments = Array<Any?>(visibilityChanged.parameterTypes.size) { it == 0 && inFront }
+
+        runCatching { visibilityChanged.invoke(instance, *arguments) }
             .onFailure { context.logger.warn("Unable to tell the taskbar the launcher paused", it) }
     }
 
@@ -167,15 +177,33 @@ private class TaskbarLauncherView private constructor(
     }.getOrNull()
 
     companion object {
+
+        /**
+         * The entry point the shell's report of home visibility arrives through.
+         *
+         * `CP2A.260805.005` declared one, `onLauncherVisibilityChanged(boolean
+         * isVisible)`. `CP3A.260905.009` takes two more booleans and has two
+         * further overloads beside it — one with no arguments and one returning
+         * an `Animator` — so the shape is asked for rather than the arity: the
+         * void one that takes booleans and nothing else. Its first argument is
+         * still the report, which is the only one this feature reads.
+         */
+        private fun visibilityChangedOn(controller: Class<*>): Method? = controller.declaredMethods
+            .firstOrNull { method ->
+                method.name == VISIBILITY_CHANGED &&
+                    method.returnType == Void.TYPE &&
+                    method.parameterTypes.isNotEmpty() &&
+                    method.parameterTypes.all { it == Boolean::class.javaPrimitiveType }
+            }
+            ?.apply { isAccessible = true }
+
         fun of(context: FeatureContext): TaskbarLauncherView? {
             val controller = context.findClass(UI_CONTROLLER)
             val stateController = context.findClass(STATE_CONTROLLER)
             val interactor = context.findClass(INTERACTOR)
             val activity = context.findClass(BASE_ACTIVITY)
 
-            val visibilityChanged = controller?.let {
-                Reflect.method(it, VISIBILITY_CHANGED, Boolean::class.javaPrimitiveType!!)
-            }
+            val visibilityChanged = controller?.let(::visibilityChangedOn)
             val init = controller?.declaredMethods?.firstOrNull { it.name == INIT }
             val stateControllerOf = controller?.let { Reflect.field(it, STATE_CONTROLLER_FIELD) }
             val stateFlags = stateController?.let { Reflect.field(it, STATE_FLAGS) }

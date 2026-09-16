@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.0.8
+
+### Fixed
+
+- Support for Android 17 QPR1 (`CP3A.260905.009`, launcher `versionCode=907`).
+  Eleven launcher signatures moved in that update, and each one silently
+  disabled the tweak that read it:
+
+  - The Overview action row's recompute, `updateActionButtonsVisibility`, was
+    inlined into `updateForGroupedTask(boolean)`. Hiding a button and adding
+    Clear all both stopped surviving a change of selected task. Both names now
+    live in one place rather than in each feature that needs them.
+  - `ActivityAllAppsContainerView.setSearchResults` gained a second argument.
+    The app drawer's search results stopped being filtered. The launcher's new
+    argument says whether to scroll the list back to the top and is handed back
+    untouched.
+  - The home screen search bar lost the host view class that identified it. A
+    tap on the bar went to the Google app again instead of opening the app
+    drawer's search. The bar is now recognised by the launcher's own setup call
+    for it, which covers the hotseat's bar as well.
+  - `DeviceProfile.mDeviceProperties` and `mHotseatProfile` dropped their `m`
+    prefixes, which took Overview Only and Taskbar Only's icon count with them.
+  - The orientation handler's `getSplitPositionOptions` became
+    `getSplitPositionOption`, answering one position rather than a list. The
+    split button on an Overview card had nothing to start the selection with.
+  - The Split button is gone from the action row on every device, along with
+    `updateSplitButtonHiddenFlags` and `id/action_split`, so Overview Only no
+    longer has to keep it out.
+  - `DeviceProfile$Builder` became `DeviceProfileBuilder`, a class of its own.
+    Overview Only and Taskbar Only both hang off its `build()`, and neither
+    could install at all without it.
+  - `TaskbarConfiguration` lost its constructor to the shrinker, which had been
+    Taskbar Only's way of reporting a taskbar. The boolean is now written on the
+    device properties the launcher's own factory has just answered, which is
+    read back a step later — so the hook that kept that constructor from being
+    inlined is gone with it.
+  - `LauncherTaskbarUIController.onLauncherVisibilityChanged` took two more
+    booleans. Without it the taskbar kept believing the launcher was behind
+    something after a restart, leaving the hotseat empty, and stayed drawn over
+    an app after a quick switch.
+  - `Snackbar.getDismissTimeout` is gone. It was one of the home surfaces
+    Overview Only puts back on the phone's measurements for the length of their
+    own call; that list already reports and skips a surface it cannot find, so
+    the rest still apply.
+
 ## 0.0.7
 
 ### Added

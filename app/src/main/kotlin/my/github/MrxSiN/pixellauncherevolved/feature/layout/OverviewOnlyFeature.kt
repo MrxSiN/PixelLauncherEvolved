@@ -131,7 +131,7 @@ private class LargeScreenClassification(private val context: FeatureContext) {
  * com.android.launcher3.DeviceProfile$Builder
  *   public DeviceProfile build()
  * com.android.launcher3.DeviceProfile
- *   public DeviceProperties mDeviceProperties
+ *   public DeviceProperties deviceProperties
  *   public OverviewProfile overviewProfile
  * ```
  *
@@ -149,12 +149,12 @@ private class GridOverviewProfiles(
 ) {
 
     fun install() {
-        val profile = requireNotNull(context.findClass("com.android.launcher3.DeviceProfile"))
-        val builder = requireNotNull(context.findClass("com.android.launcher3.DeviceProfile\$Builder"))
-        val propertiesOf = requireNotNull(Reflect.field(profile, "mDeviceProperties"))
+        val profile = requireNotNull(DeviceProfiles.profile(context))
+        val builder = requireNotNull(DeviceProfiles.builder(context))
+        val propertiesOf = requireNotNull(Reflect.field(profile, "deviceProperties"))
         val overviewOf = requireNotNull(Reflect.field(profile, "overviewProfile"))
 
-        context.xposed.hook(builder.getDeclaredMethod("build")).intercept { chain ->
+        context.xposed.hook(builder.getDeclaredMethod(DeviceProfiles.BUILD)).intercept { chain ->
             chain.proceed()?.also { built ->
                 runCatching {
                     metrics.applyTo(overviewOf.get(built))
@@ -554,7 +554,7 @@ private class GridCardAppChip(private val context: FeatureContext) {
     /** Asks the launcher how big a full-height card is, and what a grid one is of it. */
     private class LargeTile(private val context: FeatureContext) {
 
-        private val profile = requireNotNull(context.findClass("com.android.launcher3.DeviceProfile"))
+        private val profile = requireNotNull(DeviceProfiles.profile(context))
         private val overviewOf = requireNotNull(Reflect.field(profile, "overviewProfile"))
         private val rowSpacing = requireNotNull(
             Reflect.field(
@@ -696,12 +696,16 @@ private class GridCardAppChip(private val context: FeatureContext) {
  *
  * A tablet has no Screenshot, Select or Clear all under Overview — it offers
  * those from the task menu — so the launcher hides the row, places what would
- * have been there against the taskbar, lets the cards have the space, and puts
- * a Split button in the row instead, which a phone does not have. This module's
- * Overview page offers all three, and a split button of its own on every card,
- * so four answers have to change: the row is shown, it holds the three buttons
- * a phone's holds, it is placed where a phone places it, and the cards give it
- * its room back.
+ * have been there against the taskbar, and lets the cards have the space. This
+ * module's Overview page offers all three, so three answers have to change: the
+ * row is shown, it is placed where a phone places it, and the cards give it its
+ * room back.
+ *
+ * A fourth answer used to be needed, because a tablet put a Split button in the
+ * row that a phone's width has no space for. Android 17 `CP3A.260905.009` took
+ * that button out of the row on every device — there is no `action_split` left
+ * in `overview_actions_container`, and no `updateSplitButtonHiddenFlags` to
+ * tell it apart — so there is nothing left to keep out.
  *
  * Each is answered directly rather than by stepping the screen classification
  * back for the length of the call, the way [PhoneSurfaces] does. Those are home
@@ -717,10 +721,9 @@ private class PhoneActionRow(private val context: FeatureContext) {
         val actionsView = requireNotNull(
             context.findClass("com.android.quickstep.views.OverviewActionsView"),
         )
-        val profile = requireNotNull(context.findClass("com.android.launcher3.DeviceProfile"))
+        val profile = requireNotNull(DeviceProfiles.profile(context))
 
         keepShown(actionsView)
-        keepThreeButtons(actionsView)
         keepPlaced(actionsView, profile)
         keepRoom(profile)
 
@@ -748,39 +751,6 @@ private class PhoneActionRow(private val context: FeatureContext) {
         context.xposed.hook(updateHiddenFlags).intercept { chain ->
             if (chain.args.getOrNull(0) == HIDDEN_LARGE_SCREEN) {
                 chain.proceed(arrayOf<Any?>(HIDDEN_LARGE_SCREEN, false))
-            } else {
-                chain.proceed()
-            }
-        }
-    }
-
-    /**
-     * Keeps the Split button out of the row, as a phone does.
-     *
-     * ```java
-     * // OverviewActionsView.updateForIsTablet()
-     * updateSplitButtonHiddenFlags(FLAG_IS_NOT_TABLET, !isLargeScreen);
-     * ```
-     *
-     * A fourth button does not fit the row on a phone's width: measured with it
-     * in, the row gave up its side margins and spread over the whole screen, and
-     * Clear all came out 232px wide against the 350px it has in stock Recents.
-     * The tweak is also not short of a way into split screen — this module puts
-     * one on every card — so the flag is only ever set, never cleared.
-     */
-    private fun keepThreeButtons(actionsView: Class<*>) {
-        val updateSplitButtonHiddenFlags = requireNotNull(
-            Reflect.method(
-                actionsView,
-                "updateSplitButtonHiddenFlags",
-                Int::class.javaPrimitiveType!!,
-                Boolean::class.javaPrimitiveType!!,
-            ),
-        )
-
-        context.xposed.hook(updateSplitButtonHiddenFlags).intercept { chain ->
-            if (chain.args.getOrNull(0) == SPLIT_HIDDEN_ON_A_PHONE) {
-                chain.proceed(arrayOf<Any?>(SPLIT_HIDDEN_ON_A_PHONE, true))
             } else {
                 chain.proceed()
             }
@@ -871,7 +841,7 @@ private class PhoneActionRow(private val context: FeatureContext) {
      */
     private class OverviewMetrics(context: FeatureContext, profile: Class<*>) {
 
-        private val propertiesOf = requireNotNull(Reflect.field(profile, "mDeviceProperties"))
+        private val propertiesOf = requireNotNull(Reflect.field(profile, "deviceProperties"))
         private val overviewOf = requireNotNull(Reflect.field(profile, "overviewProfile"))
 
         private val properties = requireNotNull(
@@ -902,8 +872,5 @@ private class PhoneActionRow(private val context: FeatureContext) {
     private companion object {
         /** `OverviewActionsView.HIDDEN_LARGE_SCREEN`, read off the launcher's dex. */
         const val HIDDEN_LARGE_SCREEN = 32
-
-        /** The flag `updateForIsTablet` hides the Split button with. */
-        const val SPLIT_HIDDEN_ON_A_PHONE = 1
     }
 }

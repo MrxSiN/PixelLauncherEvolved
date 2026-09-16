@@ -24,8 +24,17 @@ import my.github.MrxSiN.pixellauncherevolved.core.Reflect
  * Which half the first app takes has to be worked out and passed. The shorter
  * `initiateSplitSelect(TaskContainer)` asks the orientation handler for a
  * default position, and on a phone that throws: `Default position available
- * only for large screens`. The handler does answer which positions it offers,
+ * only for large screens`. The handler does answer which position it offers,
  * which is what the menu asks it, so that is what is asked here.
+ *
+ * ```
+ * com.android.quickstep.orientation.RecentsPagedOrientationHandler
+ *   SplitConfigurationOptions$SplitPositionOption getSplitPositionOption(DeviceProfile)
+ * ```
+ *
+ * Up to Android 17 `CP2A.260805.005` that was `getSplitPositionOptions`,
+ * answering a list to take the first of. `CP3A.260905.009` answers the one
+ * position directly.
  *
  * Overview is not put away first, unlike the bubble: the second app is chosen
  * in Overview, so closing it would take away the screen the action needs.
@@ -82,8 +91,8 @@ class SplitScreenAction(private val logger: Logger) {
     /**
      * The stage a first app is put in, as the launcher's own menu decides it.
      *
-     * The orientation handler offers one position on a phone and the pair a
-     * large screen can use; the menu takes the first, and so does this.
+     * The orientation handler is asked which position it offers for this device
+     * profile, which is the question the launcher's own menu asks it.
      */
     private fun stagePosition(recentsView: Any, context: Context): Int? = runCatching {
         val handler = Reflect.method(recentsView.javaClass, GET_ORIENTATION_HANDLER)
@@ -91,11 +100,10 @@ class SplitScreenAction(private val logger: Logger) {
             ?: return null
 
         val profile = deviceProfile(context) ?: return null
-        val options = handler.javaClass.methods
-            .firstOrNull { it.name == GET_SPLIT_POSITION_OPTIONS && it.parameterTypes.size == 1 }
-            ?.invoke(handler, profile) as? List<*>
-
-        val option = options?.firstOrNull() ?: return null
+        val option = handler.javaClass.methods
+            .firstOrNull { it.name == GET_SPLIT_POSITION_OPTION && it.parameterTypes.size == 1 }
+            ?.invoke(handler, profile)
+            ?: return null
 
         Reflect.field(option.javaClass, STAGE_POSITION)?.getInt(option)
     }.getOrNull()
@@ -147,7 +155,7 @@ class SplitScreenAction(private val logger: Logger) {
         const val GET_RECENTS_VIEW = "getRecentsView"
         const val INITIATE_SPLIT_SELECT = "initiateSplitSelect"
         const val GET_ORIENTATION_HANDLER = "getPagedOrientationHandler"
-        const val GET_SPLIT_POSITION_OPTIONS = "getSplitPositionOptions"
+        const val GET_SPLIT_POSITION_OPTION = "getSplitPositionOption"
         const val STAGE_POSITION = "stagePosition"
 
         const val CONTAINER_CLASS = "com.android.quickstep.views.RecentsViewContainer"

@@ -41,6 +41,22 @@ class TaskbarOnlyFeature : ToggleFeature(Settings.TASKBAR_ONLY) {
  * app drawer and Recents on their phone measurements while every taskbar
  * dimension is derived from it as the launcher intends.
  *
+ * ```
+ * com.android.launcher3.deviceprofile.DeviceProperties
+ *   public TaskbarConfiguration taskbarConfiguration
+ * com.android.launcher3.deviceprofile.TaskbarConfiguration
+ *   public boolean isTaskbarPresent
+ * ```
+ *
+ * The boolean is rewritten on the properties the factory has just answered.
+ * `DeviceProfileBuilder.build()` asks for those properties and only then reads
+ * `taskbarConfiguration` back out of them to derive the taskbar profile, so the
+ * rewrite lands between the two and every taskbar dimension is derived from it.
+ *
+ * On `CP2A.260805.005` this hooked `TaskbarConfiguration`'s own one-argument
+ * constructor instead. `CP3A.260905.009` has no constructor to hook: the
+ * shrinker inlined it into the factory, which now writes the field directly.
+ *
  * The rewrite applies to every profile. A taskbar the launcher itself does not
  * know about is worse than no taskbar: hotseat alignment reads the taskbar's
  * height, icon size and bottom margin from the launcher's own profile, so a
@@ -51,17 +67,26 @@ class TaskbarOnlyFeature : ToggleFeature(Settings.TASKBAR_ONLY) {
 private class TaskbarPresence(private val context: FeatureContext) {
 
     fun install() {
-        val configuration = requireNotNull(
-            context.findClass("com.android.launcher3.deviceprofile.TaskbarConfiguration"),
+        val factory = requireNotNull(DeviceProfiles.propertiesFactory(context))
+        val properties = requireNotNull(
+            context.findClass("com.android.launcher3.deviceprofile.DeviceProperties"),
         )
-        val builder = requireNotNull(context.findClass("com.android.launcher3.DeviceProfile\$Builder"))
-        val present = configuration.getDeclaredConstructor(Boolean::class.javaPrimitiveType)
+        val configurationOf = requireNotNull(Reflect.field(properties, "taskbarConfiguration"))
+        val presentOf = requireNotNull(
+            Reflect.field(configurationOf.type, "isTaskbarPresent"),
+        )
 
-        // The constructor holds one field assignment and is reached by a direct
-        // call, so ART is free to inline it past the hook. Deoptimizing the
-        // caller that matters keeps the call real.
-        context.xposed.deoptimize(builder.getDeclaredMethod("build"))
-        context.xposed.hook(present).intercept { chain -> chain.proceed(arrayOf<Any?>(true)) }
+        val create = requireNotNull(
+            factory.declaredMethods.firstOrNull { it.name == DeviceProfiles.CREATE_PROPERTIES }
+                ?.apply { isAccessible = true },
+        )
+
+        context.xposed.hook(create).intercept { chain ->
+            chain.proceed()?.also { built ->
+                runCatching { presentOf.setBoolean(configurationOf.get(built), true) }
+                    .onFailure { context.logger.warn("Unable to report a taskbar on this profile", it) }
+            }
+        }
 
         context.logger.info("Taskbar only: taskbar reported present on every device profile")
     }
@@ -104,7 +129,7 @@ private class HotseatHandoff(private val context: FeatureContext) {
     private var launcherProfile: java.lang.ref.WeakReference<Any>? = null
 
     fun install() {
-        val profile = requireNotNull(context.findClass("com.android.launcher3.DeviceProfile"))
+        val profile = requireNotNull(DeviceProfiles.profile(context))
         val stateController = requireNotNull(
             context.findClass("com.android.launcher3.taskbar.TaskbarLauncherStateController"),
         )
@@ -154,7 +179,7 @@ private class HotseatHandoff(private val context: FeatureContext) {
 private class TaskbarIconCount(private val context: FeatureContext) {
 
     fun install() {
-        val profile = requireNotNull(context.findClass("com.android.launcher3.DeviceProfile"))
+        val profile = requireNotNull(DeviceProfiles.profile(context))
         val taskbarView = requireNotNull(context.findClass("com.android.launcher3.taskbar.TaskbarView"))
         val activityContext = requireNotNull(
             context.findClass("com.android.launcher3.taskbar.TaskbarActivityContext"),
@@ -163,7 +188,7 @@ private class TaskbarIconCount(private val context: FeatureContext) {
         val maxNumIcons = requireNotNull(Reflect.method(taskbarView, "calculateMaxNumIcons"))
         val contextOf = requireNotNull(Reflect.field(taskbarView, "mActivityContext"))
         val profileOf = requireNotNull(Reflect.field(activityContext, "mDeviceProfile"))
-        val hotseatOf = requireNotNull(Reflect.field(profile, "mHotseatProfile"))
+        val hotseatOf = requireNotNull(Reflect.field(profile, "hotseatProfile"))
 
         context.xposed.hook(maxNumIcons).intercept { chain ->
             val stock = chain.proceed() as Int

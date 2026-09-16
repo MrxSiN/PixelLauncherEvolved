@@ -37,7 +37,7 @@ class OverviewActionsFeature : LauncherFeature {
     override fun isEnabled(settings: SettingsSource): Boolean = hiddenButtons(settings).isNotEmpty()
 
     override fun install(context: FeatureContext) {
-        val actionsView = context.findClass(ACTIONS_VIEW_CLASS)
+        val actionsView = OverviewActionsRow.find(context)
         if (actionsView == null) {
             context.logger.warn("Overview action row is not available in this launcher")
             return
@@ -47,8 +47,7 @@ class OverviewActionsFeature : LauncherFeature {
             apply(row as ViewGroup, hiddenButtons(context.settings))
         }
 
-        context.hookAfter(actionsView, "onFinishInflate", after = apply)
-        context.hookAfter(actionsView, "updateActionButtonsVisibility", after = apply)
+        OverviewActionsRow.onRecomputed(context, actionsView, apply)
     }
 
     private fun hiddenButtons(settings: SettingsSource): List<ActionButton> = buildList {
@@ -91,8 +90,6 @@ class OverviewActionsFeature : LauncherFeature {
     }
 
     private companion object {
-        const val ACTIONS_VIEW_CLASS = "com.android.quickstep.views.OverviewActionsView"
-
         val SCREENSHOT = ActionButton("action_screenshot")
         val SELECT = ActionButton("action_select")
         val ALL = listOf(SCREENSHOT, SELECT)

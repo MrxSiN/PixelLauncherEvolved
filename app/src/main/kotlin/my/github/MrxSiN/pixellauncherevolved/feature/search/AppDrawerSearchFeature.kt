@@ -39,7 +39,12 @@ class AppDrawerSearchFeature : LauncherFeature {
     override fun install(context: FeatureContext) {
         val appsView = context.findClass(ALL_APPS_VIEW)
         val show = appsView?.let {
-            Reflect.method(it, "setSearchResults", ArrayList::class.java)
+            Reflect.method(
+                it,
+                "setSearchResults",
+                ArrayList::class.java,
+                Boolean::class.javaPrimitiveType!!,
+            )
         }
         val targets = SearchTargets(context)
 
@@ -59,7 +64,13 @@ class AppDrawerSearchFeature : LauncherFeature {
 
             // Passed on whole whenever nothing was taken out, so a person who
             // has switched none of this on gets the launcher's own list back.
-            if (kept === results) chain.proceed() else chain.proceed(arrayOf(kept))
+            // The launcher's own second argument is handed back untouched: it
+            // says whether the list is scrolled to the top, which is its call.
+            if (kept === results) {
+                chain.proceed()
+            } else {
+                chain.proceed(arrayOf(kept, chain.args[SCROLL_TO_TOP_ARGUMENT]))
+            }
         }
 
         context.logger.info("App drawer: search results are filtered as they arrive")
@@ -84,7 +95,8 @@ class AppDrawerSearchFeature : LauncherFeature {
     private companion object {
         const val ALL_APPS_VIEW = "com.android.launcher3.allapps.ActivityAllAppsContainerView"
 
-        /** `setSearchResults(ArrayList<AdapterItem> results)`. */
+        /** `setSearchResults(ArrayList<AdapterItem> results, boolean scrollToTop)`. */
         const val RESULTS_ARGUMENT = 0
+        const val SCROLL_TO_TOP_ARGUMENT = 1
     }
 }

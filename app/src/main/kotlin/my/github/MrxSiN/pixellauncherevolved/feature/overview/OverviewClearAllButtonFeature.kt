@@ -23,7 +23,7 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 class OverviewClearAllButtonFeature : ToggleFeature(Settings.OVERVIEW_CLEAR_ALL_IN_ACTIONS) {
 
     override fun install(context: FeatureContext) {
-        val actionsView = context.findClass(ACTIONS_VIEW_CLASS)
+        val actionsView = OverviewActionsRow.find(context)
         if (actionsView == null) {
             context.logger.warn("Overview action row is not available in this launcher")
             return
@@ -37,8 +37,7 @@ class OverviewClearAllButtonFeature : ToggleFeature(Settings.OVERVIEW_CLEAR_ALL_
             apply(view as ViewGroup, context.settings[toggle], action)
         }
 
-        context.hookAfter(actionsView, "onFinishInflate", after = apply)
-        context.hookAfter(actionsView, "updateActionButtonsVisibility", after = apply)
+        OverviewActionsRow.onRecomputed(context, actionsView, apply)
     }
 
     private fun apply(actionsView: ViewGroup, wanted: Boolean, action: ClearAllAction) {
@@ -77,7 +76,6 @@ class OverviewClearAllButtonFeature : ToggleFeature(Settings.OVERVIEW_CLEAR_ALL_
         /** Marks the injected button so other features can leave it alone. */
         const val VIEW_TAG: String = "pixellauncherevolved:clear_all_button"
 
-        private const val ACTIONS_VIEW_CLASS = "com.android.quickstep.views.OverviewActionsView"
         private const val BUTTON_ROW_ID = "action_buttons"
         private const val BUTTON_SPACING = "overview_actions_button_spacing"
         private const val ICON = "ic_remove_task_option"

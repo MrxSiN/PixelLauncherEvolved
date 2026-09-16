@@ -6,6 +6,32 @@ Everything about the launcher below was read off a Pixel 8 Pro running Android 1
 with `dexdump` and `aapt2`. Re-verify these signatures before targeting a newer
 launcher build.
 
+## What Android 17 QPR1 moved
+
+The same read was done again on `CP3A.260905.009` (SDK 37, launcher
+`versionCode=907`). Everything else below still holds; these eleven had
+moved, and each is noted again where it appears.
+
+| Was, on `CP2A.260805.005` | Is, on `CP3A.260905.009` |
+| --- | --- |
+| `OverviewActionsView.updateActionButtonsVisibility()` | inlined into `updateForGroupedTask(boolean)`, which still logs the old name |
+| `OverviewActionsView.updateSplitButtonHiddenFlags(int, boolean)` | gone, with `id/action_split`: no build puts a Split button in the row |
+| `ActivityAllAppsContainerView.setSearchResults(ArrayList)` | `setSearchResults(ArrayList, boolean scrollToTop)` |
+| `com.android.launcher3.qsb.OseWidgetView` | gone: the bar is a plain `LauncherAppWidgetHostView`, recognised through `OseWidgetController.applyTo(LauncherAppWidgetHostView, boolean)` |
+| `DeviceProfile.mDeviceProperties` | `DeviceProfile.deviceProperties` |
+| `DeviceProfile.mHotseatProfile` | `DeviceProfile.hotseatProfile` |
+| `RecentsPagedOrientationHandler.getSplitPositionOptions(DeviceProfile)` | `getSplitPositionOption(DeviceProfile)`, one option rather than a list |
+| `com.android.launcher3.DeviceProfile$Builder` | `com.android.launcher3.deviceprofile.DeviceProfileBuilder`, still with `build()` |
+| `TaskbarConfiguration(boolean)` | no constructor at all: the shrinker inlined it into `DeviceProperties$Factory.createDeviceProperties`, which writes `isTaskbarPresent` directly |
+| `LauncherTaskbarUIController.onLauncherVisibilityChanged(boolean)` | `(boolean isVisible, boolean visibleBehindDesktop, boolean skipAnimation)`, beside a no-argument overload and one returning an `Animator` |
+| `Snackbar.getDismissTimeout(ActivityContext)` | gone, replaced by a `Snackbar$SnackbarDismissTimer`. one entry in the phone-surface list, which reports and skips a surface it cannot find |
+
+`OverviewActionsView.HIDDEN_LARGE_SCREEN` is still `32`,
+`DeviceProperties.isLargeScreen` still carries that name, and
+`id/action_buttons`, `id/action_screenshot`, `id/action_select`,
+`string/recents_clear_all`, `drawable/ic_remove_task_option` and
+`dimen/overview_actions_button_spacing` are all still there.
+
 ## The bubble entry point
 
 The launcher reaches the shell's bubble controller through its own proxy:
@@ -159,17 +185,22 @@ followed by `Requested bubble for ComponentInfo{...}`, and the shell answers wit
 ```
 com.android.quickstep.views.OverviewActionsView extends android.widget.FrameLayout
   public void onFinishInflate()
-  private void updateActionButtonsVisibility()
+  public void updateForGroupedTask(boolean isGroupedTask)   // CP3A.260905.009
+  private void updateActionButtonsVisibility()              // CP2A.260805.005
 ```
 
 The row is inflated from `res/layout/overview_actions_container.xml` as
 `com.google.android.apps.nexuslauncher.overview.NexusOverviewActionsView`. Its
-`action_buttons` LinearLayout holds `action_screenshot`, `action_select`, and
-`action_split`.
+`action_buttons` LinearLayout holds `action_screenshot` and `action_select`;
+`CP2A.260805.005` also had `action_split` there, and `CP3A.260905.009` does not.
 
 The launcher recomputes the row whenever the selected task changes, so hiding a
-button once at inflation is not enough; `updateActionButtonsVisibility` is the
-private recompute and is hooked alongside `onFinishInflate`.
+button once at inflation is not enough; the recompute is hooked alongside
+`onFinishInflate`. On `CP2A.260805.005` that recompute was the private
+`updateActionButtonsVisibility`. `CP3A.260905.009` inlined it into its only
+caller, `updateForGroupedTask(boolean)`, which still logs
+`updateActionButtonsVisibility() called: showActions = [...]` and is the same
+moment. Both names live in one place, `OverviewActionsRow`.
 
 **Clear all is not in that layout.** On this build the row's Clear all button is
 added programmatically and carries no resource id, confirmed with
@@ -319,8 +350,15 @@ Both converge on one call, which is what the module hooks:
 
 ```
 com.android.launcher3.allapps.ActivityAllAppsContainerView
+  // CP3A.260905.009
+  public void setSearchResults(
+      java.util.ArrayList<BaseAllAppsAdapter.AdapterItem>, boolean scrollToTop)
+  // CP2A.260805.005
   public void setSearchResults(java.util.ArrayList<BaseAllAppsAdapter.AdapterItem>)
 ```
+
+The second argument says whether the list is scrolled back to the top, which is
+the launcher's call: the filter hands it back untouched.
 
 It is reached from `com.google.android.apps.nexuslauncher.allapps.UniversalSearchInputView`,
 which implements `com.android.launcher3.search.SearchCallback`; the two-argument
@@ -709,8 +747,23 @@ com.android.launcher3.deviceprofile.TaskbarConfiguration
 ```
 
 which this build reaches by direct field access rather than through a getter.
-Constructing that class with `true` gives a taskbar while `isLargeScreen`, and
+Setting that field to `true` gives a taskbar while `isLargeScreen`, and
 therefore the grid, the app drawer and Recents, stays on phone measurements.
+
+On `CP3A.260905.009` the configuration is reached through the properties the
+factory has just answered:
+
+```
+com.android.launcher3.deviceprofile.DeviceProperties
+  public TaskbarConfiguration taskbarConfiguration
+com.android.launcher3.deviceprofile.DeviceProperties$Factory
+  public static DeviceProperties createDeviceProperties(
+      boolean, WindowBounds, DeviceConfiguration, boolean)
+```
+
+`DeviceProfileBuilder.build()` calls the factory and only then reads
+`taskbarConfiguration` back out of it to derive the taskbar profile, so a hook
+on the factory's return lands between the two.
 
 `DeviceProfile` on this build composes small profile objects —
 `DeviceProperties`, `HotseatProfile`, `TaskbarProfile`, `WorkspaceProfile` —
@@ -740,9 +793,15 @@ process builds.
 
 ### Gotcha: an inlined constructor
 
-`TaskbarConfiguration.<init>` is one field assignment reached by `invoke-direct`,
-which ART is free to inline. Its caller, `DeviceProfile$Builder.build()`, is
-deoptimized before the hook is placed.
+On `CP2A.260805.005`, `TaskbarConfiguration.<init>` is one field assignment
+reached by `invoke-direct`, which ART is free to inline; its caller,
+`DeviceProfile$Builder.build()`, was deoptimized before the hook was placed.
+
+`CP3A.260905.009` takes that further: the class has no `<init>` in the dex at
+all. The shrinker inlined it into `DeviceProperties$Factory`, which does
+`new-instance`, `Object.<init>` and the field write itself. There is nothing
+left to hook, which is why the field is now written on the factory's answer and
+the deoptimization is gone with the hook that needed it.
 
 ### Where the search bar ends up
 
@@ -926,7 +985,7 @@ it:
 ```java
 // com.android.launcher3.uioverrides.states.OverviewState
 public boolean displayOverviewTasksAsGrid(DeviceProfile dp) {
-    return dp.mDeviceProperties.isLargeScreen;
+    return dp.deviceProperties.isLargeScreen;
 }
 // com.android.quickstep.views.RecentsView
 public boolean showAsGrid() {
@@ -940,8 +999,8 @@ public boolean showAsGrid() {
 and so does everything that lays a card out — `BaseContainerInterface`'s
 `calculateTaskSize`, `calculateGridSize`, `calculateModalTaskSize` and
 `getTaskDimension`, `TaskView.isGridTask`, `updateTaskSize` and `updatePivots`,
-a dozen methods of `RecentsView`, `TaskViewSimulator`, and
-`OverviewActionsView.updateForIsTablet`.
+a dozen methods of `RecentsView`, `TaskViewSimulator`, and — on
+`CP2A.260805.005` only — `OverviewActionsView.updateForIsTablet`.
 
 ### Why the field can be rewritten after the profile is built
 
@@ -952,7 +1011,7 @@ taskbar are measured from — but they are measured **once**, inside
 `WorkspaceProfile`, `AllAppsProfile`, `HotseatProfile` and `TaskbarProfile`
 before it returns. Recents reads the stored field again on every layout.
 
-So rewriting `DeviceProfile.mDeviceProperties.isLargeScreen` to true **after**
+So rewriting `DeviceProfile.deviceProperties.isLargeScreen` to true **after**
 `build()` has returned reaches Recents and nothing that was already sized. That
 is what separates this from tablet mode, which changes the `isLargeScreen` call
 itself and therefore changes the grid with it, and from taskbar only, which
@@ -1034,7 +1093,7 @@ is the state or the alphas:
 ```
 com.android.quickstep.views.RecentsView.setInsets(Rect)
     mActionsView.updateHiddenFlags(HIDDEN_LARGE_SCREEN /* 32 */, isLargeScreen);
-com.android.quickstep.views.OverviewActionsView.updateForIsTablet()
+com.android.quickstep.views.OverviewActionsView.updateForIsTablet()   // CP2A only
     updateSplitButtonHiddenFlags(FLAG_IS_NOT_TABLET /* 1 */, !isLargeScreen);
 com.android.quickstep.views.OverviewActionsView.getBottomMargin()
     isLargeScreen ? taskbarHeight + actionsTopMarginPx
@@ -1043,7 +1102,10 @@ com.android.quickstep.BaseContainerInterface.calculateGridSize(DeviceProfile, Re
     claimedBelow += isLargeScreen ? 0 : actionsTopMarginPx + actionsHeight
 ```
 
-so keeping the row means answering all four, and each was visible on its own:
+so keeping the row means answering all four, and each was visible on its own.
+On `CP3A.260905.009` the second is no longer one of them: `updateForIsTablet`
+and `updateSplitButtonHiddenFlags` are both gone, along with `id/action_split`,
+so no build puts a Split button in the row and there is nothing to keep out.
 
 | Left alone | What it looked like |
 |---|---|
@@ -1155,7 +1217,7 @@ full-height card and then hand over to a grid one:
 
 ```java
 // TaskViewSimulator.setDp
-mIsGridTask = dp.mDeviceProperties.isLargeScreen && !mIsDesktopTask;
+mIsGridTask = dp.deviceProperties.isLargeScreen && !mIsDesktopTask;
 // TaskViewSimulator.calculateTaskSize
 if (mIsGridTask) {
     mSizeStrategy.calculateGridTaskSize(mContext, mDp, mFullTaskSize, handler);
@@ -1349,7 +1411,7 @@ full-height card and then hand over to a grid one:
 
 ```java
 // TaskViewSimulator.setDp
-mIsGridTask = dp.mDeviceProperties.isLargeScreen && !mIsDesktopTask;
+mIsGridTask = dp.deviceProperties.isLargeScreen && !mIsDesktopTask;
 // TaskViewSimulator.calculateTaskSize
 if (mIsGridTask) {
     mSizeStrategy.calculateGridTaskSize(mContext, mDp, mFullTaskSize, handler);
@@ -1425,7 +1487,7 @@ full-height card and then hand over to a grid one:
 
 ```java
 // TaskViewSimulator.setDp
-mIsGridTask = dp.mDeviceProperties.isLargeScreen && !mIsDesktopTask;
+mIsGridTask = dp.deviceProperties.isLargeScreen && !mIsDesktopTask;
 // TaskViewSimulator.calculateTaskSize
 if (mIsGridTask) {
     mSizeStrategy.calculateGridTaskSize(mContext, mDp, mFullTaskSize, handler);
@@ -2077,9 +2139,16 @@ has finished morphing into the hotseat and is not the row on screen.
 Both deferred changes are numbered, so a transition overtaken by another cannot
 apply its change to the newer one; the last transition always decides.
 
-## The home screen search bar (Android 17, verified September 8, 2026)
+## The home screen search bar (Android 17, verified September 16, 2026)
 
 ```
+// CP3A.260905.009: the bar has no host class of its own. It is built by
+// OseCustomWidget.createView on the workspace and QsbWidgetFactory.createView
+// in the hotseat, and both hand the host view to this one call:
+com.android.launcher3.qsb.OseWidgetController
+  public static void applyTo(LauncherAppWidgetHostView, boolean)
+
+// CP2A.260805.005:
 com.android.launcher3.qsb.OseWidgetView extends
     com.android.launcher3.widget.LauncherAppWidgetHostView
 
@@ -2317,6 +2386,9 @@ com.android.quickstep.views.RecentsView
   public void initiateSplitSelect(TaskContainer, int stagePosition, StatsLogManager$EventEnum)
   public RecentsPagedOrientationHandler getPagedOrientationHandler()
 com.android.quickstep.orientation.RecentsPagedOrientationHandler
+  // CP3A.260905.009
+  SplitPositionOption getSplitPositionOption(com.android.launcher3.DeviceProfile)
+  // CP2A.260805.005
   List getSplitPositionOptions(com.android.launcher3.DeviceProfile)
 com.android.launcher3.util.SplitConfigurationOptions$SplitPositionOption
   public int stagePosition
@@ -2328,9 +2400,9 @@ available only for large screens` — so on a phone it is unusable. The launcher
 own menu never calls it: `TaskShortcutFactory$SplitSelectSystemShortcut.onClick`
 passes a stage position read from the handler's offered options, along with
 `StatsLogManager$LauncherEvent.LAUNCHER_APP_ICON_MENU_SPLIT_LEFT_TOP` or
-`…_RIGHT_BOTTOM`. This module does the same, taking the first offered option as
-the menu does, and falls back to the one-argument call when a build answers with
-no options.
+`…_RIGHT_BOTTOM`. This module does the same, and falls back to the one-argument
+call when a build answers with no position. `CP2A.260805.005` answered a list to
+take the first of; `CP3A.260905.009` answers the one position directly.
 
 The device profile the handler wants comes from
 `RecentsViewContainer.containerFromContext(Context).getDeviceProfile()`, the same

@@ -1,80 +1,64 @@
-# Pixel Launcher Evolved v0.0.7
+# Pixel Launcher Evolved v0.0.8
 
-Seventh alpha. One tweak: **Overview Only**, a third choice on the Tablet Layout
-page, which gives Recents the grid a tablet lays it out as while the workspace
-keeps its phone grid and no taskbar appears.
+Eighth alpha, and a repair release. Android 17 QPR1 (`CP3A.260905.009`) moved
+eleven of the launcher signatures this module reads, and every one of them
+disabled a tweak without saying so: the hook was placed, the feature reported
+`Installed`, and nothing happened.
 
-The launcher decides the whole tablet layout from a single boolean, but it
-measures the workspace, the app drawer, the hotseat and the taskbar from it once
-while the device profile is being built and reads it again on every Recents
-layout — so this rewrites it after that profile is finished, and hands the
-phone's answer back to the dozen of the launcher's own surfaces that read it
-later. Recents keeps the Screenshot, Select and Clear all row a phone has, and
-the grid's own dimensions are read against the width the launcher itself calls
-large, because three of the nine resolve to zero below `sw600dp`.
+Nothing new is added here. Everything that worked on `CP2A.260805.005` works
+again, and the notes in `HOOK_NOTES.md` now carry both builds' signatures side
+by side so the next launcher update is a shorter read.
 
-Two things about the swipe into Overview were measured off screen recordings
-rather than guessed at, and both are fixed: the task cards jumped 84px sideways
-on the frame the gesture finished, because Recents only agreed it was a grid
-while a gesture was in flight; and the app chip is now fitted to its card without
-ever asking the Recents pager for a layout, which is what the pager answers by
-running its page scrolls again.
+### Fixed
 
-The bubble and split buttons on a card now arrive with that chip instead of from
-the frame their card was inflated.
+- **The Overview action row.** Its recompute, `updateActionButtonsVisibility`,
+  was inlined into `updateForGroupedTask(boolean)`, which still logs the old
+  method's name. Hiding Screenshot or Select, and adding Clear all, both stopped
+  surviving a change of selected task — the button came back, or went missing,
+  as soon as another card was picked. The two names now live in one place
+  instead of in each feature that needs them.
+
+- **The app drawer's search results.** `setSearchResults` gained a second
+  argument, so nothing was filtered any more: hidden apps, Play Store results
+  and web suggestions all came back whatever the settings said. The launcher's
+  new argument says whether to scroll the list back to the top and is handed
+  back untouched.
+
+- **The home screen search bar.** It lost the host view class that identified
+  it and is now built as a plain widget host like any other. A tap on the bar
+  went to the Google app again instead of opening the app drawer's search. The
+  bar is recognised through the launcher's own setup call for it, which covers
+  the hotseat's bar as well.
+
+- **The split button on an Overview card.** The orientation handler's
+  `getSplitPositionOptions` became `getSplitPositionOption`, answering one
+  position rather than a list, so the button had nothing to start the selection
+  with.
+
+- **Overview Only and Taskbar Only.** Neither could install at all:
+  `DeviceProfile$Builder` moved out to a class of its own, and the two device
+  profile fields they read dropped their `m` prefixes. Taskbar Only also lost
+  the constructor it reported a taskbar through — the shrinker inlined it — so
+  the boolean is now written on the device properties the launcher's own factory
+  has just answered, which it reads back a step later. The hook that kept that
+  constructor from being inlined is gone with it.
+
+- **The taskbar's view of the launcher.** `onLauncherVisibilityChanged` took two
+  more booleans. Without it the taskbar kept believing the launcher was behind
+  something after a restart, which leaves the hotseat empty, and stayed drawn
+  over an app after a quick switch between two.
+
+### Changed
+
+- Overview Only no longer keeps a Split button out of the action row. That
+  button is gone from the row on every device, along with
+  `updateSplitButtonHiddenFlags` and `id/action_split`, so there is nothing left
+  to keep out.
+
+- `Snackbar.getDismissTimeout`, one of the home surfaces Overview Only puts back
+  on the phone's measurements for the length of their own call, is gone from the
+  launcher. That list already reports and skips a surface it cannot find, so the
+  rest still apply.
 
 This is still an alpha, and Tablet Layout is still marked experimental. A layout
 choice needs a launcher restart to take effect.
-
-### Added
-
-- **Overview Only**, a third choice on the Tablet Layout page. It gives Recents
-  the grid a tablet lays it out as, while the workspace keeps its phone grid and
-  no taskbar appears. The three layout choices are answers to the same question,
-  so switching one on switches the other two off.
-
-  The launcher decides the whole tablet layout from one boolean on the device
-  profile, but it measures the workspace, the app drawer, the hotseat and the
-  taskbar from it once, while that profile is being built, and reads it again on
-  every Recents layout. This tweak rewrites it after the profile is finished, so
-  it reaches Recents and nothing that was already sized, and puts the phone's
-  answer back for the length of each call from the launcher's own home surfaces
-  — the drawer's insets and the auto-rotate setting among them.
-
-  Overview's own dimensions are rewritten with it. Three of the nine the grid is
-  built from resolve to zero below `sw600dp`, so a grid laid out on a phone's
-  numbers would have no space between its rows, no margin to sit inside and no
-  icon on a card; they are read again against the width the launcher itself
-  calls large.
-
-  Recents is laid out as a grid whether or not a gesture is running. The launcher
-  decides that from a flag it only ever turns off, so a layout with no gesture in
-  flight worked the page scrolls out as a phone's while the end of the swipe-up
-  worked them out as a grid's — and the task cards jumped 84px sideways on the
-  frame the gesture finished. Both sides now get the same answer.
-
-  The Screenshot, Select and Clear all row is kept, with the three buttons a
-  phone's row holds and the side margins it holds them in. A tablet offers those
-  from the task menu instead, so the launcher hides the row, puts a Split button
-  in it, places what is left against the taskbar, and lets the cards have the
-  space — four separate decisions, each answered on its own. Horizontally the
-  row now matches stock Recents exactly; vertically it sits under the cards as
-  it does in stock, 36px lower in absolute terms because the grid's own
-  rectangle is centred that much further down.
-
-  The app chip on each card is fitted to the card it sits on. It is laid out from
-  unqualified dimensions, so on a grid card a phone's width it covered nearly the
-  whole of every preview; it is now capped in the same proportion the launcher
-  caps it at for the halves of a split card, and its name is dropped rather than
-  clipped to a single character when there is no room for it. Resizing a chip
-  asks the Recents pager for a layout, and the pager answers a layout by running
-  its page scrolls again, so the fit is done when the chip is inflated and
-  without asking for one: the widths are written onto the layout parameters it
-  already carries, from a ratio worked out once from the device profile.
-
-- **The bubble and split buttons on a Recents card arrive with the card's app
-  chip.** They were added when a card was inflated and drawn from that frame on,
-  so they were already sitting on a card the launcher was still fading the chip
-  onto. A button now takes the chip's own opacity, which is the launcher's
-  account of how far Overview has arrived, so the two land together at whatever
-  speed the gesture ran.

@@ -29,7 +29,9 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * The bar is a widget, so the tap belongs to the Google app's own
  * `RemoteViews` and there is no listener here to replace. It is taken a step
  * earlier instead, at the launcher's widget host, which is the last view that
- * sees the touch before the widget's children do.
+ * sees the touch before the widget's children do. Which host is a bar is
+ * [SearchBarWidgets]' answer, not a type check: the launcher stopped giving the
+ * bar a host class of its own in Android 17 `CP3A.260905.009`.
  *
  * Only the bar itself. The widget's own buttons — the logo, the microphone,
  * Lens — are smaller views inside it with actions of their own, and a tap that
@@ -39,20 +41,20 @@ class HomeSearchBarFeature : ToggleFeature(Settings.HOME_SEARCH_OPENS_DRAWER) {
 
     override fun install(context: FeatureContext) {
         val host = context.findClass(WIDGET_HOST)
-        val bar = context.findClass(SEARCH_WIDGET)
+        val bars = SearchBarWidgets(context)
         val intercept = host?.let {
             Reflect.method(it, "onInterceptTouchEvent", MotionEvent::class.java)
         }
         val touch = host?.let { Reflect.method(it, "onTouchEvent", MotionEvent::class.java) }
 
-        if (bar == null || intercept == null || touch == null) {
+        if (bars == null || intercept == null || touch == null) {
             context.logger.warn("The home screen search bar is not a widget this launcher hosts")
             return
         }
 
         val search = AppDrawerSearch(context) ?: return
         val longPress = LongPress(context, host)
-        val taps = SearchBarTaps(bar, longPress) { widget -> search.open(widget) }
+        val taps = SearchBarTaps(bars, longPress) { widget -> search.open(widget) }
 
         context.xposed.hook(intercept).intercept { chain ->
             val widget = chain.thisObject as? ViewGroup
@@ -83,7 +85,6 @@ class HomeSearchBarFeature : ToggleFeature(Settings.HOME_SEARCH_OPENS_DRAWER) {
 
     private companion object {
         const val WIDGET_HOST = "com.android.launcher3.widget.LauncherAppWidgetHostView"
-        const val SEARCH_WIDGET = "com.android.launcher3.qsb.OseWidgetView"
     }
 }
 
@@ -97,7 +98,7 @@ class HomeSearchBarFeature : ToggleFeature(Settings.HOME_SEARCH_OPENS_DRAWER) {
  * which is how the widget is picked up and moved.
  */
 private class SearchBarTaps(
-    private val searchWidget: Class<*>,
+    private val searchBars: SearchBarWidgets,
     private val longPress: LongPress,
     private val onTap: (ViewGroup) -> Unit,
 ) {
@@ -107,7 +108,7 @@ private class SearchBarTaps(
     private data class Down(val x: Float, val y: Float)
 
     fun claims(widget: ViewGroup?, event: MotionEvent): Boolean {
-        if (widget == null || !searchWidget.isInstance(widget)) return false
+        if (widget == null || !searchBars.holds(widget)) return false
 
         if (event.actionMasked == MotionEvent.ACTION_DOWN) {
             claimed.remove(widget)

@@ -43,7 +43,7 @@ class OverviewActionsMotionFeature : LauncherFeature {
     private val cards = CardArrival()
 
     override fun install(context: FeatureContext) {
-        val actionsView = context.findClass(ACTIONS_VIEW_CLASS)
+        val actionsView = OverviewActionsRow.find(context)
         if (actionsView == null) {
             context.logger.warn("Overview action row is not available in this launcher")
             return
@@ -242,7 +242,6 @@ class OverviewActionsMotionFeature : LauncherFeature {
     }
 
     private companion object {
-        const val ACTIONS_VIEW_CLASS = "com.android.quickstep.views.OverviewActionsView"
         const val TASK_VIEW_CLASS = "com.android.quickstep.views.TaskView"
 
         /** `setFullscreenProgress(float)`: 1 while the card fills the screen. */
