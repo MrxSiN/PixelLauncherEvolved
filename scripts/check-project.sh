@@ -114,7 +114,12 @@ grep -q 'getTaskContainers' "$SRC/feature/overview/split/SplitScreenAction.kt"
 grep -q 'ic_split_horizontal' "$SRC/feature/overview/OverviewSplitButtonFeature.kt"
 
 # The action row is recomputed, and its clear-all button uses the launcher label.
-grep -q 'updateActionButtonsVisibility' "$SRC/feature/overview/OverviewActionsFeature.kt"
+# Which method that recompute is lives in one place, because CP2A and CP3A name
+# it differently and three features hang off it.
+grep -q 'updateForGroupedTask' "$SRC/feature/overview/OverviewActionsRow.kt"
+grep -q 'updateActionButtonsVisibility' "$SRC/feature/overview/OverviewActionsRow.kt"
+grep -q 'OverviewActionsRow.onRecomputed' "$SRC/feature/overview/OverviewActionsFeature.kt"
+grep -q 'OverviewActionsRow.onRecomputed' "$SRC/feature/overview/OverviewClearAllButtonFeature.kt"
 grep -q 'recents_clear_all' "$SRC/feature/overview/OverviewClearAllButtonFeature.kt"
 
 # Layout: cached profiles, so neither mode can apply to a running launcher.
@@ -127,8 +132,23 @@ grep -q '"isLargeScreen"' "$SRC/feature/layout/TabletModeFeature.kt"
 
 # Taskbar only changes the boolean that classification is recorded as, so the
 # grid stays on phone measurements and every profile agrees a taskbar exists.
-grep -q 'com.android.launcher3.deviceprofile.TaskbarConfiguration' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
-grep -q 'deoptimize' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+# CP3A has no TaskbarConfiguration constructor left to hook: the shrinker
+# inlined it into the factory, which writes the field itself. So the field is
+# written on the properties that factory answers, and the deoptimization that
+# kept the constructor real is gone with the hook that needed it.
+grep -q 'com.android.launcher3.deviceprofile.DeviceProperties' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+grep -q 'taskbarConfiguration' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+grep -q 'isTaskbarPresent' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+grep -q 'DeviceProfiles.propertiesFactory' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+! grep -q 'deoptimize' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+
+# The device profile classes are named once: CP2A nested the builder inside
+# DeviceProfile and CP3A gave it a class of its own, and both layout features
+# read the profile through the same place.
+grep -q 'com.android.launcher3.deviceprofile.DeviceProfileBuilder' "$SRC/feature/layout/DeviceProfiles.kt"
+grep -q 'DeviceProfiles.builder' "$SRC/feature/layout/OverviewOnlyFeature.kt"
+grep -q 'DeviceProfiles.profile' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+! grep -rq 'DeviceProfile..Builder"' "$SRC"
 
 # The taskbar aligns onto a hotseat the launcher's own profile lays out, so the
 # offset has to come from that profile rather than the taskbar window's.
@@ -192,7 +212,9 @@ grep -q 'mLongPressState' "$SRC/feature/gesture/DoubleTapToSleepFeature.kt"
 
 # The search bar is a widget, so its tap is claimed at the launcher's host view,
 # and only where the widget has no narrower button of its own.
-grep -q 'com.android.launcher3.qsb.OseWidgetView' "$SRC/feature/search/HomeSearchBarFeature.kt"
+grep -q 'com.android.launcher3.qsb.OseWidgetController' "$SRC/feature/search/SearchBarWidgets.kt"
+grep -q 'SearchBarWidgets(context)' "$SRC/feature/search/HomeSearchBarFeature.kt"
+! grep -rq 'OseWidgetView' "$SRC"
 grep -q 'onInterceptTouchEvent' "$SRC/feature/search/HomeSearchBarFeature.kt"
 grep -q 'mHasPerformedLongPress' "$SRC/feature/search/HomeSearchBarFeature.kt"
 # The long press is cleared on the way up, so it is read before proceeding.
@@ -462,8 +484,8 @@ grep -q 'moduleApplicationInfo.packageName' "$SRC/feature/focus/FocusHomeFeature
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.0.7"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 7' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.0.8"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 8' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"
