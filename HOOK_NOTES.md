@@ -9,7 +9,7 @@ launcher build.
 ## What Android 17 QPR1 moved
 
 The same read was done again on `CP3A.260905.009` (SDK 37, launcher
-`versionCode=907`). Everything else below still holds; these eleven had
+`versionCode=907`). Everything else below still holds; these fifteen had
 moved, and each is noted again where it appears.
 
 | Was, on `CP2A.260805.005` | Is, on `CP3A.260905.009` |
@@ -25,6 +25,10 @@ moved, and each is noted again where it appears.
 | `TaskbarConfiguration(boolean)` | no constructor at all: the shrinker inlined it into `DeviceProperties$Factory.createDeviceProperties`, which writes `isTaskbarPresent` directly |
 | `LauncherTaskbarUIController.onLauncherVisibilityChanged(boolean)` | `(boolean isVisible, boolean visibleBehindDesktop, boolean skipAnimation)`, beside a no-argument overload and one returning an `Animator` |
 | `Snackbar.getDismissTimeout(ActivityContext)` | gone, replaced by a `Snackbar$SnackbarDismissTimer`. one entry in the phone-surface list, which reports and skips a surface it cannot find |
+| `ModelCallbacks.bindCompleteModelAsync(MutableWorkspaceData, boolean)` builds the workspace | still declared and still called, but its body is `return-void`: the workspace is built by `bindModelWithAsyncInflation(MutableWorkspaceData, boolean, String)`, reached from `Launcher.onCreate`, a configuration change and the repository's `FullRefresh` event |
+| `OverviewActionsView.updateForGroupedTask(boolean)` is the last word on the Select button | `NexusOverviewActionsView` shows or hides Select again from a shrinker-named no-argument method each task overlay's `initOverlay` calls, after the recompute |
+| The taskbar window's views belong to the main thread | they belong to `Executors.TASKBAR_UI_THREAD`, a `LooperExecutor` whose `handler` runs its own looper; stating visibility or stash state from the main thread starts animations there and throws `CalledFromWrongThreadException` |
+| `TaskbarView.getIconLayoutWidth()` counts a `GONE` app drawer button and divider | `getTotalNumberOfIcons()` skips `GONE` children and `onLayout` skips laying them out, so the launcher re-centres by itself; subtracting their slots again slid the taskbar off the left edge |
 
 `OverviewActionsView.HIDDEN_LARGE_SCREEN` is still `32`,
 `DeviceProperties.isLargeScreen` still carries that name, and

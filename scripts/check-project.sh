@@ -122,6 +122,14 @@ grep -q 'OverviewActionsRow.onRecomputed' "$SRC/feature/overview/OverviewActions
 grep -q 'OverviewActionsRow.onRecomputed' "$SRC/feature/overview/OverviewClearAllButtonFeature.kt"
 grep -q 'recents_clear_all' "$SRC/feature/overview/OverviewClearAllButtonFeature.kt"
 
+# CP3A's Pixel action row shows Select again from a shrinker-named method each
+# task overlay calls, so hidden buttons are re-applied before the row draws.
+grep -q 'addOnPreDrawListener' "$SRC/feature/overview/OverviewActionsFeature.kt"
+
+# CP3A already leaves GONE taskbar children out of the icon layout width, so the
+# app drawer button's slots are measured off the launcher rather than subtracted.
+grep -q 'whileLearning' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
+
 # Layout: cached profiles, so neither mode can apply to a running launcher.
 grep -q 'override val isLive: Boolean = false' "$SRC/feature/layout/TabletModeFeature.kt"
 grep -q 'override val isLive: Boolean = false' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
@@ -185,6 +193,10 @@ grep -q 'finally' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 grep -q 'onLauncherVisibilityChanged' "$SRC/feature/layout/TaskbarHomeVisibilityFeature.kt"
 grep -q 'hasBeenResumed' "$SRC/feature/layout/TaskbarHomeVisibilityFeature.kt"
 grep -q 'GRACE_MILLIS' "$SRC/feature/layout/TaskbarHomeVisibilityFeature.kt"
+# CP3A draws the taskbar on its own looper; telling it anything from the main
+# thread crashes the launcher, so the lifecycle repairs post to that looper.
+grep -q 'TASKBAR_UI_THREAD' "$SRC/feature/layout/TaskbarHomeVisibilityFeature.kt"
+! grep -q 'private val handler = Handler(Looper.getMainLooper())' "$SRC/feature/layout/TaskbarHomeVisibilityFeature.kt"
 grep -q 'TaskbarHomeVisibilityFeature' "$SRC/hook/FeatureRegistry.kt"
 
 # Overview can remove the taskbar app drawer button and its matching divider,
@@ -199,9 +211,10 @@ grep -q 'originalVisibility' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt
 grep -q 'getIconLayoutWidth' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
 grep -q 'mItemMarginLeftRight' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
 grep -q 'mIconTouchSize' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
-# The row is changed between transitions, never during one, or the morph jumps.
+# The pair comes back only once the launcher has left, and the row is centred as
+# it enters Recents rather than slid across afterwards.
 grep -q 'whenSettled' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
-grep -q 'ValueAnimator' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
+! grep -q 'ValueAnimator' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
 
 # The module app has no launcher entry; every setting is somewhere else.
 ! grep -q 'android.intent.category.LAUNCHER' "$ROOT/app/src/main/AndroidManifest.xml"
@@ -427,7 +440,10 @@ grep -q 'commitExtraEmptyScreens' "$SRC/feature/focus/FocusHomeFeature.kt"
 
 # Focus home screens: the launcher is handed a filtered list of screens and
 # nothing else. The database is never touched.
-grep -q 'bindCompleteModelAsync' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'WorkspaceBinding.find' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'bindModelWithAsyncInflation' "$SRC/feature/focus/WorkspaceBinding.kt"
+grep -q 'bindCompleteModelAsync' "$SRC/feature/focus/WorkspaceBinding.kt"
+! grep -q 'bindCompleteModelAsync' "$SRC/feature/focus/FocusHomeFeature.kt"
 grep -q 'bindAddScreens' "$SRC/feature/focus/FocusHomeFeature.kt"
 grep -q 'bindItems' "$SRC/feature/focus/FocusHomeFeature.kt"
 

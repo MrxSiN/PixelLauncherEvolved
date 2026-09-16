@@ -91,7 +91,7 @@ class TaskbarHomeVisibilityFeature : LauncherFeature {
         }
 
         StaleVisibilityReport(context, taskbar).install()
-        LauncherLifecycle(context, taskbar, launcher).install()
+        LauncherLifecycle(context, taskbar, launcher, TaskbarThread.handler(context)).install()
     }
 
     private companion object {
@@ -345,9 +345,8 @@ private class LauncherLifecycle(
     private val context: FeatureContext,
     private val taskbar: TaskbarLauncherView,
     private val launcher: Class<*>,
+    private val handler: Handler,
 ) {
-
-    private val handler = Handler(Looper.getMainLooper())
 
     private val paused = Runnable {
         if (taskbar.launcherIsResumed()) return@Runnable
@@ -398,5 +397,41 @@ private class LauncherLifecycle(
         const val ON_PAUSE = "onPause"
         const val ON_RESUME = "onResume"
         const val SETTLED_MILLIS = 350L
+    }
+}
+
+/**
+ * The thread the taskbar's views belong to.
+ *
+ * ```
+ * com.android.launcher3.util.Executors
+ *   public static final LooperExecutor TASKBAR_UI_THREAD
+ * com.android.launcher3.util.LooperExecutor
+ *   public final Handler handler
+ * ```
+ *
+ * On Android 17 `CP3A.260905.009` the taskbar window is created on a looper of
+ * its own rather than the launcher's main thread. Stating anything to the
+ * taskbar starts its animations on the calling thread, and an animation that
+ * then sets a taskbar view's visibility from the main thread throws
+ * `CalledFromWrongThreadException` and takes the launcher down with it. That
+ * happened on the first pause after home, as an app opened.
+ *
+ * A launcher without that executor has its taskbar on the main thread, which
+ * is what the fallback answers.
+ */
+private object TaskbarThread {
+
+    private const val EXECUTORS = "com.android.launcher3.util.Executors"
+    private const val TASKBAR_UI_THREAD = "TASKBAR_UI_THREAD"
+    private const val HANDLER = "handler"
+
+    fun handler(context: FeatureContext): Handler = runCatching {
+        val executors = requireNotNull(context.findClass(EXECUTORS))
+        val executor = requireNotNull(Reflect.field(executors, TASKBAR_UI_THREAD)?.get(null))
+        requireNotNull(Reflect.field(executor.javaClass, HANDLER)?.get(executor)) as Handler
+    }.getOrElse {
+        context.logger.info("Taskbar: no taskbar thread of its own; the taskbar is told on the main thread")
+        Handler(Looper.getMainLooper())
     }
 }

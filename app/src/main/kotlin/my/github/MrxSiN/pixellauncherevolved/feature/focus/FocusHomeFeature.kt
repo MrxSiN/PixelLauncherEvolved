@@ -154,8 +154,8 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
      * Filters the workspace the launcher is about to build.
      *
      * `bindAddScreens` is not the path that builds it on this launcher: it adds
-     * screens to a workspace that already exists, and the first one is built by
-     * `bindCompleteModelAsync`, which is handed the whole model at once.
+     * screens to a workspace that already exists, and the whole one is built by
+     * the call [WorkspaceBinding] names, which is handed the whole model at once.
      *
      * Only the items are filtered, and the screens follow. The launcher does not
      * keep a list of screens at all — `collectWorkspaceScreens` walks the items,
@@ -192,9 +192,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
                 ).apply { isAccessible = true }
             }.getOrNull()
         }
-        val bind = callbacks.declaredMethods.firstOrNull {
-            it.name == BIND_COMPLETE && it.parameterTypes.size == 2
-        }
+        val bind = WorkspaceBinding.find(callbacks)
 
         if (collect == null || toArray == null || version == null || modificationId == null ||
             items == null || rebuild == null || bind == null
@@ -224,7 +222,11 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
                 }.getOrNull()
             }
 
-            if (filtered == null) chain.proceed() else chain.proceed(arrayOf(filtered, chain.args.getOrNull(1)))
+            if (filtered == null) {
+                chain.proceed()
+            } else {
+                chain.proceed(chain.args.toTypedArray().also { it[0] = filtered })
+            }
         }
     }
 
@@ -506,7 +508,6 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
 
         const val WORKSPACE_DATA = "com.android.launcher3.model.data.WorkspaceData\$MutableWorkspaceData"
         const val COLLECT_SCREENS = "collectWorkspaceScreens"
-        const val BIND_COMPLETE = "bindCompleteModelAsync"
         const val VERSION = "version"
         const val MODIFICATION_ID = "modificationId"
         const val ITEMS = "itemsIdMap"

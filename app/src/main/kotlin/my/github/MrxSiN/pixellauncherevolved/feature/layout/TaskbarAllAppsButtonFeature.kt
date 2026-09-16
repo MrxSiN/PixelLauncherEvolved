@@ -2,10 +2,8 @@ package my.github.MrxSiN.pixellauncherevolved.feature.layout
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.animation.ValueAnimator
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.DecelerateInterpolator
 
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -29,24 +27,15 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * the launcher hides these itself in some states and that decision has to
  * survive.
  *
- * Timing is the whole difficulty, and the two halves of it want opposite
- * answers.
+ * The way in hides the pair and centres what is left at once, before the
+ * launcher draws the taskbar into Recents, so the row arrives where it rests.
+ * Holding the old width through the transition and closing up afterwards was
+ * tried first: the icons arrived right of centre and then slid across, which
+ * read as the taskbar correcting itself.
  *
- * Taking the pair out costs nothing to watch. They are laid out at the left end
- * of the row and the launcher fills the row from the right, so removing them
- * moves none of the icons that are left, and the launcher is not drawing the
- * taskbar yet at the moment it says where it is heading. That half happens at
- * once, which is why the button is never seen in Overview.
- *
- * Re-centring what is left is the opposite: it moves every icon, and doing that
- * while the hotseat is still morphing into the taskbar moves them while they are
- * being animated somewhere else, which reads as a jump rather than a movement.
- * So the row keeps the launcher's own width for the length of the transition and
- * closes up afterwards, over an animation of its own.
- *
- * The way out changes nothing at all. The pair comes back and the width returns
- * once the launcher has left Overview, by which time the taskbar has finished
- * morphing into the hotseat and is no longer the row on screen.
+ * The way out puts the pair back once the launcher has left Overview, by which
+ * time the taskbar has finished morphing into the hotseat and is no longer the
+ * row on screen.
  */
 class TaskbarAllAppsButtonFeature : ToggleFeature(Settings.OVERVIEW_HIDE_TASKBAR_ALL_APPS) {
 
@@ -61,7 +50,7 @@ class TaskbarAllAppsButtonFeature : ToggleFeature(Settings.OVERVIEW_HIDE_TASKBAR
         val width = TaskbarIconWidth(context)
 
         if (width == null) {
-            context.logger.warn("The taskbar's icon width cannot be corrected; the row will sit off centre")
+            context.logger.warn("The taskbar's icon width cannot be corrected; the row may sit off centre")
         } else {
             width.discount { view -> originalVisibility.containsKey(view) }
         }
@@ -71,20 +60,16 @@ class TaskbarAllAppsButtonFeature : ToggleFeature(Settings.OVERVIEW_HIDE_TASKBAR
             val view = row.firstOrNull()?.parent as? ViewGroup
 
             if (showingRecents && isEnabled(context.settings)) {
-                // At once: nothing that is left moves, and nothing is on screen
-                // yet to see the button go.
-                apply(row) { hide(it) }
-                // Afterwards: closing the gap moves every icon, so it waits for
-                // the morph to finish and then animates on its own.
-                transition.whenSettled {
-                    if (transitionId == transitions && view != null) width?.closeUp(view)
+                val hideAll = { apply(row) { hide(it) } }
+                if (width == null || view == null) {
+                    hideAll()
+                } else {
+                    width.whileLearning(view, row.any { it.visibility != View.GONE }, hideAll)
                 }
             } else {
-                // Once the launcher has left, where neither change is on screen.
+                // Once the launcher has left, where the change is not on screen.
                 transition.whenSettled {
-                    if (transitionId != transitions) return@whenSettled
-                    if (view != null) width?.reopen(view)
-                    apply(row) { restore(it) }
+                    if (transitionId == transitions) apply(row) { restore(it) }
                 }
             }
         }
@@ -134,15 +119,23 @@ private class Transition(private val animator: Animator?) {
 /**
  * Keeps the icons centred once something in the row is hidden.
  *
- * `TaskbarView.onLayout` centres its children against `getIconLayoutWidth()`,
- * and that width counts children rather than visible children. The launcher
- * discounts its own invisible ones — `getIconLayoutWidth` already subtracts the
- * pinned container's hidden entries — but the app drawer button and the divider
- * are direct children of the taskbar, so nothing discounts them. Hidden, they
- * still hold their slots, and everything left sits two slots right of centre.
+ * `TaskbarView.onLayout` centres its children against `getIconLayoutWidth()`.
+ * Whether that width already leaves hidden children out depends on the build:
  *
- * The width of one slot is the launcher's own: an icon plus its margin on each
- * side, which is exactly what `getIconLayoutWidth` adds per icon.
+ * - On `CP2A.260805.005` it counts children rather than visible children. The
+ *   pinned container's hidden entries are subtracted, but the app drawer button
+ *   and the divider are direct children, so nothing discounts them. Hidden,
+ *   they still hold their slots, and everything left sits two slots right of
+ *   centre. The width of one slot is the launcher's own: an icon plus its
+ *   margin on each side, which is exactly what `getIconLayoutWidth` adds per
+ *   icon.
+ * - On `CP3A.260905.009` `getTotalNumberOfIcons()` skips `GONE` children and
+ *   `onLayout` skips laying them out, so the launcher centres the row itself.
+ *   Subtracting the slots again shrank the row twice over and slid the whole
+ *   taskbar off the left edge.
+ *
+ * Rather than name the build, the launcher's own width is read either side of
+ * the first hide, and the slots are subtracted only where it did not drop.
  */
 private class TaskbarIconWidth private constructor(
     private val context: FeatureContext,
@@ -151,9 +144,12 @@ private class TaskbarIconWidth private constructor(
     private val iconTouchSize: Field,
 ) {
 
-    /** How much of the freed width each row has given up, from 0 to 1. */
-    private val closed = WeakHashMap<ViewGroup, Float>()
-    private val running = WeakHashMap<ViewGroup, ValueAnimator>()
+    /** Whether the launcher discounts hidden children itself, or null until seen. */
+    @Volatile
+    private var launcherDiscounts: Boolean? = null
+
+    /** Set while the launcher's own answer is read, which the hook passes through. */
+    private var readingLauncher = false
 
     /** @param isHidden whether this feature is the reason a child is not drawn */
     fun discount(isHidden: (View) -> Boolean) {
@@ -161,50 +157,42 @@ private class TaskbarIconWidth private constructor(
             val width = chain.proceed() as Int
             val row = chain.thisObject as? ViewGroup
 
-            if (row == null) {
+            if (row == null || readingLauncher || launcherDiscounts != false) {
                 width
             } else {
                 runCatching {
                     val hidden = (0 until row.childCount).count { isHidden(row.getChildAt(it)) }
-                    val given = closed[row] ?: 0f
-                    if (hidden == 0 || given == 0f) {
-                        width
-                    } else {
-                        (width - (freedBy(hidden, row) * given).toInt()).coerceAtLeast(0)
-                    }
+                    if (hidden == 0) width else (width - freedBy(hidden, row)).coerceAtLeast(0)
                 }.getOrDefault(width)
             }
         }
     }
 
-    /** Slides what is left of the row into the middle. */
-    fun closeUp(row: ViewGroup) = animate(row, 1f)
-
-    /** Gives the width back, for a row that is about to hold the pair again. */
-    fun reopen(row: ViewGroup) = animate(row, 0f)
-
-    private fun animate(row: ViewGroup, target: Float) {
-        val from = closed[row] ?: 0f
-        running.remove(row)?.cancel()
-
-        if (from == target) return
-
-        // Nothing is on screen to animate for once the launcher has left, and a
-        // row that is not laid out would never run the animation to its end.
-        if (target == 0f || !row.isAttachedToWindow) {
-            closed[row] = target
-            row.requestLayout()
+    /**
+     * Runs [hide], learning from the first one that takes a visible view away
+     * whether the launcher already gives the hidden width up by itself.
+     *
+     * A hide of views the launcher had already hidden changes nothing to
+     * measure, so it teaches nothing and the next one is asked again.
+     */
+    fun whileLearning(row: ViewGroup, hidesVisible: Boolean, hide: () -> Unit) {
+        if (launcherDiscounts != null || !hidesVisible) {
+            hide()
             return
         }
 
-        running[row] = ValueAnimator.ofFloat(from, target).apply {
-            duration = CLOSE_MILLIS
-            interpolator = DecelerateInterpolator()
-            addUpdateListener {
-                closed[row] = it.animatedValue as Float
-                row.requestLayout()
-            }
-            start()
+        val before = launcherWidth(row)
+        hide()
+        val after = launcherWidth(row)
+        if (before != null && after != null) launcherDiscounts = after < before
+    }
+
+    private fun launcherWidth(row: ViewGroup): Int? {
+        readingLauncher = true
+        return try {
+            runCatching { iconLayoutWidth.invoke(row) as Int }.getOrNull()
+        } finally {
+            readingLauncher = false
         }
     }
 
@@ -222,9 +210,6 @@ private class TaskbarIconWidth private constructor(
     }
 
     companion object {
-
-        /** Short enough to read as the row settling, not as a second transition. */
-        const val CLOSE_MILLIS = 200L
 
         operator fun invoke(context: FeatureContext): TaskbarIconWidth? {
             val taskbarView = context.findClass("com.android.launcher3.taskbar.TaskbarView")
