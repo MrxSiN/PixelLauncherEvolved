@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.0.9
+
+### Fixed
+
+- Four more tweaks that Android 17 QPR1 (`CP3A.260905.009`) broke without moving
+  the signatures they hook. Each installed and reported itself, but the launcher
+  had moved the work somewhere else:
+
+  - **Focus home screens** stopped following a Mode. The home screen kept
+    whichever pages it was last shown until the launcher restarted.
+    `ModelCallbacks.bindCompleteModelAsync` is still called but now does
+    nothing; the workspace is built by `bindModelWithAsyncInflation`, which is
+    what the filter now hooks. Which method that is lives in one place.
+  - **Hide Select** left the button in Overview. The Pixel action row shows
+    Select again from a shrinker-named method each task card calls after the
+    row's recompute. Hidden buttons are now re-applied before the row draws,
+    skipping that frame so the button never flickers.
+  - **Taskbar Only** crashed the launcher on the first app opened from home.
+    The taskbar now runs on a thread of its own, and the fixes that tell it the
+    launcher paused or resumed were sent from the main thread. They now run on
+    the taskbar's thread.
+  - **Hide app drawer button** slid the taskbar off the left edge of Recents.
+    The launcher already leaves hidden children out of the row width, so taking
+    their space off again shrank it twice. The launcher's own width is now read
+    either side of the first hide, and the space is only taken off where it did
+    not drop.
+
+### Changed
+
+- With Hide app drawer button on, the taskbar is centred as it enters Recents.
+  It used to arrive at its old width and slide to the centre afterwards.
+
 ## 0.0.8
 
 ### Fixed
