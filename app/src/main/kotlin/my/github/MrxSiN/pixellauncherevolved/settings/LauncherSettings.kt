@@ -3,6 +3,8 @@ package my.github.MrxSiN.pixellauncherevolved.settings
 import android.content.Context
 import android.content.SharedPreferences
 
+import java.io.File
+
 /**
  * Where this module's settings live.
  *
@@ -15,6 +17,12 @@ import android.content.SharedPreferences
  *
  * The file is this module's own rather than the launcher's `com.android.launcher3.prefs`,
  * so nothing here reaches the launcher's backup set or its own keys.
+ *
+ * It sits in device protected storage. The launcher starts at boot, before the
+ * first unlock, and credential encrypted storage refuses to open a preference
+ * file until then; every tweak used to fail to install for the whole of that
+ * launcher's life. Nothing stored here is personal: it is switches and package
+ * names the launcher already shows before unlock.
  */
 object LauncherSettings {
 
@@ -22,7 +30,22 @@ object LauncherSettings {
     const val FILE: String = "pixel_launcher_evolved"
 
     fun preferences(context: Context): SharedPreferences =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        deviceStorage(context).getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     fun store(context: Context): SettingsStore = SharedPreferencesStore(preferences(context))
+
+    /**
+     * Moves the file v0.0.9 and earlier kept in credential encrypted storage.
+     *
+     * Only callable once the user has unlocked. Answers whether a file was
+     * actually moved, which is when anything already reading the settings is
+     * reading a stale copy.
+     */
+    fun moveFromCredentialStorage(context: Context): Boolean {
+        if (!File(context.dataDir, "shared_prefs/$FILE.xml").exists()) return false
+        return deviceStorage(context).moveSharedPreferencesFrom(context, FILE)
+    }
+
+    private fun deviceStorage(context: Context): Context =
+        if (context.isDeviceProtectedStorage) context else context.createDeviceProtectedStorageContext()
 }

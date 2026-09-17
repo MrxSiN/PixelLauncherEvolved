@@ -15,6 +15,7 @@ import java.util.WeakHashMap
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 
@@ -38,6 +39,8 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * lands on one of them is left alone.
  */
 class HomeSearchBarFeature : ToggleFeature(Settings.HOME_SEARCH_OPENS_DRAWER) {
+
+    override val compatibility = CompatibilityFeature.HOME_SEARCH_BAR
 
     override fun install(context: FeatureContext) {
         val host = context.findClass(WIDGET_HOST)

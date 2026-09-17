@@ -2,6 +2,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.focus
 
 import android.annotation.SuppressLint
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
 import android.app.Activity
 import android.app.KeyguardManager
 import android.app.WallpaperManager
@@ -10,8 +11,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ColorSpace
-import android.graphics.HardwareRenderer
-import android.graphics.RenderNode
+import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.hardware.HardwareBuffer
@@ -22,6 +22,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.WindowInsets
+import android.widget.TextView
 
 import java.lang.reflect.Method
 
@@ -42,6 +43,27 @@ internal data class FocusPagePreview(
     val wallpaper: Drawable?,
     val snapshot: Bitmap?,
     val aspectRatio: Float,
+    /** Where the launcher lays a page out, once a real page has been seen. */
+    val geometry: PageGeometry? = null,
+    /** A picture of any page, to borrow the dock and search bar from: they are the same on every page. */
+    val dock: Bitmap? = null,
+)
+
+/**
+ * How the launcher lays out a page, measured off a real one.
+ *
+ * Every value is a fraction of the launcher window, width for sizes and the
+ * matching side for rectangles, so it scales onto a miniature of any size. A
+ * page drawn from the model with these lands its icons where the launcher puts
+ * them, at the launcher's size, with labels the launcher's size, rather than on
+ * a guessed grid with guessed proportions.
+ */
+internal data class PageGeometry(
+    val grid: RectF,
+    val iconSize: Float,
+    val labelSize: Float,
+    val labelGap: Float,
+    val dock: RectF,
 )
 
 internal data class FocusPreviewItem(
@@ -53,6 +75,7 @@ internal data class FocusPreviewItem(
     val folderIcons: List<Drawable> = emptyList(),
     val isWidget: Boolean = false,
     val widgetPreview: Drawable? = null,
+    val label: CharSequence? = null,
 )
 
 private data class PreviewRecord(
@@ -65,7 +88,8 @@ private data class PreviewRecord(
     val spanY: Int,
     val itemType: Int,
     val icon: Drawable?,
-    val widgetPreview: Drawable?,
+    val widget: AppWidgetProviderInfo?,
+    val title: CharSequence?,
 )
 
 private object FocusPreviewModel {
@@ -74,12 +98,33 @@ private object FocusPreviewModel {
     @Volatile var snapshots: Map<Int, Bitmap> = emptyMap()
     @Volatile var aspectRatio: Float = DEFAULT_ASPECT_RATIO
 
+    /** The launcher window's size in pixels, which a widget is sized against. Zero until seen. */
+    @Volatile var windowWidth: Int = 0
+
+    @Volatile var windowHeight: Int = 0
+
     /** The workspace's own grid, or zero until a page has been seen. */
     @Volatile var columns: Int = 0
 
     @Volatile var rows: Int = 0
 
+    /** Where the pictures are kept on disk, once the launcher has started recording. */
+    @Volatile var store: FocusPageSnapshotStore? = null
+
+    /** Null until a page with an icon on it has been laid out and measured. */
+    @Volatile var geometry: PageGeometry? = null
+
     private const val DEFAULT_ASPECT_RATIO = 9f / 20f
+}
+
+/** The pictures of the home screen's pages, which follow a page when it is given a new id. */
+internal object FocusPagePictures {
+
+    fun renumber(mapping: Map<Int, Int>) {
+        if (mapping.isEmpty()) return
+        FocusPreviewModel.snapshots = FocusPreviewModel.snapshots.mapKeys { (screen, _) -> mapping[screen] ?: screen }
+        FocusPreviewModel.store?.renumber(mapping)
+    }
 }
 
 /** Copies preview-safe fields and launcher-themed icons before Focus filtering. */
@@ -95,6 +140,7 @@ internal class FocusPreviewRecorder(
     private val spanX = Reflect.field(itemInfo, SPAN_X)
     private val spanY = Reflect.field(itemInfo, SPAN_Y)
     private val itemType = Reflect.field(itemInfo, ITEM_TYPE)
+    private val title = Reflect.field(itemInfo, TITLE)
     private val targetComponent = Reflect.method(itemInfo, TARGET_COMPONENT)
     private val iconMethods = mutableMapOf<Class<*>, Method?>()
     private val widgetIds = mutableMapOf<Class<*>, java.lang.reflect.Field?>()
@@ -102,6 +148,7 @@ internal class FocusPreviewRecorder(
 
     /** Pages a Mode has taken off the workspace cannot be captured again. */
     private val snapshots = FocusPageSnapshotStore(context).also { store ->
+        FocusPreviewModel.store = store
         // A page captured since the launcher started is the newer of the two.
         store.restore { stored, wallpaper ->
             FocusPreviewModel.snapshots = stored + FocusPreviewModel.snapshots
@@ -143,25 +190,23 @@ internal class FocusPreviewRecorder(
             spanY = spanY!!.getInt(item),
             itemType = itemType!!.getInt(item),
             icon = icon(item, component),
-            widgetPreview = widgetPreview(item),
+            widget = widgetInfo(item),
+            title = runCatching { title?.get(item) as? CharSequence }.getOrNull(),
         )
     }.getOrNull()
 
     /**
-     * The widget's own preview picture, for a page that cannot be photographed.
+     * The widget's provider, for a page that cannot be photographed.
      *
-     * A page a Mode has taken off the workspace has no widget view to draw, and
-     * a blank rectangle in its place reads as a broken preview rather than as a
-     * widget. This is the same picture the launcher's own widget picker shows.
+     * A page a Mode has taken off the workspace has no widget view to draw. Its
+     * preview is drawn when a page preview is asked for rather than now, because
+     * only then are its size and the theme in force known.
      */
-    private fun widgetPreview(item: Any): Drawable? {
+    private fun widgetInfo(item: Any): AppWidgetProviderInfo? {
         if (itemType?.getInt(item) != ITEM_TYPE_WIDGET) return null
         val field = widgetIds.getOrPut(item.javaClass) { Reflect.field(item.javaClass, APP_WIDGET_ID) }
         val widgetId = runCatching { field?.getInt(item) }.getOrNull() ?: return null
-        return runCatching {
-            AppWidgetManager.getInstance(context)?.getAppWidgetInfo(widgetId)
-                ?.loadPreviewImage(context, 0)
-        }.getOrNull()
+        return runCatching { AppWidgetManager.getInstance(context)?.getAppWidgetInfo(widgetId) }.getOrNull()
     }
 
     private fun icon(item: Any, component: ComponentName?): Drawable? {
@@ -200,6 +245,7 @@ internal class FocusPreviewRecorder(
         const val SPAN_X = "spanX"
         const val SPAN_Y = "spanY"
         const val ITEM_TYPE = "itemType"
+        const val TITLE = "title"
         const val TARGET_COMPONENT = "getTargetComponent"
         const val NEW_ICON = "newIcon"
         const val APP_WIDGET_ID = "appWidgetId"
@@ -478,6 +524,56 @@ private object FocusPageSnapshotter {
         }
     }
 
+    /**
+     * Measures where the launcher lays a page out, off a page it has laid out.
+     *
+     * Taken in the same frame the snapshots are, and relative to the window the
+     * way the snapshots are drawn, so a page drawn from these lines up with a
+     * page photographed. The icon and label sizes are read off an icon itself,
+     * which carries the size the launcher settled on for this grid and display.
+     */
+    private fun rememberGeometry(root: View, workspace: ViewGroup, hotseat: View?) {
+        if (hotseat == null) return
+        val width = root.width.toFloat()
+        val height = root.height.toFloat()
+        val rootLocation = IntArray(2).also(root::getLocationOnScreen)
+        val workspaceLocation = IntArray(2).also(workspace::getLocationOnScreen)
+        val hotseatLocation = IntArray(2).also(hotseat::getLocationOnScreen)
+
+        for (index in 0 until workspace.childCount) {
+            val page = workspace.getChildAt(index) ?: continue
+            val items = Reflect.field(page.javaClass, SHORTCUTS)?.get(page) as? ViewGroup ?: continue
+            val icon = (0 until items.childCount)
+                .map(items::getChildAt)
+                .filterIsInstance<TextView>()
+                .firstOrNull { it.compoundDrawables[1] != null }
+                ?: continue
+
+            val left = workspaceLocation[0] - rootLocation[0] + items.left
+            val top = workspaceLocation[1] - rootLocation[1] + items.top
+            val dockLeft = hotseatLocation[0] - rootLocation[0]
+            val dockTop = hotseatLocation[1] - rootLocation[1]
+            FocusPreviewModel.geometry = PageGeometry(
+                grid = RectF(
+                    left / width,
+                    top / height,
+                    (left + items.width) / width,
+                    (top + items.height) / height,
+                ),
+                iconSize = icon.compoundDrawables[1].bounds.width() / width,
+                labelSize = icon.textSize / width,
+                labelGap = icon.compoundDrawablePadding / width,
+                dock = RectF(
+                    dockLeft / width,
+                    dockTop / height,
+                    (dockLeft + hotseat.width) / width,
+                    (dockTop + hotseat.height) / height,
+                ),
+            )
+            return
+        }
+    }
+
     private fun workspace(activity: Activity): ViewGroup? =
         Reflect.field(activity.javaClass, WORKSPACE)?.get(activity) as? ViewGroup
 
@@ -488,6 +584,7 @@ private object FocusPageSnapshotter {
 
         val hotseat = Reflect.field(activity.javaClass, HOTSEAT)?.get(activity) as? View
         rememberGrid(workspace.getChildAt(0))
+        runCatching { rememberGeometry(root, workspace, hotseat) }
         val screenAt = Reflect.method(
             workspace.javaClass,
             SCREEN_FOR_PAGE,
@@ -515,15 +612,11 @@ private object FocusPageSnapshotter {
                 // the launcher has laid anything out.
                 if (!hasItems(page)) continue
 
-                val renderNode = RenderNode("Focus page $screenId").apply {
-                    setPosition(0, 0, targetWidth, targetHeight)
-                }
-                val canvas = renderNode.beginRecording(targetWidth, targetHeight)
-                drawWallpaper(canvas, wallpaper, targetWidth, targetHeight)
-                drawAtScreenPosition(canvas, page, rootLocation, scale, workspaceLocation)
-                if (hotseat != null) drawAtScreenPosition(canvas, hotseat, rootLocation, scale)
-                renderNode.endRecording()
-                val bitmap = createHardwareBitmap(renderNode, targetWidth, targetHeight) ?: continue
+                val bitmap = HardwarePicture.record(targetWidth, targetHeight) { canvas ->
+                    drawWallpaper(canvas, wallpaper, targetWidth, targetHeight)
+                    drawAtScreenPosition(canvas, page, rootLocation, scale, workspaceLocation)
+                    if (hotseat != null) drawAtScreenPosition(canvas, hotseat, rootLocation, scale)
+                } ?: continue
                 put(screenId, bitmap)
             }
         }
@@ -550,10 +643,12 @@ private object FocusPageSnapshotter {
             // would replace a good page with a blank one.
             if (captured.keys != held && wallpaper != null) {
                 held = captured.keys
-                store?.save(snapshots)
+                store?.save(snapshots, FocusPages.order.toSet())
             }
         }
         FocusPreviewModel.aspectRatio = root.width.toFloat() / root.height
+        FocusPreviewModel.windowWidth = root.width
+        FocusPreviewModel.windowHeight = root.height
     }
 
     /**
@@ -578,17 +673,6 @@ private object FocusPageSnapshotter {
         }
         return carried + captured
     }
-
-    private fun createHardwareBitmap(node: RenderNode, width: Int, height: Int): Bitmap? =
-        runCatching {
-            Reflect.method(
-                HardwareRenderer::class.java,
-                CREATE_HARDWARE_BITMAP,
-                RenderNode::class.java,
-                Int::class.javaPrimitiveType!!,
-                Int::class.javaPrimitiveType!!,
-            )?.invoke(null, node, width, height) as? Bitmap
-        }.getOrNull()
 
     private fun drawAtScreenPosition(
         canvas: Canvas,
@@ -648,12 +732,18 @@ private object FocusPageSnapshotter {
 
     /** Longer than a heads-up notification stays on screen. */
     private const val WALLPAPER_SETTLE_MS = 6_000L
-    private const val CREATE_HARDWARE_BITMAP = "createHardwareBitmap"
     private const val SNAPSHOT_WIDTH_PX = 320
 }
 
-/** Builds page previews from cached launcher model and view snapshots. */
-internal class LauncherPagePreviewSource : FocusPagePreviewSource {
+/**
+ * Builds page previews from cached launcher model and view snapshots.
+ *
+ * @param context the screen the previews are shown on, whose configuration a
+ * widget preview is drawn in.
+ */
+internal class LauncherPagePreviewSource(context: Context) : FocusPagePreviewSource {
+
+    private val widgets = WidgetPreviewRenderer(context)
 
     override fun pages(screenIds: List<Int>): Map<Int, FocusPagePreview> {
         val records = FocusPreviewModel.records
@@ -676,6 +766,13 @@ internal class LauncherPagePreviewSource : FocusPagePreviewSource {
         val snapshots = FocusPreviewModel.snapshots
         val wallpaper = FocusPreviewModel.wallpaper
         val aspectRatio = FocusPreviewModel.aspectRatio
+        val geometry = FocusPreviewModel.geometry
+        // A cell's size on the home screen, which a widget preview is drawn at.
+        val cellWidth = (geometry?.grid?.width() ?: 1f) * FocusPreviewModel.windowWidth / columns
+        val cellHeight = (geometry?.grid?.height() ?: 1f) * FocusPreviewModel.windowHeight / rows
+        // The dock and its search bar are the same on every page, so any page
+        // photographed lends them to a page that could not be.
+        val dock = screenIds.firstNotNullOfOrNull(snapshots::get) ?: snapshots.values.firstOrNull()
 
         return screenIds.associateWith { screenId ->
             FocusPagePreview(
@@ -694,13 +791,22 @@ internal class LauncherPagePreviewSource : FocusPagePreviewSource {
                             emptyList()
                         },
                         isWidget = record.itemType == ITEM_TYPE_WIDGET,
-                        widgetPreview = record.widgetPreview,
+                        widgetPreview = record.widget?.let { info ->
+                            widgets.render(
+                                info,
+                                (cellWidth * record.spanX).roundToInt(),
+                                (cellHeight * record.spanY).roundToInt(),
+                            )
+                        },
+                        label = record.title,
                     )
                 },
                 hotseatIcons = hotseat,
                 wallpaper = wallpaper,
                 snapshot = snapshots[screenId],
                 aspectRatio = aspectRatio,
+                geometry = geometry,
+                dock = dock,
             )
         }
     }

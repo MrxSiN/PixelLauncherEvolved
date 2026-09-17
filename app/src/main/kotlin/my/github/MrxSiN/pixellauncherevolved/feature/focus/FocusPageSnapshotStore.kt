@@ -65,21 +65,52 @@ internal class FocusPageSnapshotStore(private val context: Context) {
         }
     }
 
+    /**
+     * Renames kept pictures to the ids their pages were given.
+     *
+     * Through a temporary name first, because a mapping is a permutation and
+     * one page's new name is another page's old one.
+     */
+    fun renumber(mapping: Map<Int, Int>) {
+        if (mapping.isEmpty()) return
+        io.execute {
+            runCatching {
+                val moving = mapping.keys.mapNotNull { old ->
+                    File(dir, "$old$EXTENSION").takeIf(File::isFile)?.let { file ->
+                        val parked = File(dir, "$old$EXTENSION$PARKED")
+                        if (file.renameTo(parked)) old to parked else null
+                    }
+                }
+                for ((old, parked) in moving) parked.renameTo(File(dir, "${mapping.getValue(old)}$EXTENSION"))
+            }
+        }
+    }
+
     private fun decode(file: File): Bitmap? {
         if (!file.isFile) return null
         val options = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.HARDWARE }
         return BitmapFactory.decodeFile(file.path, options)
     }
 
-    /** Replaces what is kept, dropping the files of pages no longer in [snapshots]. */
-    fun save(snapshots: Map<Int, Bitmap>) {
+    /**
+     * Writes [snapshots], and drops the files of pages the launcher no longer has.
+     *
+     * A file is dropped for its page being gone from [pages], never for being
+     * missing from [snapshots]. The first capture of a launcher start can run
+     * before the pictures on disk have been read back, and holds only the pages
+     * on show; dropping whatever it lacked deleted the picture of every page a
+     * Mode hides — the very pages that cannot be photographed again — and left
+     * the Focus pages dialog drawing them from the model instead. An empty
+     * [pages] is a launcher that has not bound yet, and drops nothing.
+     */
+    fun save(snapshots: Map<Int, Bitmap>, pages: Set<Int>) {
         // Copied off the hardware buffer here, on the thread that already has
         // the map, so the writing thread is handed something it can encode.
         val encodable = snapshots.mapNotNull { (screenId, bitmap) ->
             runCatching { bitmap.copy(Bitmap.Config.ARGB_8888, false) }.getOrNull()
                 ?.let { screenId to it }
         }
-        io.execute { runCatching { write(encodable.toMap()) } }
+        io.execute { runCatching { write(encodable.toMap(), pages) } }
     }
 
     private fun read(): Map<Int, Bitmap> {
@@ -96,7 +127,7 @@ internal class FocusPageSnapshotStore(private val context: Context) {
         }
     }
 
-    private fun write(snapshots: Map<Int, Bitmap>) {
+    private fun write(snapshots: Map<Int, Bitmap>, pages: Set<Int>) {
         if (!dir.isDirectory && !dir.mkdirs()) return
 
         for ((screenId, bitmap) in snapshots) {
@@ -110,7 +141,7 @@ internal class FocusPageSnapshotStore(private val context: Context) {
         for (file in dir.listFiles().orEmpty()) {
             if (file.name == WALLPAPER) continue
             val screenId = file.name.removeSuffix(EXTENSION).toIntOrNull()
-            if (screenId == null || screenId !in snapshots) file.delete()
+            if (screenId == null || (pages.isNotEmpty() && screenId !in pages)) file.delete()
         }
     }
 
@@ -118,6 +149,7 @@ internal class FocusPageSnapshotStore(private val context: Context) {
         const val DIRECTORY = "focus-page-previews"
         const val EXTENSION = ".webp"
         const val WALLPAPER = "wallpaper.webp"
+        const val PARKED = ".renumbering"
         const val QUALITY = 80
         val FORMAT = Bitmap.CompressFormat.WEBP_LOSSY
     }

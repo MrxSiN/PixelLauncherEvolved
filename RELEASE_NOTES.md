@@ -1,47 +1,51 @@
-# Pixel Launcher Evolved v0.0.9
+# Pixel Launcher Evolved v0.1.0
 
-Ninth alpha, and a second repair release for Android 17 QPR1
-(`CP3A.260905.009`). v0.0.8 brought back every signature that update moved.
-These four were a different kind of break: the signature was still there, the
-hook was placed and the feature reported `Installed`, but the launcher had moved
-the work somewhere else.
+**Fully compatible with the latest Android release: Android 17 QPR1 (September 2026),
+build `CP3A.260905.009`, Pixel Launcher `907`.** Every launcher member the module stands on
+resolves — 57 of 57, no fallbacks — and every tweak is available. Tested on a Pixel 8 Pro with
+Vector v2.2.
 
-Nothing new is added.
+### What's new
+
+- **Settings, reorganised** into Home screen, App drawer, Overview, Layout & taskbar and Advanced,
+  each with headed groups of Material 3 Expressive cards, as Android 17 QPR1 Settings draws them.
+  Switches read as what is shown; the layout modes are one radio group.
+- **Organize home screens**: every page on one screen, including pages a Mode hides, arranged by
+  touch and hold, then drag. It moves on Material's shared axis, with predictive back.
+- **Modes home screens** and **Modes pages** (formerly Focus home screens and Focus pages).
+- **Compatibility & diagnostics**, under Advanced: module, Android, build, launcher version,
+  libxposed API and root, each feature's status, hook counts, every launcher contract, and a report
+  to copy.
+- **Per-feature compatibility gating**: a tweak whose launcher members are missing is not
+  installed, and its switch says *Unavailable on Pixel Launcher …* instead of doing nothing.
+- **Automatic compatibility analysis** the first time each new launcher version starts, written to
+  `adb logcat -s PixelLauncherEvolved`.
+- **Safe Mode**: three launcher crashes within a minute turn the experimental layout mode off
+  before it loads again, and the home screen asks whether to restore it.
+- **Backup & restore**, under Advanced: export settings to a JSON file, import them, or reset all
+  tweaks.
 
 ### Fixed
 
-- **Focus home screens.** Turning a Mode on or off reloaded the home screen but
-  never changed its pages, so it kept whichever set it was last shown — the
-  Driving page with no Mode on, or the ordinary page with Driving on — until the
-  launcher restarted. `ModelCallbacks.bindCompleteModelAsync` is still declared
-  and still called, but its body is now empty. The workspace is built by
-  `bindModelWithAsyncInflation`, reached from launcher start, a configuration
-  change and the reload a Mode change asks for. The filter now hooks that, and
-  falls back to the old name on a build that still has it.
+- **Snackbar in Overview only**: Android 17 QPR1 folded `Snackbar.getDismissTimeout` into
+  `Snackbar.show`, so the snackbar hook was lost. It follows `show` now.
+- **Modes pages** kept a page hidden for a Mode that had been deleted in Settings; a deleted Mode's
+  pages come back.
+- **Tweaks load at boot**: settings live in device protected storage and load before the first
+  unlock.
+- **Home screen pages with Modes home screens on**: new apps no longer land on a hidden page, a
+  dragged icon always has a page to land on, and an emptied page no longer stays behind.
 
-- **Hide Select.** The Select button stayed in Overview. The Pixel action row
-  shows Select again from a method the shrinker names, which each task card
-  calls after the row has been recomputed. Rather than chase a name that changes
-  with every build, the row is checked just before it draws; a frame in which a
-  button had to be hidden is skipped, so it never flickers.
+### Install
 
-- **Taskbar Only.** The launcher crashed on the first app opened from the home
-  screen, with `CalledFromWrongThreadException`. The taskbar now draws on a
-  thread of its own, and the corrections that tell it the launcher has paused or
-  resumed were posted to the main thread, which started the taskbar's animations
-  there. They now run on the taskbar's thread.
+1. Install `PixelLauncherEvolved-v0.1.0.apk`
+2. Enable Pixel Launcher Evolved in Vector (static scope: Pixel Launcher)
+3. Force-stop Pixel Launcher once, or reboot
+4. Long press the home screen → Home settings → Pixel Launcher Evolved
 
-- **Hide app drawer button.** In Recents the taskbar slid off the left edge of
-  the screen. The launcher already leaves hidden buttons out of the taskbar's
-  width and re-centres the row itself, so taking the button's space off again
-  shrank it twice. The launcher's own width is now read either side of the first
-  hide, and the space is taken off only where the launcher did not already do it.
+### Notes
 
-### Changed
-
-- With Hide app drawer button on, the taskbar is already centred when Recents
-  opens. It used to arrive at its old width, icons right of centre, and slide
-  across once the transition had finished.
-
-This is still an alpha, and Tablet Layout is still marked experimental. A layout
-choice needs a launcher restart to take effect.
+- Needs a framework with libxposed API 101+, such as Vector v2.2.
+- Updating from v0.0.9 or earlier: settings are kept. After installing, the launcher restarts
+  itself the next time the screen goes off.
+- A layout mode change applies after **Restart Pixel Launcher**.

@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.overview
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble.BubbleAction
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble.SystemUiProxyBubbleLauncher
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.card.TaskCardButtonDecorator
@@ -21,6 +22,8 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * button, when that is switched on too, takes the leading one.
  */
 class OverviewBubbleFeature : ToggleFeature(Settings.OVERVIEW_BUBBLE_BUTTON) {
+
+    override val compatibility = CompatibilityFeature.BUBBLE_LAUNCHER
 
     override fun install(context: FeatureContext) {
         val taskView = context.findClass(TASK_VIEW_CLASS)

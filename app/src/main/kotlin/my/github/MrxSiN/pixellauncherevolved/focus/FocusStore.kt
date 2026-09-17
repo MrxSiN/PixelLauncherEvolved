@@ -34,6 +34,42 @@ interface FocusStore {
     fun reorder(modeIds: List<String>)
 }
 
+/**
+ * Follows pages that were given new ids, so each Mode keeps the pages it had.
+ *
+ * Assignments are stored by screen id, and putting the home screen's pages in a
+ * new order gives the moved pages new ids. The Mode order is left as it was.
+ */
+fun FocusStore.renumber(mapping: Map<Int, Int>) {
+    if (mapping.isEmpty()) return
+    val order = priority()
+    for ((mode, owned) in assignments()) {
+        val renumbered = owned.map { mapping[it] ?: it }.toSet()
+        if (renumbered != owned) assign(mode, renumbered)
+    }
+    reorder(order)
+}
+
+/**
+ * Gives back the pages of every Mode not in [existing], and drops it from the order.
+ *
+ * Pages are kept by a Mode's id, and a Mode deleted in Settings takes its id
+ * with it — one made again under the same name gets a new one. Left behind, its
+ * pages stayed set aside for a Mode that can never come on: hidden from the
+ * ordinary home screen and offered to no other Mode. A read that failed looks
+ * like no Modes at all, so it forgets nothing.
+ */
+fun FocusStore.forgetModesMissingFrom(snapshot: FocusSnapshot) {
+    if (!snapshot.isReadable) return
+    val existing = snapshot.modes.mapTo(HashSet(), FocusMode::id)
+    val gone = assignments().keys - existing
+    val order = priority()
+    val kept = order.filter { it in existing }
+    if (gone.isEmpty() && kept == order) return
+    gone.forEach { assign(it, emptySet()) }
+    reorder(kept)
+}
+
 /** [FocusStore] over the launcher's own preference file. */
 class SharedPreferencesFocusStore(
     private val preferences: SharedPreferences,

@@ -6,6 +6,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 
@@ -21,6 +22,8 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * matching when the theme changes.
  */
 class OverviewClearAllButtonFeature : ToggleFeature(Settings.OVERVIEW_CLEAR_ALL_IN_ACTIONS) {
+
+    override val compatibility = CompatibilityFeature.OVERVIEW_ACTIONS
 
     override fun install(context: FeatureContext) {
         val actionsView = OverviewActionsRow.find(context)

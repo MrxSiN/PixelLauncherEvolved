@@ -38,16 +38,8 @@ class FocusProvider : ContentProvider() {
         return when (uri.lastPathSegment) {
             SNAPSHOT -> snapshotCursor(zen.snapshot())
 
-            MODES -> MatrixCursor(
-                arrayOf(
-                    FocusContract.COLUMN_ID,
-                    FocusContract.COLUMN_NAME,
-                    FocusContract.COLUMN_ACTIVE,
-                ),
-            ).apply {
-                for (mode in zen.modes()) {
-                    addRow(arrayOf<Any>(mode.id, mode.name, if (mode.isActive) 1 else 0))
-                }
+            MODES -> MatrixCursor(MODE_COLUMNS).apply {
+                for (mode in zen.modes()) addRow(modeRow(mode))
             }
 
             ACCESS -> MatrixCursor(arrayOf(FocusContract.COLUMN_GRANTED)).apply {
@@ -72,29 +64,19 @@ class FocusProvider : ContentProvider() {
 
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = 0
 
-    private fun snapshotCursor(snapshot: FocusSnapshot): MatrixCursor = MatrixCursor(
-        arrayOf(
-            FocusContract.COLUMN_ID,
-            FocusContract.COLUMN_NAME,
-            FocusContract.COLUMN_ACTIVE,
-            FocusContract.COLUMN_GRANTED,
-        ),
-    ).apply {
-        if (snapshot.modes.isEmpty()) {
-            addRow(arrayOf(null, null, 0, if (snapshot.isReadable) 1 else 0))
-        } else {
-            for (mode in snapshot.modes) {
-                addRow(
-                    arrayOf<Any>(
-                        mode.id,
-                        mode.name,
-                        if (mode.isActive) 1 else 0,
-                        if (snapshot.isReadable) 1 else 0,
-                    ),
-                )
+    private fun snapshotCursor(snapshot: FocusSnapshot): MatrixCursor =
+        MatrixCursor(MODE_COLUMNS + FocusContract.COLUMN_GRANTED).apply {
+            val granted = if (snapshot.isReadable) 1 else 0
+            if (snapshot.modes.isEmpty()) {
+                addRow(arrayOf(null, null, 0, null, 0, granted))
+            } else {
+                for (mode in snapshot.modes) addRow(modeRow(mode) + granted)
             }
         }
-    }
+
+    /** One Mode, in the order of [MODE_COLUMNS]. */
+    private fun modeRow(mode: FocusMode): Array<Any?> =
+        arrayOf(mode.id, mode.name, if (mode.isActive) 1 else 0, mode.icon, if (mode.isEnabled) 1 else 0)
 
     private companion object {
         const val LAUNCHER_PACKAGE = "com.google.android.apps.nexuslauncher"
@@ -103,5 +85,13 @@ class FocusProvider : ContentProvider() {
         const val SNAPSHOT = FocusContract.SNAPSHOT_PATH
         const val MODES = FocusContract.MODES_PATH
         const val ACCESS = FocusContract.ACCESS_PATH
+
+        val MODE_COLUMNS = arrayOf(
+            FocusContract.COLUMN_ID,
+            FocusContract.COLUMN_NAME,
+            FocusContract.COLUMN_ACTIVE,
+            FocusContract.COLUMN_ICON,
+            FocusContract.COLUMN_ENABLED,
+        )
     }
 }

@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.search
 
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
@@ -30,6 +31,8 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
  * the next keystroke's results.
  */
 class AppDrawerSearchFeature : LauncherFeature {
+
+    override val compatibility = CompatibilityFeature.APP_DRAWER_SEARCH
 
     override val id: String = "app_drawer_search_results"
 

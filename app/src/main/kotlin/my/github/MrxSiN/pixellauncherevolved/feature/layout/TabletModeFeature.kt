@@ -1,11 +1,14 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.layout
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 
 /** Changes classification before the launcher derives its grid and taskbar dimensions. */
 class TabletModeFeature : ToggleFeature(Settings.TABLET_MODE) {
+
+    override val compatibility = CompatibilityFeature.FULL_TABLET_LAYOUT
     // Device profiles are cached. Both enabling and disabling require a process restart.
     override val isLive: Boolean = false
 

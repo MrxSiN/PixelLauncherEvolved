@@ -1,23 +1,16 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.focus
 
-import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Context
 import android.content.res.Resources
-import android.view.Gravity
-import android.view.ViewGroup
-import android.widget.GridView
-import android.widget.LinearLayout
-import android.widget.ListView
-import android.widget.TextView
-
-import kotlin.math.min
-import kotlin.math.roundToInt
 
 import my.github.MrxSiN.pixellauncherevolved.R
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
+import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
 
 /**
  * Asks which pages belong to which Mode, from the launcher's Home settings.
@@ -28,6 +21,9 @@ import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
  * a Compose screen has no list of child views to add a row to. This dialog uses
  * the launcher's unfiltered page order and model snapshot to show the same
  * pages as selectable miniature home screens.
+ *
+ * Both steps are Material 3 Expressive dialogs: the Modes as the grouped card
+ * Settings → Modes draws, then the chosen Mode's pages as a gallery.
  */
 internal object FocusPagesDialog {
 
@@ -39,55 +35,43 @@ internal object FocusPagesDialog {
         previewSource: FocusPagePreviewSource,
     ) {
         val snapshot = source.snapshot()
-        if (!snapshot.isReadable) {
-            message(context, resources.getString(R.string.feature_focus_needs_access))
+        store.forgetModesMissingFrom(snapshot)
+        // A Mode switched off cannot come on, so it is not offered pages.
+        val modes = snapshot.modes.filter(FocusMode::isEnabled)
+        val problem = when {
+            !snapshot.isReadable -> R.string.feature_focus_needs_access
+            modes.isEmpty() -> R.string.feature_focus_no_modes
+            FocusPages.order.isEmpty() -> R.string.feature_focus_no_pages
+            else -> null
+        }
+        if (problem != null) {
+            ExpressiveDialog(context)
+                .title(resources.getString(R.string.feature_focus_pages_title))
+                .message(resources.getString(problem))
+                .dismiss(context.getString(android.R.string.ok))
+                .show()
             return
         }
 
-        val modes = snapshot.modes
-        if (modes.isEmpty()) {
-            message(context, resources.getString(R.string.feature_focus_no_modes))
-            return
-        }
-
-        if (FocusPages.order.isEmpty()) {
-            message(context, resources.getString(R.string.feature_focus_no_pages))
-            return
-        }
-
-        val pages = FocusPages.order
-        val previews = previewSource.pages(pages)
-        val assignments = store.assignments()
-        val adapter = FocusModeAdapter(
-            context = context,
-            modes = modes,
-            assignments = assignments,
-            previews = previews,
-            pageLabel = { number -> resources.getString(R.string.feature_focus_page, number) },
-            summary = { screens -> summary(resources, screens) },
-            activeLabel = resources.getString(R.string.feature_focus_active),
-        )
-        val list = ListView(context).apply {
-            divider = null
-            isVerticalScrollBarEnabled = false
-            this.adapter = adapter
-        }
-        val content = column(
+        val previews = previewSource.pages(FocusPages.order)
+        val list = FocusModeList(
             context,
-            resources.getString(R.string.feature_focus_choose_mode_summary),
-            list,
-            min(modes.size * MODE_ROW_DP, MAX_MODE_LIST_DP),
+            FocusModeList.Text(
+                active = resources.getString(R.string.feature_focus_active),
+                summary = { screens -> summary(resources, screens) },
+            ),
         )
-        val dialog = AlertDialog.Builder(context)
-            .setTitle(resources.getString(R.string.feature_focus_pages_title))
-            .setView(content)
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-        list.setOnItemClickListener { _, _, position, _ ->
-            val mode = modes.getOrNull(position) ?: return@setOnItemClickListener
+        lateinit var dialog: Dialog
+        val rows = list.build(modes, store.assignments(), previews) { mode ->
             dialog.dismiss()
             choosePages(context, resources, store, mode, previews)
         }
+        dialog = ExpressiveDialog(context)
+            .title(resources.getString(R.string.feature_focus_pages_title))
+            .message(resources.getString(R.string.feature_focus_choose_mode_summary))
+            .content(rows)
+            .dismiss(context.getString(android.R.string.cancel))
+            .show()
     }
 
     /**
@@ -105,50 +89,24 @@ internal object FocusPagesDialog {
         previews: Map<Int, FocusPagePreview>,
     ) {
         val assignments = store.assignments()
-        val pages = selectablePages(FocusPages.order, assignments, mode.id)
-        val owned = assignments[mode.id].orEmpty()
-        val previewWidth = dp(context, PREVIEW_WIDTH_DP)
-        val adapter = FocusPageAdapter(
-            context = context,
-            pages = pages,
-            previews = previews,
-            selected = owned,
-            pageLabel = { screen ->
-                resources.getString(R.string.feature_focus_page, requireNotNull(FocusPages.numberOf(screen)))
-            },
-        )
-        val grid = GridView(context).apply {
-            numColumns = 2
-            // A stretched column is wider than the width the row height is
-            // measured for, which squashes every preview by that difference.
-            columnWidth = previewWidth
-            stretchMode = GridView.NO_STRETCH
-            gravity = Gravity.CENTER
-            horizontalSpacing = dp(context, PAGE_GAP_DP)
-            verticalSpacing = dp(context, PAGE_GAP_DP)
-            setPadding(dp(context, 12), 0, dp(context, 12), dp(context, 8))
-            clipToPadding = false
-            this.adapter = adapter
+        val grid = FocusPageGrid(context) { screen ->
+            resources.getString(R.string.feature_focus_page, requireNotNull(FocusPages.numberOf(screen)))
         }
-        val rows = (pages.size + 1) / 2
-        val rowHeightDp = pages.mapNotNull(previews::get).maxOfOrNull { preview ->
-            FocusPagePreviewView.heightForWidth(context, preview, previewWidth, compact = false)
-        }?.let { height -> (height / context.resources.displayMetrics.density).roundToInt() + PAGE_GAP_DP }
-            ?: DEFAULT_PAGE_ROW_DP
-        val content = column(
-            context,
-            resources.getString(R.string.feature_focus_choose_pages_summary),
-            grid,
-            min(rows * rowHeightDp, MAX_PAGE_GRID_DP),
+        val gallery = grid.build(
+            pages = selectablePages(FocusPages.order, assignments, mode.id),
+            previews = previews,
+            selected = assignments[mode.id].orEmpty(),
         )
 
-        AlertDialog.Builder(context)
-            .setTitle(mode.name)
-            .setView(content)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                apply(store, mode, adapter.selectedScreens())
+        ExpressiveDialog(context)
+            .icon(FocusModeIcons.load(context, mode.icon))
+            .title(mode.name)
+            .message(resources.getString(R.string.feature_focus_choose_pages_summary))
+            .content(gallery)
+            .dismiss(context.getString(android.R.string.cancel))
+            .confirm(resources.getString(R.string.feature_focus_save)) {
+                apply(store, mode, grid.selectedScreens())
             }
-            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -171,41 +129,6 @@ internal object FocusPagesDialog {
             resources.getString(R.string.feature_focus_pages_assigned, numbers.joinToString(", "))
         }
     }
-
-    private fun message(context: Context, text: String) {
-        AlertDialog.Builder(context)
-            .setMessage(text)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
-    }
-
-    private fun column(context: Context, message: String, content: android.view.View, heightDp: Int) =
-        LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            val padding = dp(context, 24)
-            setPadding(padding, dp(context, 8), padding, 0)
-            addView(TextView(context).apply {
-                text = message
-                alpha = 0.72f
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
-            }, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            addView(
-                content,
-                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(context, heightDp)).apply {
-                    topMargin = dp(context, 8)
-                },
-            )
-        }
-
-    private fun dp(context: Context, value: Int): Int =
-        (value * context.resources.displayMetrics.density).roundToInt()
-
-    private const val MODE_ROW_DP = 108
-    private const val MAX_MODE_LIST_DP = 460
-    private const val PREVIEW_WIDTH_DP = 148
-    private const val DEFAULT_PAGE_ROW_DP = 360
-    private const val MAX_PAGE_GRID_DP = 600
-    private const val PAGE_GAP_DP = 8
 }
 
 /** Pages not already reserved for a different Mode, in launcher order. */

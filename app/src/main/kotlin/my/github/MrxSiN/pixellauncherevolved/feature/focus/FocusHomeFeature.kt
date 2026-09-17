@@ -13,6 +13,7 @@ import java.util.concurrent.Executor
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPlan
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
@@ -20,6 +21,7 @@ import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusWatcher
 import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.SharedPreferencesFocusStore
+import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
@@ -34,13 +36,13 @@ import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
  * turning the Mode off brings it back exactly as it was.
  *
  * Filtering a view of a database is safe only while nothing writes the view
- * back. The launcher has one thing that would: `stripEmptyScreens` prunes the
- * screens it finds empty and saves what is left. While a Mode is on, the screens
- * it cannot see are not empty but absent, so that pruning is held off. Without
- * it the first prune during a Mode would delete the ordinary home screen for
- * good.
+ * back, and on this launcher nothing does: a page exists because an item names
+ * it, not because a list of screens says so. `stripEmptyScreens` only takes
+ * empty page views off the workspace, and a hidden page has no view to take.
  */
 class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
+
+    override val compatibility = CompatibilityFeature.FOCUS_HOME_SCREENS
 
     /** Kept for as long as the feature is: an observer reports only while referenced. */
     private var watcher: FocusWatcher? = null
@@ -71,15 +73,9 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             return
         }
 
-        // Nothing is filtered until the pruning guard is in place, because a
-        // filtered workspace the launcher is free to prune is a deleted one.
         val workspace = context.findClass(WORKSPACE)
-        val strip = workspace?.method(STRIP)
-        if (workspace == null || strip == null) {
-            context.logger.warn(
-                "The launcher's screen pruning cannot be found; focus home screens are not installed, " +
-                    "because hiding a page the launcher may prune would delete it",
-            )
+        if (workspace == null) {
+            context.logger.warn("The launcher's workspace is unavailable; focus home screens are not installed")
             return
         }
 
@@ -101,11 +97,12 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             context.logger.warn("The launcher's item positions are unavailable; Focus page previews will be empty")
         }
 
-        holdOffPruning(context, strip, focus)
+        forgetStrippedPages(context, workspace, toArray, focus)
         hideAddedScreens(context, bindScreens, wrap, toArray, focus)
         hideBoundItems(context, callbacks, screenId, container, focus, previews)
         hideEmptyPages(context, focus)
         hideItems(context, callbacks, screenId, container, focus)
+        keepNewAppsOffModePages(context, focus)
         revealAfterBinding(context, workspace, reveal)
         watch(context, workspace, toArray, focus, previews, reveal)
 
@@ -113,13 +110,47 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
     }
 
     /**
-     * Stops the launcher pruning screens it was never shown.
+     * Lets the launcher take away a page that has become empty, and forgets it.
      *
-     * This is the one write that would turn a hidden page into a deleted one.
+     * ```
+     * com.android.launcher3.Workspace
+     *   stripEmptyScreens()   // views only: mWorkspaceScreens, mScreenOrder
+     * ```
+     *
+     * This used to be held off whenever a page was hidden, on the belief that it
+     * saved the screens it kept. On this launcher it writes nothing: it removes
+     * the views of empty pages the workspace holds, and a hidden page is not one
+     * of them. Holding it off only left a blank page behind every uninstalled
+     * app's last icon.
+     *
+     * A page taken away is forgotten, from the page list and from every Mode
+     * that had it. The next page anyone makes gets the id one above the highest
+     * screen still in use, which can be this one's; left in a Mode, that new
+     * page would silently belong to it and be hidden the moment it was made.
      */
-    private fun holdOffPruning(context: FeatureContext, strip: Method, focus: FocusHome) {
+    private fun forgetStrippedPages(
+        context: FeatureContext,
+        workspace: Class<*>,
+        toArray: Method,
+        focus: FocusHome,
+    ) {
+        val strip = workspace.method(STRIP)
+        val screenOrder = workspace.field(SCREEN_ORDER)
+        if (strip == null || screenOrder == null) {
+            context.logger.warn("The launcher's page removal is unavailable; a removed page stays in Focus pages")
+            return
+        }
+
         context.xposed.hook(strip).intercept { chain ->
-            if (focus.isFiltering()) null else chain.proceed()
+            fun order() = runCatching {
+                (toArray.invoke(screenOrder.get(chain.thisObject)) as IntArray).toList()
+            }.getOrNull()
+
+            val before = order()
+            val result = chain.proceed()
+            val after = order()
+            if (before != null && after != null) focus.forget(before - after.toSet())
+            result
         }
     }
 
@@ -288,9 +319,11 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
      * the front. Filtering the model cannot prevent it: the page is made, and
      * then nothing is put on it.
      *
-     * Only screens the Mode hides are skipped. The pages the launcher makes
-     * while something is being dragged carry ids of their own that no Mode owns,
-     * and they are left alone, so dragging still opens a new page.
+     * Only pages that already exist and that the Mode hides are skipped. A page
+     * made just now is not one of them: dragging an icon past the last page gives
+     * the launcher's temporary page an id one above every screen in the database,
+     * and refusing that id — because no Mode's list mentions it yet — is what
+     * left an icon with nowhere to land.
      */
     private fun hideEmptyPages(context: FeatureContext, focus: FocusHome) {
         val insert = context.findClass(WORKSPACE)?.declaredMethods?.firstOrNull {
@@ -306,11 +339,47 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         context.xposed.hook(insert).intercept { chain ->
             val screen = chain.args.firstOrNull() as? Int
 
-            if (screen != null && screen >= 0 && focus.isFiltering() && !focus.shows(screen)) {
+            if (screen != null && screen >= 0 && focus.hides(screen)) {
                 null
             } else {
                 chain.proceed()
             }
+        }
+    }
+
+    /**
+     * Keeps a newly installed app off the pages set aside for a Mode.
+     *
+     * The launcher places a new app on the first screen in its model with room
+     * for it, and the model holds every screen, including the ones a Mode hides.
+     * So an app installed while those pages were hidden went onto a hidden page,
+     * no new page was made, and the icon was nowhere to be seen. The launcher
+     * already passes the finder a set of screens to pass over; the Mode pages
+     * are added to it, so the app goes onto an ordinary page, or onto a new one.
+     *
+     * ```
+     * com.android.launcher3.model.WorkspaceItemSpaceFinder
+     *   findSpaceForItem(ArrayList, int, int, IntSet screensToExclude,
+     *                    WorkspaceItemCoordinates)             // CP3A.260905.009
+     * ```
+     */
+    private fun keepNewAppsOffModePages(context: FeatureContext, focus: FocusHome) {
+        val finder = context.findClass(SPACE_FINDER)?.declaredMethods?.firstOrNull {
+            it.name == FIND_SPACE && it.parameterTypes.size == 5 && it.parameterTypes[3].name == INT_SET
+        }
+        val add = context.findClass(INT_SET)?.method(ADD, Int::class.javaPrimitiveType!!)
+        if (finder == null || add == null) {
+            context.logger.warn("The launcher's space finder is unavailable; a new app may land on a Mode's page")
+            return
+        }
+
+        context.xposed.hook(finder).intercept { chain ->
+            val excluded = chain.args.getOrNull(EXCLUDED_ARGUMENT)
+            if (excluded != null) {
+                runCatching { focus.reservedScreens().forEach { add.invoke(excluded, it) } }
+                    .onFailure { context.logger.warn("A new app could not be kept off the Mode pages", it) }
+            }
+            chain.proceed()
         }
     }
 
@@ -382,7 +451,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             }
         }
 
-        trackCommittedPages(context, workspace, toArray, focus, model, handler)
+        trackCommittedPages(context, workspace, toArray, focus)
 
         watcher = FocusWatcher(context.appContext) {
             refresher.request(waitForHomeTransition = false)
@@ -433,19 +502,21 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
     }
 
     /**
-     * Refreshes the page catalogue when a drag turns the launcher's temporary
-     * empty page into a real one.
+     * Takes in the page a drag has just turned from temporary into real.
      *
      * This path mutates `mScreenOrder` directly. It does not call
      * `bindAddScreens`, so observing model callbacks alone misses the new page.
+     *
+     * The workspace already shows the page, with the icon on it, so nothing is
+     * rebound. Rebinding here used to race the icon being written down: the
+     * reload read a page with nothing on it yet, and the page and the icon were
+     * both gone from the home screen.
      */
     private fun trackCommittedPages(
         context: FeatureContext,
         workspace: Class<*>,
         toArray: Method,
         focus: FocusHome,
-        model: Field,
-        handler: Handler,
     ) {
         val commit = workspace.declaredMethods.firstOrNull {
             it.name == COMMIT_EMPTY_SCREENS && it.parameterTypes.isEmpty()
@@ -464,15 +535,9 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
                 context.logger.warn("The new home screen page could not be recorded", error)
             }.getOrNull()
 
-            if (all != null) {
-                // The live workspace contains only currently visible pages;
-                // merge its new id instead of erasing hidden Focus pages.
-                FocusPages.include(all)
-                // Finish the drop before asking the model to bind again.
-                handler.post {
-                    if (focus.hasActiveMode() || focus.hasChanged()) rebuild(model, context)
-                }
-            }
+            // The live workspace holds only the pages on show; merging keeps
+            // the hidden Focus pages in the catalogue.
+            if (all != null) focus.adopt(all)
             result
         }
     }
@@ -514,6 +579,11 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         const val BIND_SCREENS = "bindAddScreens"
         const val BIND_ITEMS = "bindItems"
         const val STRIP = "stripEmptyScreens"
+        const val SPACE_FINDER = "com.android.launcher3.model.WorkspaceItemSpaceFinder"
+        const val FIND_SPACE = "findSpaceForItem"
+        const val INT_SET = "com.android.launcher3.util.IntSet"
+        const val ADD = "add"
+        const val EXCLUDED_ARGUMENT = 3
         const val INSERT_SCREEN = "insertNewWorkspaceScreen"
         const val REMOVE_EXTRA_EMPTY_SCREEN_DELAYED = "removeExtraEmptyScreenDelayed"
         const val COMMIT_EMPTY_SCREENS = "commitExtraEmptyScreens"
@@ -592,10 +662,43 @@ internal class FocusHome(
 
     fun isFiltering(): Boolean = filtering
 
-    fun hasActiveMode(): Boolean = shownFor != null
+    /** Whether [screen] is an existing page the home screen now hides; a page made just now is not. */
+    fun hides(screen: Int): Boolean = filtering && screen !in visible && screen in FocusPages.order
 
-    /** Whether one screen is among those the Mode that is on shows. */
-    fun shows(screen: Int): Boolean = screen in visible
+    /** Takes pages the launcher removed off the page list and out of every Mode. */
+    fun forget(removed: List<Int>) {
+        val gone = removed.filter { it >= 0 }.toSet()
+        if (gone.isEmpty()) return
+
+        FocusPages.forget(gone)
+        for ((mode, owned) in store.assignments()) {
+            val left = owned - gone
+            if (left != owned) store.assign(mode, left)
+        }
+        apply(plan(FocusPages.order), FocusPages.order)
+    }
+
+    /** Every page set aside for a Mode, which no new app should be placed on. */
+    fun reservedScreens(): Set<Int> =
+        if (isEnabled()) store.assignments().values.flatten().toSet() else emptySet()
+
+    /**
+     * Takes in pages the person has just made on the home screen in front of them.
+     *
+     * A page made while a Mode's pages are showing belongs to that Mode: it is
+     * where the person was working, and left out of the Mode it would vanish on
+     * the next bind, icon and all. One made on the ordinary home screen is an
+     * ordinary page and needs nothing but a place in the catalogue.
+     */
+    fun adopt(all: List<Int>) {
+        val known = FocusPages.order.toHashSet()
+        val made = all.filter { it >= 0 && it !in known }
+        FocusPages.include(all)
+        if (made.isEmpty()) return
+
+        shownFor?.let { mode -> store.assign(mode, store.assignments()[mode].orEmpty() + made) }
+        apply(plan(FocusPages.order), FocusPages.order)
+    }
 
     /**
      * Whether one bound item survives the filter.
@@ -625,9 +728,6 @@ internal class FocusHome(
         .onFailure { logger.warn("The Mode that is on could not be read", it) }
         .getOrDefault(FocusChange.NONE)
 
-    /** Whether settings, assignments, pages, or active Mode changed the result. */
-    fun hasChanged(): Boolean = change().workspaceChanged
-
     private fun plan(all: List<Int>): FocusState {
         if (!isEnabled()) return FocusState(all, null)
 
@@ -656,9 +756,17 @@ internal class FocusHome(
         active = activeModes ?: read(),
     )
 
-    /** Asks the source what is on now, and remembers it for the planning. */
-    private fun read(): Set<String> =
-        source.modes().filter { it.isActive }.map { it.id }.toSet().also { activeModes = it }
+    /**
+     * Asks the source what is on now, and remembers it for the planning.
+     *
+     * A read that succeeds also gives back the pages of Modes that no longer
+     * exist, so the planning that follows never hides a page for one.
+     */
+    private fun read(): Set<String> {
+        val snapshot = source.snapshot()
+        store.forgetModesMissingFrom(snapshot)
+        return snapshot.modes.filter { it.isActive }.map { it.id }.toSet().also { activeModes = it }
+    }
 
     private companion object {
         /**

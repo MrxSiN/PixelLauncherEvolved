@@ -1,12 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.settings
 
 import android.content.Context
-import android.content.res.ColorStateList
-import android.content.res.Configuration
-import android.graphics.Color
 import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.RippleDrawable
 import android.view.View
 import android.view.ViewGroup
 
@@ -26,10 +21,8 @@ import my.github.MrxSiN.pixellauncherevolved.R
  * draws its own section the new way rather than leaving it looking a version
  * behind the settings app beside it.
  *
- * The fill comes from the platform's own Material palette — the same colours
- * the settings app is drawn from — rather than from a copy kept here, so the
- * section follows the wallpaper and the dark theme without knowing what either
- * of them currently is.
+ * The shape and fill come from [ExpressiveShapes], which the dialogs this
+ * module opens are drawn with too.
  */
 object ExpressiveRowView {
 
@@ -49,13 +42,13 @@ object ExpressiveRowView {
         original(view) ?: remember(view)
         val context = view.context
 
-        view.background = card(context, placement)
+        view.background = ExpressiveShapes.card(context, placement)
         view.minimumHeight = context.dp(ROW_HEIGHT_DP)
         view.setMargins(
             start = context.dp(CARD_INSET_DP),
             end = context.dp(CARD_INSET_DP),
             top = 0,
-            bottom = if (placement.endsTheCard) 0 else context.dp(ROW_GAP_DP),
+            bottom = if (placement.endsTheCard) 0 else context.dp(ExpressiveShapes.ROW_GAP_DP),
         )
     }
 
@@ -66,31 +59,6 @@ object ExpressiveRowView {
         view.minimumHeight = original.minHeight
         view.setMargins(original.start, original.end, original.top, original.bottom)
         view.setTag(R.id.ple_row_original, null)
-    }
-
-    /** One row's filled shape, rounded on the ends of the card it belongs to. */
-    private fun card(context: Context, placement: RowPlacement): Drawable {
-        val large = context.dp(CARD_RADIUS_DP).toFloat()
-        val small = context.dp(ROW_RADIUS_DP).toFloat()
-
-        val top = if (placement.startsTheCard) large else small
-        val bottom = if (placement.endsTheCard) large else small
-        // Clockwise from the top left, as the x and y radius of each corner.
-        val corners = floatArrayOf(top, top, top, top, bottom, bottom, bottom, bottom)
-
-        return RippleDrawable(
-            ColorStateList.valueOf(context.systemColor(ON_SURFACE).withAlpha(RIPPLE_ALPHA)),
-            shape(context.systemColor(CARD_FILL), corners),
-            // A mask with the row's own corners keeps a press inside the shape
-            // rather than letting it square off the rounded end.
-            shape(Color.WHITE, corners),
-        )
-    }
-
-    private fun shape(color: Int, corners: FloatArray): Drawable = GradientDrawable().apply {
-        shape = GradientDrawable.RECTANGLE
-        setColor(color)
-        cornerRadii = corners
     }
 
     /**
@@ -131,62 +99,15 @@ object ExpressiveRowView {
         layoutParams = margins
     }
 
-    /**
-     * A colour of the platform's Material palette, in the theme now in force.
-     *
-     * The palette is published as two sets of resources rather than as one that
-     * follows the night setting, so the set is chosen here. These are framework
-     * resources, so they read the same in the launcher's process as anywhere
-     * else, and they already carry the wallpaper's colours.
-     */
-    private fun Context.systemColor(colors: SystemColor): Int {
-        val night = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
-            Configuration.UI_MODE_NIGHT_YES
-
-        return resources.getColor(if (night) colors.dark else colors.light, theme)
-    }
-
-    private fun Int.withAlpha(alpha: Int): Int = (this and 0x00FFFFFF) or (alpha shl 24)
-
     private fun Context.dp(value: Float): Int = (value * resources.displayMetrics.density).toInt()
-
-    private val RowPlacement.startsTheCard: Boolean
-        get() = this == RowPlacement.TOP || this == RowPlacement.SINGLE
 
     private val RowPlacement.endsTheCard: Boolean
         get() = this == RowPlacement.BOTTOM || this == RowPlacement.SINGLE
 
-    /** Android 17 settings: wide rows, tight gaps, and one rounded card. */
+    /** Android 17 settings: wide rows inset from the screen edge. */
     private const val CARD_INSET_DP = 16f
-    private const val CARD_RADIUS_DP = 24f
-    private const val ROW_RADIUS_DP = 8f
-    private const val ROW_GAP_DP = 2f
     private const val ROW_HEIGHT_DP = 72f
-
-    private const val RIPPLE_ALPHA = 0x1F
-
-    /**
-     * The fill a card is drawn with.
-     *
-     * The bright surface, which is the one the settings app fills its own cards
-     * with: read off a card in Display & touch on a Pixel running Android 17,
-     * it is `#2F2B27`, and so is this role in that device's palette. The
-     * container roles are all darker — the plain container is the colour that
-     * settings screen uses for its background — and against the launcher's
-     * ground they leave a card barely distinguishable from the screen.
-     */
-    private val CARD_FILL = SystemColor(
-        light = android.R.color.system_surface_bright_light,
-        dark = android.R.color.system_surface_bright_dark,
-    )
-    private val ON_SURFACE = SystemColor(
-        light = android.R.color.system_on_surface_light,
-        dark = android.R.color.system_on_surface_dark,
-    )
 }
-
-/** One Material colour role, in its light and its dark form. */
-private class SystemColor(val light: Int, val dark: Int)
 
 /** How a row was drawn before this module restyled it. */
 private class OriginalRow(

@@ -5,6 +5,7 @@ import android.view.ViewConfiguration
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 import my.github.MrxSiN.pixellauncherevolved.lock.ScreenLock
@@ -37,6 +38,8 @@ import my.github.MrxSiN.pixellauncherevolved.lock.ScreenLock
  * [ScreenLock] — so the module app sends the power-key event through root.
  */
 class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP) {
+
+    override val compatibility = CompatibilityFeature.DOUBLE_TAP_TO_SLEEP
 
     override fun install(context: FeatureContext) {
         val listener = context.findClass("com.android.launcher3.touch.WorkspaceTouchListener")

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.view.View
 
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
@@ -33,6 +34,8 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
  * launcher's own answer exactly as it was.
  */
 class WebSearchAppFeature : LauncherFeature {
+
+    override val compatibility = CompatibilityFeature.APP_DRAWER_SEARCH
 
     override val id: String = "app_drawer_search_web_app"
 

@@ -11,6 +11,7 @@ import java.util.WeakHashMap
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 
@@ -38,6 +39,8 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * row on screen.
  */
 class TaskbarAllAppsButtonFeature : ToggleFeature(Settings.OVERVIEW_HIDE_TASKBAR_ALL_APPS) {
+
+    override val compatibility = CompatibilityFeature.TASKBAR_APP_DRAWER_BUTTON
 
     /** Visibility each view had before this feature first hid it. */
     private val originalVisibility = WeakHashMap<View, Int>()

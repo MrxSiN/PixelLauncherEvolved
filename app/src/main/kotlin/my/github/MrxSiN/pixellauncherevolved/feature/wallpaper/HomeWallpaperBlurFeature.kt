@@ -2,6 +2,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.wallpaper
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 import my.github.MrxSiN.pixellauncherevolved.wallpaper.HomeBlurDepth
@@ -23,6 +24,8 @@ import my.github.MrxSiN.pixellauncherevolved.wallpaper.HomeBlurDepth
  * Home settings is the activity a person leaves to get here.
  */
 class HomeWallpaperBlurFeature : ToggleFeature(Settings.HOME_BLUR_WALLPAPER) {
+
+    override val compatibility = CompatibilityFeature.BLUR_WALLPAPER
 
     override fun install(context: FeatureContext) {
         val depth = LauncherDepth.of(context) ?: run {

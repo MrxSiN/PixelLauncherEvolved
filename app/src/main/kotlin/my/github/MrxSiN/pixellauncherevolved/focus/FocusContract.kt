@@ -43,4 +43,6 @@ object FocusContract {
     const val COLUMN_NAME: String = "name"
     const val COLUMN_ACTIVE: String = "active"
     const val COLUMN_GRANTED: String = "granted"
+    const val COLUMN_ICON: String = "icon"
+    const val COLUMN_ENABLED: String = "enabled"
 }

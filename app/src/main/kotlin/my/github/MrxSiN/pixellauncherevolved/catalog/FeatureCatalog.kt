@@ -5,11 +5,15 @@ import androidx.annotation.StringRes
 import my.github.MrxSiN.pixellauncherevolved.R
 
 /**
- * The single description of every tweak this module offers.
+ * The single description of every switch this module offers.
  *
- * The settings section renders from this list and the hooks read the same
- * [Setting] objects, so a tweak is described once and cannot drift between the
- * two sides. The order here is the order a person reads on screen.
+ * The settings pages place these entries and the hooks read the same [Setting]
+ * objects, so a tweak is described once and cannot drift between the two sides.
+ * Where on screen an entry appears is not decided here: that belongs to the
+ * settings pages, which lay out rows that are not switches as well.
+ *
+ * The layout choices are not here either. They are one question with several
+ * answers rather than a switch each, and [LayoutMode] describes them.
  */
 object FeatureCatalog {
 
@@ -21,163 +25,116 @@ object FeatureCatalog {
      */
     const val SETTINGS_GROUP: String = "settings"
 
+    val HOME_BLUR_WALLPAPER = CatalogEntry(
+        setting = Settings.HOME_BLUR_WALLPAPER,
+        titleRes = R.string.feature_home_blur_wallpaper_title,
+        summaryRes = R.string.feature_home_blur_wallpaper_summary,
+    )
+    val FOCUS_HOME_SCREENS = CatalogEntry(
+        setting = Settings.FOCUS_HOME_SCREENS,
+        titleRes = R.string.feature_focus_home_screens_title,
+        summaryRes = R.string.feature_focus_home_screens_summary,
+    )
+    val DOUBLE_TAP_TO_SLEEP = CatalogEntry(
+        setting = Settings.HOME_DOUBLE_TAP_TO_SLEEP,
+        titleRes = R.string.feature_home_double_tap_to_sleep_title,
+        summaryRes = R.string.feature_home_double_tap_to_sleep_summary,
+    )
+    val SEARCH_OPENS_DRAWER = CatalogEntry(
+        setting = Settings.HOME_SEARCH_OPENS_DRAWER,
+        titleRes = R.string.feature_home_search_opens_drawer_title,
+        summaryRes = R.string.feature_home_search_opens_drawer_summary,
+    )
+    val WEB_SEARCH = CatalogEntry(
+        setting = Settings.APP_DRAWER_SEARCH_HIDE_WEB,
+        titleRes = R.string.feature_app_drawer_search_web_title,
+        summaryRes = R.string.feature_app_drawer_search_web_summary,
+        isInverted = true,
+    )
+    val PLAY_STORE = CatalogEntry(
+        setting = Settings.APP_DRAWER_SEARCH_HIDE_PLAY_STORE,
+        titleRes = R.string.feature_app_drawer_search_play_store_title,
+        summaryRes = R.string.feature_app_drawer_search_play_store_summary,
+        isInverted = true,
+    )
+    val SEARCH_IN_APPS = CatalogEntry(
+        setting = Settings.APP_DRAWER_SEARCH_HIDE_SEARCH_IN_APPS,
+        titleRes = R.string.feature_app_drawer_search_in_apps_title,
+        summaryRes = R.string.feature_app_drawer_search_in_apps_summary,
+        isInverted = true,
+    )
+    val BUBBLE = CatalogEntry(
+        setting = Settings.OVERVIEW_BUBBLE_BUTTON,
+        titleRes = R.string.feature_overview_bubble_title,
+        summaryRes = R.string.feature_overview_bubble_summary,
+    )
+    val SPLIT_SCREEN = CatalogEntry(
+        setting = Settings.OVERVIEW_SPLIT_BUTTON,
+        titleRes = R.string.feature_overview_split_title,
+        summaryRes = R.string.feature_overview_split_summary,
+    )
+    val CLEAR_ALL = CatalogEntry(
+        setting = Settings.OVERVIEW_CLEAR_ALL_IN_ACTIONS,
+        titleRes = R.string.feature_overview_clear_all_title,
+        summaryRes = R.string.feature_overview_clear_all_summary,
+    )
+    val SCREENSHOT = CatalogEntry(
+        setting = Settings.OVERVIEW_HIDE_SCREENSHOT,
+        titleRes = R.string.feature_overview_screenshot_title,
+        summaryRes = R.string.feature_overview_screenshot_summary,
+        isInverted = true,
+    )
+    val SELECT = CatalogEntry(
+        setting = Settings.OVERVIEW_HIDE_SELECT,
+        titleRes = R.string.feature_overview_select_title,
+        summaryRes = R.string.feature_overview_select_summary,
+        isInverted = true,
+    )
+    val TASKBAR_APP_DRAWER_BUTTON = CatalogEntry(
+        setting = Settings.OVERVIEW_HIDE_TASKBAR_ALL_APPS,
+        titleRes = R.string.feature_taskbar_app_drawer_button_title,
+        summaryRes = R.string.feature_taskbar_app_drawer_button_summary,
+        isInverted = true,
+    )
+
     val entries: List<CatalogEntry> = listOf(
-        CatalogEntry(
-            setting = Settings.HOME_BLUR_WALLPAPER,
-            titleRes = R.string.feature_home_blur_wallpaper_title,
-            summaryRes = R.string.feature_home_blur_wallpaper_summary,
-            page = CatalogPage.HOME_SCREEN,
-        ),
-        CatalogEntry(
-            setting = Settings.HOME_DOUBLE_TAP_TO_SLEEP,
-            titleRes = R.string.feature_home_double_tap_to_sleep_title,
-            summaryRes = R.string.feature_home_double_tap_to_sleep_summary,
-            page = CatalogPage.HOME_SCREEN,
-        ),
-        CatalogEntry(
-            setting = Settings.HOME_SEARCH_OPENS_DRAWER,
-            titleRes = R.string.feature_home_search_opens_drawer_title,
-            summaryRes = R.string.feature_home_search_opens_drawer_summary,
-            page = CatalogPage.HOME_SCREEN,
-        ),
-        CatalogEntry(
-            setting = Settings.FOCUS_HOME_SCREENS,
-            titleRes = R.string.feature_focus_home_screens_title,
-            summaryRes = R.string.feature_focus_home_screens_summary,
-            page = CatalogPage.HOME_SCREEN,
-        ),
-        CatalogEntry(
-            setting = Settings.APP_DRAWER_SEARCH_HIDE_WEB,
-            titleRes = R.string.feature_app_drawer_search_hide_web_title,
-            summaryRes = R.string.feature_app_drawer_search_hide_web_summary,
-            page = CatalogPage.APP_DRAWER,
-        ),
-        CatalogEntry(
-            setting = Settings.APP_DRAWER_SEARCH_HIDE_PLAY_STORE,
-            titleRes = R.string.feature_app_drawer_search_hide_play_store_title,
-            summaryRes = R.string.feature_app_drawer_search_hide_play_store_summary,
-            page = CatalogPage.APP_DRAWER,
-        ),
-        CatalogEntry(
-            setting = Settings.APP_DRAWER_SEARCH_HIDE_SEARCH_IN_APPS,
-            titleRes = R.string.feature_app_drawer_search_hide_search_in_apps_title,
-            summaryRes = R.string.feature_app_drawer_search_hide_search_in_apps_summary,
-            page = CatalogPage.APP_DRAWER,
-        ),
-        CatalogEntry(
-            setting = Settings.OVERVIEW_BUBBLE_BUTTON,
-            titleRes = R.string.feature_overview_bubble_title,
-            summaryRes = R.string.feature_overview_bubble_summary,
-            page = CatalogPage.OVERVIEW,
-        ),
-        CatalogEntry(
-            setting = Settings.OVERVIEW_SPLIT_BUTTON,
-            titleRes = R.string.feature_overview_split_title,
-            summaryRes = R.string.feature_overview_split_summary,
-            page = CatalogPage.OVERVIEW,
-        ),
-        CatalogEntry(
-            setting = Settings.OVERVIEW_CLEAR_ALL_IN_ACTIONS,
-            titleRes = R.string.feature_overview_clear_all_in_actions_title,
-            summaryRes = R.string.feature_overview_clear_all_in_actions_summary,
-            page = CatalogPage.OVERVIEW,
-        ),
-        CatalogEntry(
-            setting = Settings.OVERVIEW_HIDE_SCREENSHOT,
-            titleRes = R.string.feature_overview_hide_screenshot_title,
-            summaryRes = R.string.feature_overview_hide_screenshot_summary,
-            page = CatalogPage.OVERVIEW,
-        ),
-        CatalogEntry(
-            setting = Settings.OVERVIEW_HIDE_SELECT,
-            titleRes = R.string.feature_overview_hide_select_title,
-            summaryRes = R.string.feature_overview_hide_select_summary,
-            page = CatalogPage.OVERVIEW,
-        ),
-        CatalogEntry(
-            setting = Settings.TABLET_MODE,
-            titleRes = R.string.feature_tablet_mode_title,
-            summaryRes = R.string.feature_tablet_mode_summary,
-            page = CatalogPage.TABLET_LAYOUT,
-        ),
-        CatalogEntry(
-            setting = Settings.TASKBAR_ONLY,
-            titleRes = R.string.feature_taskbar_only_title,
-            summaryRes = R.string.feature_taskbar_only_summary,
-            page = CatalogPage.TABLET_LAYOUT,
-        ),
-        CatalogEntry(
-            setting = Settings.OVERVIEW_ONLY,
-            titleRes = R.string.feature_overview_only_title,
-            summaryRes = R.string.feature_overview_only_summary,
-            page = CatalogPage.TABLET_LAYOUT,
-        ),
-        CatalogEntry(
-            setting = Settings.OVERVIEW_HIDE_TASKBAR_ALL_APPS,
-            titleRes = R.string.feature_overview_hide_taskbar_all_apps_title,
-            summaryRes = R.string.feature_overview_hide_taskbar_all_apps_summary,
-            page = CatalogPage.TABLET_LAYOUT,
-        ),
+        HOME_BLUR_WALLPAPER,
+        FOCUS_HOME_SCREENS,
+        DOUBLE_TAP_TO_SLEEP,
+        SEARCH_OPENS_DRAWER,
+        WEB_SEARCH,
+        PLAY_STORE,
+        SEARCH_IN_APPS,
+        BUBBLE,
+        SPLIT_SCREEN,
+        CLEAR_ALL,
+        SCREENSHOT,
+        SELECT,
+        TASKBAR_APP_DRAWER_BUTTON,
     )
 
-    /**
-     * The layout choices that are three answers to one question.
-     *
-     * Each says how much of the tablet layout the launcher should adopt, so at
-     * most one of them can be on. The settings section settles that from this
-     * list rather than from a rule of its own, which is what lets a fourth
-     * answer be added here and nowhere else.
-     */
-    val layoutModes: List<BoolSetting> = listOf(
-        Settings.TABLET_MODE,
-        Settings.TASKBAR_ONLY,
-        Settings.OVERVIEW_ONLY,
-    )
-
-    fun entriesIn(page: CatalogPage): List<CatalogEntry> = entries.filter { it.page == page }
-
-    /** The layout choices switching [setting] on has to switch off, or none. */
-    fun layoutModesExcludedBy(setting: BoolSetting): List<BoolSetting> =
-        if (setting in layoutModes) layoutModes.filterNot { it == setting } else emptyList()
+    /** Every on/off setting there is, the switches and the layout choices alike. */
+    val switches: List<BoolSetting> = entries.map(CatalogEntry::setting) + LayoutMode.settings
 }
 
-/** A tweak as the settings section shows it. */
-data class CatalogEntry(
-    val setting: Setting<*>,
-    @param:StringRes val titleRes: Int,
-    @param:StringRes val summaryRes: Int,
-    val page: CatalogPage,
-)
-
 /**
- * One page of the section, and the line under its title.
+ * A switch as the settings pages show it.
  *
- * The summary says what the page holds, so the four rows read as a menu rather
- * than as four words.
+ * @property isInverted true when the switch reads on while the stored setting
+ * is off. The stored settings say what to hide, because hiding is what the
+ * hooks do and a stored key cannot be renamed without resetting it; the row says
+ * what is shown, because that is what a person is choosing.
  */
-enum class CatalogPage(
-    val key: String,
+data class CatalogEntry(
+    val setting: BoolSetting,
     @param:StringRes val titleRes: Int,
     @param:StringRes val summaryRes: Int,
+    val isInverted: Boolean = false,
 ) {
-    HOME_SCREEN(
-        "home_screen",
-        R.string.settings_page_home_screen,
-        R.string.settings_page_home_screen_summary,
-    ),
-    APP_DRAWER(
-        "app_drawer",
-        R.string.settings_page_app_drawer,
-        R.string.settings_page_app_drawer_summary,
-    ),
-    OVERVIEW(
-        "overview",
-        R.string.settings_page_overview,
-        R.string.settings_page_overview_summary,
-    ),
-    TABLET_LAYOUT(
-        "tablet_layout",
-        R.string.settings_page_tablet_layout,
-        R.string.settings_page_tablet_layout_summary,
-    ),
+
+    /** Whether the switch reads on, for a stored value. */
+    fun shown(stored: Boolean): Boolean = stored != isInverted
+
+    /** The value to store, for a switch that reads [shown]. */
+    fun stored(shown: Boolean): Boolean = shown != isInverted
 }

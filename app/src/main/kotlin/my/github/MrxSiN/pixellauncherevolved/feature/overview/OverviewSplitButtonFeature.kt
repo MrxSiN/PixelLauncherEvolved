@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.overview
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.card.TaskCardButtonDecorator
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.card.TaskCardButtonFactory
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.card.TaskCardCorner
@@ -24,6 +25,8 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * brings this one back across on the next frame.
  */
 class OverviewSplitButtonFeature : ToggleFeature(Settings.OVERVIEW_SPLIT_BUTTON) {
+
+    override val compatibility = CompatibilityFeature.SPLIT_SCREEN
 
     override fun install(context: FeatureContext) {
         val taskView = context.findClass(TASK_VIEW_CLASS)

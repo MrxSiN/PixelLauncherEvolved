@@ -40,6 +40,18 @@ object FocusPages {
         return order
     }
 
+    /** Follows pages given new ids; the launcher shows pages in ascending id. */
+    @Synchronized
+    fun renumber(mapping: Map<Int, Int>) {
+        order = order.map { mapping[it] ?: it }.sorted()
+    }
+
+    /** Drops pages the launcher has removed. */
+    @Synchronized
+    fun forget(screens: Set<Int>) {
+        order = order.filterNot(screens::contains)
+    }
+
     /** The screen id shown as page [number], counting from one. */
     fun screenAt(number: Int): Int? = order.getOrNull(number - 1)
 

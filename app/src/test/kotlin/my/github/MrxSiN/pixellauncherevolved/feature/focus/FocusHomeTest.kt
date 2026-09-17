@@ -5,6 +5,7 @@ import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
+import my.github.MrxSiN.pixellauncherevolved.focus.renumber
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -23,6 +24,9 @@ class FocusHomeTest {
         FocusPages.remember(emptyList())
         store = FakeStore()
         source = FakeSource()
+        // Bedtime exists and is off unless a test says otherwise; a Mode the
+        // source does not report is a deleted one, and loses its pages.
+        source.current = listOf(FocusMode("bedtime", "Bedtime", false))
         enabled = true
     }
 
@@ -72,12 +76,12 @@ class FocusHomeTest {
     fun assignmentChangeInvalidatesCurrentHome() {
         val focus = focus()
         assertEquals(listOf(0, 5), focus.screens(listOf(0, 5)))
-        assertFalse(focus.hasChanged())
+        assertFalse(focus.change().workspaceChanged)
 
         store.assign("bedtime", setOf(5))
 
         assertEquals(FocusChange(workspaceChanged = true, modeChanged = false), focus.change())
-        assertTrue(focus.hasChanged())
+        assertTrue(focus.change().workspaceChanged)
     }
 
     @Test
@@ -89,7 +93,7 @@ class FocusHomeTest {
 
         enabled = true
 
-        assertTrue(focus.hasChanged())
+        assertTrue(focus.change().workspaceChanged)
     }
 
     @Test
@@ -101,7 +105,7 @@ class FocusHomeTest {
         source.current = listOf(FocusMode("bedtime", "Bedtime", true))
 
         assertEquals(FocusChange(workspaceChanged = true, modeChanged = true), focus.change())
-        assertTrue(focus.hasChanged())
+        assertTrue(focus.change().workspaceChanged)
         assertEquals(listOf(5), focus.screens(listOf(0, 5)))
     }
 
@@ -112,7 +116,7 @@ class FocusHomeTest {
         val focus = focus()
         assertEquals(listOf(5), focus.screens(listOf(0, 5)))
 
-        source.current = emptyList()
+        source.current = listOf(FocusMode("bedtime", "Bedtime", false))
 
         assertEquals(FocusChange(workspaceChanged = true, modeChanged = true), focus.change())
     }
@@ -144,6 +148,133 @@ class FocusHomeTest {
 
         assertEquals(listOf(5), focus.screens(listOf(0, 5)))
         assertEquals(1, source.reads)
+    }
+
+    /** A drag past the last page makes an id no Mode lists yet; it is not a hidden page. */
+    @Test
+    fun aPageMadeJustNowIsNotHidden() {
+        store.assign("bedtime", setOf(5))
+        val focus = focus()
+        focus.screens(listOf(0, 5))
+
+        assertTrue(focus.hides(5))
+        assertFalse(focus.hides(0))
+        assertFalse(focus.hides(6))
+    }
+
+    @Test
+    fun aPageMadeOnTheOrdinaryHomeScreenStaysOrdinary() {
+        store.assign("bedtime", setOf(5))
+        val focus = focus()
+        focus.screens(listOf(0, 5))
+
+        focus.adopt(listOf(0, 6))
+
+        assertEquals(listOf(0, 5, 6), FocusPages.order)
+        assertEquals(setOf(5), store.assignments().getValue("bedtime"))
+        assertFalse(focus.hides(6))
+    }
+
+    @Test
+    fun aPageMadeWhileAModeIsShowingBelongsToThatMode() {
+        store.assign("bedtime", setOf(5))
+        source.current = listOf(FocusMode("bedtime", "Bedtime", true))
+        val focus = focus()
+        focus.screens(listOf(0, 5))
+
+        focus.adopt(listOf(5, 6))
+
+        assertEquals(setOf(5, 6), store.assignments().getValue("bedtime"))
+        assertFalse(focus.hides(6))
+        assertTrue(focus.hides(0))
+    }
+
+    @Test
+    fun newAppsKeepOffEveryModesPagesOnlyWhileTheFeatureIsOn() {
+        store.assign("bedtime", setOf(5))
+        store.assign("driving", setOf(1, 2))
+        val focus = focus()
+
+        assertEquals(setOf(1, 2, 5), focus.reservedScreens())
+        enabled = false
+        assertTrue(focus.reservedScreens().isEmpty())
+    }
+
+    @Test
+    fun aRemovedPageLeavesThePageListAndEveryMode() {
+        store.assign("bedtime", setOf(5, 6))
+        source.current = listOf(FocusMode("bedtime", "Bedtime", true))
+        val focus = focus()
+        focus.screens(listOf(0, 5, 6))
+
+        focus.forget(listOf(6, -201))
+
+        assertEquals(listOf(0, 5), FocusPages.order)
+        assertEquals(setOf(5), store.assignments().getValue("bedtime"))
+    }
+
+    @Test
+    fun renumberedPagesStayWithTheirModesAndKeepTheModeOrder() {
+        store.assign("driving", setOf(5))
+        store.assign("bedtime", setOf(1, 2))
+        val order = store.priority()
+
+        store.renumber(mapOf(5 to 1, 1 to 2, 2 to 5))
+
+        assertEquals(setOf(1), store.assignments().getValue("driving"))
+        assertEquals(setOf(2, 5), store.assignments().getValue("bedtime"))
+        assertEquals(order, store.priority())
+    }
+
+    /** A Mode deleted in Settings gives its pages back to the ordinary home screen. */
+    @Test
+    fun aDeletedModesPagesComeBack() {
+        store.assign("old-work", setOf(2))
+        store.assign("driving", setOf(1))
+        source.current = listOf(FocusMode("driving", "Driving", false))
+        val focus = focus()
+
+        focus.change()
+
+        assertEquals(mapOf("driving" to setOf(1)), store.assignments())
+        assertEquals(listOf("driving"), store.priority())
+        assertEquals(listOf(0, 2), focus.screens(listOf(0, 1, 2)))
+    }
+
+    /** A Mode deleted after its pages were given back still leaves the Mode order. */
+    @Test
+    fun aDeletedModeWithNoPagesLeavesTheOrder() {
+        store.assign("driving", setOf(1))
+        store.reorder(listOf("old-work", "driving"))
+        source.current = listOf(FocusMode("driving", "Driving", false))
+
+        focus().change()
+
+        assertEquals(listOf("driving"), store.priority())
+    }
+
+    /** A Mode switched off still exists, so its pages stay set aside for it. */
+    @Test
+    fun aModeSwitchedOffKeepsItsPages() {
+        store.assign("work", setOf(2))
+        source.current = listOf(FocusMode("work", "Work", isActive = false, isEnabled = false))
+        val focus = focus()
+
+        focus.change()
+
+        assertEquals(setOf(2), store.assignments().getValue("work"))
+    }
+
+    /** A read that fails looks like no Modes at all, and must not give anything back. */
+    @Test
+    fun anUnreadableSourceForgetsNothing() {
+        store.assign("work", setOf(2))
+        source.readable = false
+        val focus = focus()
+
+        focus.change()
+
+        assertEquals(setOf(2), store.assignments().getValue("work"))
     }
 
     private fun focus() = FocusHome(
@@ -182,7 +313,9 @@ private class FakeSource : FocusSource {
         return current
     }
 
-    override fun isReadable(): Boolean = true
+    var readable = true
+
+    override fun isReadable(): Boolean = readable
 }
 
 private object SilentLogger : Logger {

@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.hook
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
 
 /**
@@ -27,6 +28,13 @@ interface LauncherFeature {
      * say — cannot work that way and is installed only when enabled.
      */
     val isLive: Boolean get() = true
+
+    /**
+     * The launcher members this feature stands on, or null for one that checks
+     * its own. A feature whose members this launcher build lacks is not
+     * installed at all, and settings says so beside its switch.
+     */
+    val compatibility: CompatibilityFeature? get() = null
 
     fun isEnabled(settings: SettingsSource): Boolean
 

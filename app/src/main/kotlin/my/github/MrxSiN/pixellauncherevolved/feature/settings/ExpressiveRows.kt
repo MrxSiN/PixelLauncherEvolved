@@ -80,8 +80,10 @@ class ExpressiveRowPlacements(
     fun placementOf(row: Any): RowPlacement? {
         if (!api.hasRowPlacement || api.isCategory(row)) return null
 
+        // A row sits on the page itself or under a heading on it.
         val parent = api.parentOf(row) ?: return null
-        if (api.keyOf(parent)?.startsWith(pageKeyPrefix) != true) return null
+        val page = if (api.isCategory(parent)) api.parentOf(parent) else parent
+        if (page == null || api.keyOf(page)?.startsWith(pageKeyPrefix) != true) return null
 
         val siblings = api.childrenOf(parent).filter { api.isVisible(it) }
         val run = ExpressiveGrouping.runs(siblings, api::isCategory)

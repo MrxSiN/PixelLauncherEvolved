@@ -24,7 +24,7 @@ moved, and each is noted again where it appears.
 | `com.android.launcher3.DeviceProfile$Builder` | `com.android.launcher3.deviceprofile.DeviceProfileBuilder`, still with `build()` |
 | `TaskbarConfiguration(boolean)` | no constructor at all: the shrinker inlined it into `DeviceProperties$Factory.createDeviceProperties`, which writes `isTaskbarPresent` directly |
 | `LauncherTaskbarUIController.onLauncherVisibilityChanged(boolean)` | `(boolean isVisible, boolean visibleBehindDesktop, boolean skipAnimation)`, beside a no-argument overload and one returning an `Animator` |
-| `Snackbar.getDismissTimeout(ActivityContext)` | gone, replaced by a `Snackbar$SnackbarDismissTimer`. one entry in the phone-surface list, which reports and skips a surface it cannot find |
+| `Snackbar.getDismissTimeout(ActivityContext)` | gone: inlined into `Snackbar.show(ActivityContext, CharSequence, int, Runnable, Runnable)`, which reads `isLargeScreen` itself to pick the timeout it hands `AccessibilityManager.getRecommendedTimeoutMillis`. `Snackbar$SnackbarDismissTimer` is only the test override. The phone-surface list wraps `show` instead |
 | `ModelCallbacks.bindCompleteModelAsync(MutableWorkspaceData, boolean)` builds the workspace | still declared and still called, but its body is `return-void`: the workspace is built by `bindModelWithAsyncInflation(MutableWorkspaceData, boolean, String)`, reached from `Launcher.onCreate`, a configuration change and the repository's `FullRefresh` event |
 | `OverviewActionsView.updateForGroupedTask(boolean)` is the last word on the Select button | `NexusOverviewActionsView` shows or hides Select again from a shrinker-named no-argument method each task overlay's `initOverlay` calls, after the recompute |
 | The taskbar window's views belong to the main thread | they belong to `Executors.TASKBAR_UI_THREAD`, a `LooperExecutor` whose `handler` runs its own looper; stating visibility or stash state from the main thread starts animations there and throws `CalledFromWrongThreadException` |
@@ -1078,7 +1078,7 @@ com.android.launcher3.states.RotationHelper.onDeviceProfileChanged(DeviceProfile
 com.android.launcher3.touch.AbstractStateChangeTouchController.onDragEnd(float)
 com.android.launcher3.uioverrides.QuickstepLauncher.getSupportedShortcuts(ItemInfo)
 com.android.launcher3.views.AbstractSlideInView.onDragEnd(float)
-com.android.launcher3.views.Snackbar.getDismissTimeout(ActivityContext)
+com.android.launcher3.views.Snackbar.show(ActivityContext, CharSequence, int, Runnable, Runnable)   // CP3A; getDismissTimeout(ActivityContext) on CP2A
 com.android.launcher3.widget.LauncherAppWidgetProviderInfo.initSpans(Context, InvariantDeviceProfile)
 ```
 

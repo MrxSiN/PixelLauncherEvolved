@@ -54,9 +54,29 @@ adb shell input keyevent KEYCODE_HOME
 adb logcat -d -s PixelLauncherEvolved
 ```
 
-Every enabled feature must report `Installed <id>`. Then open the settings app
-and confirm the status card reads **Module active**: that exercises the service
-bridge, which R8 could otherwise break silently.
+Every enabled feature must report `Installed <id>`. Then open Home settings and
+confirm the Pixel Launcher Evolved section is there: it is drawn through
+reflection, which R8 could otherwise break silently.
+
+Then check the launcher that starts at boot, before the first unlock. Reboot,
+leave the phone locked, and run the same `logcat` line with the launcher's pid
+(`adb logcat -d --pid=$(adb shell pidof com.google.android.apps.nexuslauncher)`).
+Logs from boot roll over quickly, so restarting the launcher while still locked
+reproduces the same start if they are gone.
+
+## Release notes
+
+`RELEASE_NOTES.md` is the body of the GitHub Release, so it only ever describes
+the version being tagged. Keep it short and in this shape:
+
+- `# Pixel Launcher Evolved v<version>`, then one paragraph: which alpha, and the
+  device, Android build and framework it was tested on.
+- `### What's in it` for a release that adds features, or `### Fixed` and
+  `### Changed`: one bullet each, `**Name**: what a person notices.`
+- `### Install`: the four numbered steps.
+- `### Notes`: framework requirement, upgrade caveats, known issues.
+
+The reasoning behind a change belongs in `CHANGELOG.md` and the commit, not here.
 
 ## Local checks
 

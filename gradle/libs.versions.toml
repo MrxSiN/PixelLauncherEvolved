@@ -9,5 +9,7 @@ agp-app = { id = "com.android.application", version.ref = "agp" }
 [libraries]
 libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "libxposed" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+# android.jar only stubs org.json, so unit tests of the backup format need the real one.
+org-json = { group = "org.json", name = "json", version = "20250517" }
 
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.19.0" }

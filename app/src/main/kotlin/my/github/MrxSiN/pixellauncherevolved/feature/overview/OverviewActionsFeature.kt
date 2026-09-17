@@ -8,6 +8,7 @@ import java.util.Collections
 import java.util.WeakHashMap
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
@@ -36,6 +37,8 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
  * Buttons are matched by resource id, which stays stable across translations.
  */
 class OverviewActionsFeature : LauncherFeature {
+
+    override val compatibility = CompatibilityFeature.OVERVIEW_ACTIONS
 
     /** One button, as it can be recognised in the row. */
     private data class ActionButton(val idName: String)

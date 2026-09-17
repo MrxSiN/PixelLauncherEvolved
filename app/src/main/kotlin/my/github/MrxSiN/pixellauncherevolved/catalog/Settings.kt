@@ -14,8 +14,8 @@ object Settings {
 
     /**
      * Lays Recents out as the grid a tablet shows, while the workspace keeps
-     * its phone grid and no taskbar appears. One of the three layout choices in
-     * [my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog.layoutModes].
+     * its phone grid and no taskbar appears. One of the answers in
+     * [my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode].
      */
     val OVERVIEW_ONLY = BoolSetting("overview_only", default = false)
 

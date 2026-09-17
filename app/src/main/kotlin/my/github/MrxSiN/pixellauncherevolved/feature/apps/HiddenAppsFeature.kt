@@ -5,6 +5,7 @@ import android.view.View
 import java.util.function.Predicate
 
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
@@ -30,6 +31,8 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
  * on the home screen or in the hotseat stays where it was put.
  */
 class HiddenAppsFeature : LauncherFeature {
+
+    override val compatibility = CompatibilityFeature.HIDDEN_APPS
 
     override val id: String = "app_drawer_hidden_apps"
 

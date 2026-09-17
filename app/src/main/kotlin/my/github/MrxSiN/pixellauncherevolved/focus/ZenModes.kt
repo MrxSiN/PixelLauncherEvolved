@@ -24,10 +24,12 @@ class ZenModes(private val shell: CommandRunner = RootShell()) {
     fun isGranted(): Boolean = snapshot().isReadable
 
     /**
-     * Every Mode, each saying whether it is on now.
+     * Every Mode that exists, each saying whether it is on now and whether it
+     * is switched on in Settings at all.
      *
-     * A Mode switched off in Settings is left out: it cannot come on, so
-     * offering to give it a page would be offering a page that never shows.
+     * A Mode switched off is still reported. It cannot come on, so it is not
+     * offered pages, but it has not gone either: leaving it out made it look
+     * deleted, and a deleted Mode's pages are given back.
      */
     fun modes(): List<FocusMode> {
         return snapshot().modes
@@ -59,7 +61,7 @@ class ZenModes(private val shell: CommandRunner = RootShell()) {
     private fun parse(block: String): FocusMode? {
         val id = ID.find(block)?.groupValues?.get(1) ?: return null
         val name = NAME.find(block)?.groupValues?.get(1)?.trim() ?: return null
-        if (ENABLED.find(block)?.groupValues?.get(1) != "TRUE") return null
+        val isEnabled = ENABLED.find(block)?.groupValues?.get(1) == "TRUE"
 
         // A manual choice overrides the rule owner's condition. Android keeps
         // the underlying state unchanged, so the override must win explicitly.
@@ -67,15 +69,27 @@ class ZenModes(private val shell: CommandRunner = RootShell()) {
             "OVERRIDE_ACTIVATE" -> true
             "OVERRIDE_DEACTIVATE" -> false
             else -> STATE.find(block)?.groupValues?.get(1) in ACTIVE_STATES
-        }
+        } && isEnabled
 
         // The manual rule is Do Not Disturb turned on by hand. It carries no
-        // name of its own, so it is given the one Settings shows for it.
+        // name or icon of its own, so it is given the ones Settings shows for it.
         return if (id == MANUAL_ID) {
-            FocusMode(id = id, name = MANUAL_NAME, isActive = isActive)
+            FocusMode(id = id, name = MANUAL_NAME, isActive = isActive, icon = MANUAL_ICON, isEnabled = isEnabled)
         } else {
-            FocusMode(id = id, name = name, isActive = isActive)
+            FocusMode(id = id, name = name, isActive = isActive, icon = icon(block), isEnabled = isEnabled)
         }
+    }
+
+    /**
+     * The icon Settings draws beside a Mode.
+     *
+     * A Mode someone picked an icon for names it. One that did not is drawn
+     * from its type, with the framework's own drawable for that type.
+     */
+    private fun icon(block: String): String? {
+        ICON.find(block)?.groupValues?.get(1)?.takeIf { it != "null" }?.let { return it }
+        val type = TYPE.find(block)?.groupValues?.get(1)?.toIntOrNull()
+        return FRAMEWORK_DRAWABLE + (TYPE_ICONS[type] ?: TYPE_OTHER_ICON)
     }
 
     /**
@@ -104,10 +118,27 @@ class ZenModes(private val shell: CommandRunner = RootShell()) {
         const val MANUAL_ID = "MANUAL_RULE"
         const val MANUAL_NAME = "Do Not Disturb"
 
+        const val FRAMEWORK_DRAWABLE = "android:drawable/"
+        const val MANUAL_ICON = FRAMEWORK_DRAWABLE + "ic_zen_mode_type_special_dnd"
+        const val TYPE_OTHER_ICON = "ic_zen_mode_type_other"
+
+        /** `AutomaticZenRule.TYPE_*`, to the drawable Settings uses for each. */
+        val TYPE_ICONS = mapOf(
+            1 to "ic_zen_mode_type_schedule_time",
+            2 to "ic_zen_mode_type_schedule_calendar",
+            3 to "ic_zen_mode_type_bedtime",
+            4 to "ic_zen_mode_type_driving",
+            5 to "ic_zen_mode_type_immersive",
+            6 to "ic_zen_mode_type_theater",
+            7 to "ic_zen_mode_type_managed",
+        )
+
         val ID = Regex("""^id=([^,]+),""")
         val STATE = Regex("""state=(STATE_[A-Z_]+)""")
         val ENABLED = Regex("""enabled=([A-Z]+)""")
         val OVERRIDE = Regex("""conditionOverride=(OVERRIDE_[A-Z_]+)""")
+        val ICON = Regex("""iconResName=([^,\]]+)""")
+        val TYPE = Regex("""[,\[]type=(-?\d+)""")
         val ACTIVE_STATES = setOf("STATE_TRUE", "STATE_UNKNOWN")
 
         /**

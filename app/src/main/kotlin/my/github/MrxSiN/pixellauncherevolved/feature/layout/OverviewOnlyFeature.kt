@@ -8,6 +8,7 @@ import android.view.View
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 
@@ -32,6 +33,8 @@ import kotlin.math.roundToInt
  * reading the phone's answer.
  */
 class OverviewOnlyFeature : ToggleFeature(Settings.OVERVIEW_ONLY) {
+
+    override val compatibility = CompatibilityFeature.OVERVIEW_ONLY
     // Device profiles are built once at startup. Both transitions need a restart.
     override val isLive: Boolean = false
 
@@ -401,10 +404,18 @@ private class PhoneSurfaces(
                 listOf("com.android.launcher3.model.data.ItemInfo"),
             ),
             Surface("com.android.launcher3.views.AbstractSlideInView", "onDragEnd", listOf("float")),
+            // CP3A inlined getDismissTimeout(ActivityContext) into show, which
+            // now reads the field itself to pick how long the snackbar stays.
             Surface(
                 "com.android.launcher3.views.Snackbar",
-                "getDismissTimeout",
-                listOf("com.android.launcher3.views.ActivityContext"),
+                "show",
+                listOf(
+                    "com.android.launcher3.views.ActivityContext",
+                    "java.lang.CharSequence",
+                    "int",
+                    "java.lang.Runnable",
+                    "java.lang.Runnable",
+                ),
             ),
             Surface(
                 "com.android.launcher3.widget.LauncherAppWidgetProviderInfo",

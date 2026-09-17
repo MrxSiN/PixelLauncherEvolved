@@ -2,7 +2,6 @@ package my.github.MrxSiN.pixellauncherevolved.settings
 
 import android.content.SharedPreferences
 
-import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 
@@ -30,9 +29,7 @@ class SettingsMigration(private val logger: Logger) {
         val editor = target.edit().putBoolean(MARKER, true)
         var copied = 0
 
-        for (entry in FeatureCatalog.entries) {
-            val setting = entry.setting
-            if (setting !is BoolSetting) continue
+        for (setting in FeatureCatalog.switches) {
             if (legacy == null || !legacy.contains(setting.key)) continue
 
             editor.putBoolean(setting.key, legacy.getBoolean(setting.key, setting.default))

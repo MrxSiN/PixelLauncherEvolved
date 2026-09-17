@@ -45,43 +45,21 @@ class ProviderFocusSource(
 ) : FocusSource {
 
     override fun snapshot(): FocusSnapshot = query(FocusContract.snapshot(modulePackage)) { cursor ->
-        val id = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ID)
-        val name = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_NAME)
-        val active = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ACTIVE)
         val granted = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_GRANTED)
+        val reader = ModeReader(cursor)
         var readable = false
         val modes = buildList {
             while (cursor.moveToNext()) {
                 readable = readable || cursor.getInt(granted) != 0
-                val modeId = cursor.getString(id) ?: continue
-                add(
-                    FocusMode(
-                        id = modeId,
-                        name = cursor.getString(name),
-                        isActive = cursor.getInt(active) != 0,
-                    ),
-                )
+                reader.read()?.let(::add)
             }
         }
         FocusSnapshot(readable, modes)
     } ?: FocusSnapshot(isReadable = false, modes = emptyList())
 
     override fun modes(): List<FocusMode> = query(FocusContract.modes(modulePackage)) { cursor ->
-        val id = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ID)
-        val name = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_NAME)
-        val active = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ACTIVE)
-
-        buildList {
-            while (cursor.moveToNext()) {
-                add(
-                    FocusMode(
-                        id = cursor.getString(id),
-                        name = cursor.getString(name),
-                        isActive = cursor.getInt(active) != 0,
-                    ),
-                )
-            }
-        }
+        val reader = ModeReader(cursor)
+        buildList { while (cursor.moveToNext()) reader.read()?.let(::add) }
     }.orEmpty()
 
     override fun isReadable(): Boolean = query(FocusContract.access(modulePackage)) { cursor ->
@@ -92,6 +70,27 @@ class ProviderFocusSource(
     private fun <T> query(uri: Uri, read: (android.database.Cursor) -> T): T? = runCatching {
         resolver.query(uri, null, null, null, null)?.use(read)
     }.onFailure { logger.warn("Modes could not be read from this module's app", it) }.getOrNull()
+}
+
+/** Reads the Mode on the cursor's current row, or null for a row that carries none. */
+private class ModeReader(private val cursor: android.database.Cursor) {
+
+    private val id = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ID)
+    private val name = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_NAME)
+    private val active = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ACTIVE)
+    private val icon = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ICON)
+    private val enabled = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ENABLED)
+
+    fun read(): FocusMode? {
+        val modeId = cursor.getString(id) ?: return null
+        return FocusMode(
+            id = modeId,
+            name = cursor.getString(name),
+            isActive = cursor.getInt(active) != 0,
+            icon = cursor.getString(icon),
+            isEnabled = cursor.getInt(enabled) != 0,
+        )
+    }
 }
 
 data class FocusSnapshot(

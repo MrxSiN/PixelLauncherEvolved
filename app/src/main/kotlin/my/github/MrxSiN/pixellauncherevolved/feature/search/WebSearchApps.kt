@@ -78,11 +78,11 @@ class WebSearchApps(private val packageManager: PackageManager) {
         .appendQueryParameter("q", query.toString())
         .build()
 
-    private companion object {
-        const val SEARCH = "https://www.google.com/search"
-
-        /** Already the first choice, so never also one of the others. */
+    companion object {
+        /** The launcher's own answer: already the first choice, so never also one of the others. */
         const val GOOGLE_APP = "com.google.android.googlequicksearchbox"
+
+        private const val SEARCH = "https://www.google.com/search"
 
         /**
          * A link with a scheme and nothing else, asked without the narrowing
@@ -93,7 +93,7 @@ class WebSearchApps(private val packageManager: PackageManager) {
          * holding the browser role — either way the browsers a person could
          * pick between never appear.
          */
-        val PROBE: Intent = Intent(Intent.ACTION_VIEW, Uri.parse("http:"))
+        private val PROBE: Intent = Intent(Intent.ACTION_VIEW, Uri.parse("http:"))
             .addCategory(Intent.CATEGORY_BROWSABLE)
     }
 }

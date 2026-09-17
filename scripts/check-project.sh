@@ -26,6 +26,21 @@ grep -q "onApplicationCreated" "$SRC/hook/LauncherStartup.kt"
 grep -q "pixel_launcher_evolved" "$SRC/settings/LauncherSettings.kt"
 grep -q "MODE_PRIVATE" "$SRC/settings/LauncherSettings.kt"
 
+# The launcher starts before the first unlock, so the file is in device protected
+# storage, and the copy earlier versions left in credential encrypted storage is
+# moved before anything reads it, or on unlock followed by a restart.
+grep -q "createDeviceProtectedStorageContext" "$SRC/settings/LauncherSettings.kt"
+grep -q "moveSharedPreferencesFrom" "$SRC/settings/LauncherSettings.kt"
+grep -q "ACTION_USER_UNLOCKED" "$SRC/settings/SettingsStorageMove.kt"
+grep -q "SettingsStorageMove" "$SRC/PixelLauncherEvolvedModule.kt"
+
+# A new build is not hot reloaded into a running launcher; it restarts itself
+# when the screen goes off, which is the only moment nobody sees it.
+grep -q "ACTION_PACKAGE_REPLACED" "$SRC/hook/LauncherRestarter.kt"
+grep -q "ACTION_SCREEN_OFF" "$SRC/hook/LauncherRestarter.kt"
+grep -q "watchModule" "$SRC/PixelLauncherEvolvedModule.kt"
+! grep -q "autoHotReload" "$META/module.prop"
+
 # Choices made before the move are carried across once, then never again.
 grep -q "SETTINGS_GROUP" "$SRC/catalog/FeatureCatalog.kt"
 grep -q "getRemotePreferences" "$SRC/PixelLauncherEvolvedModule.kt"
@@ -44,12 +59,12 @@ grep -q 'originalVisibility' "$SRC/feature/overview/OverviewActionsFeature.kt"
 # preference classes because this module cannot link against them.
 grep -q "SettingsActivity..LauncherSettingsFragment" "$SRC/feature/settings/LauncherSettingsFeature.kt"
 grep -q "onCreatePreferences" "$SRC/feature/settings/LauncherSettingsFeature.kt"
-grep -q "getResourcesForApplication" "$SRC/feature/settings/LauncherSettingsFeature.kt"
+grep -q "getResourcesForApplication" "$SRC/hook/FeatureContext.kt"
 grep -q "androidx.preference.SwitchPreference" "$SRC/feature/settings/PreferenceApi.kt"
 grep -q "androidx.preference.PreferenceScreen" "$SRC/feature/settings/PreferenceApi.kt"
 grep -q "mOnChangeListener" "$SRC/feature/settings/PreferenceApi.kt"
 grep -q "mPersistent" "$SRC/feature/settings/PreferenceApi.kt"
-grep -q "CatalogPage.entries" "$SRC/feature/settings/LauncherSettingsFeature.kt"
+grep -q "SettingsPages.byRootKey" "$SRC/feature/settings/LauncherSettingsFeature.kt"
 
 # The restart is the launcher ending its own process, from that same section.
 grep -q "killProcess" "$SRC/feature/settings/LauncherSettingsFeature.kt"
@@ -64,6 +79,36 @@ grep -q "killProcess" "$SRC/feature/settings/LauncherSettingsFeature.kt"
 ! grep -q 'android:name=".PixelLauncherEvolvedApp"' "$ROOT/app/src/main/AndroidManifest.xml"
 ! grep -qi 'compose' "$ROOT/app/build.gradle.kts"
 ! grep -qi 'compose' "$ROOT/gradle/libs.versions.toml"
+
+# Focus pages and the Web Search app chooser are Material 3 Expressive dialogs
+# built from the same palette, shapes and type as the settings rows.
+grep -q 'ExpressiveDialog' "$SRC/feature/focus/FocusPagesDialog.kt"
+! grep -q 'AlertDialog' "$SRC/feature/focus/FocusPagesDialog.kt"
+grep -q 'ExpressiveShapes.card' "$SRC/feature/settings/ExpressiveRowView.kt"
+grep -q 'ExpressiveShapes.card' "$SRC/feature/settings/ExpressiveCardList.kt"
+grep -q 'COLUMN_ICON' "$SRC/focus/FocusProvider.kt"
+grep -q 'iconResName' "$SRC/focus/ZenModes.kt"
+grep -q 'ExpressiveDialog' "$SRC/feature/search/WebSearchAppDialog.kt"
+# Dialogs arrive and leave on Android 17's own window animation, not a copy of it.
+grep -q 'Animation_Dialog' "$SRC/feature/settings/ExpressiveDialog.kt"
+! grep -q 'setWindowAnimations(0)' "$SRC/feature/settings/ExpressiveDialog.kt"
+# Pages are reordered by renumbering screen ids in one statement on the model
+# thread, the first page never moves, and everything kept by page id follows.
+grep -q 'FIXED = 1' "$SRC/feature/pages/PageOrder.kt"
+grep -q 'MODEL_EXECUTOR' "$SRC/feature/pages/LauncherPageRenumberer.kt"
+grep -q 'CASE screen' "$SRC/feature/pages/LauncherPageRenumberer.kt"
+grep -q 'focus.renumber(mapping)' "$SRC/feature/pages/ReorganizePagesScreen.kt"
+grep -q 'FocusPagePictures.renumber(mapping)' "$SRC/feature/pages/ReorganizePagesScreen.kt"
+grep -q 'previewLayout' "$SRC/feature/focus/WidgetPreviewRenderer.kt"
+# New apps never land on a page a Mode hides, and a page made by a drag is
+# neither refused nor rebound out from under the icon dropped on it.
+grep -q 'findSpaceForItem' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'focus.hides(screen)' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'focus.adopt(all)' "$SRC/feature/focus/FocusHomeFeature.kt"
+# A page picture is only dropped once its page is gone, never for missing a capture.
+grep -q 'pages: Set<Int>' "$SRC/feature/focus/FocusPageSnapshotStore.kt"
+! grep -q 'AlertDialog' "$SRC/feature/search/WebSearchAppDialog.kt"
+grep -q 'ExpressiveCardList' "$SRC/feature/focus/FocusModeList.kt"
 
 # Clear all in the action row delegates the destructive operation to one action.
 grep -q 'ClearAllAction' "$SRC/feature/overview/OverviewClearAllButtonFeature.kt"
@@ -246,11 +291,11 @@ grep -q 'AppDrawerSearchFeature' "$SRC/hook/FeatureRegistry.kt"
 grep -q 'APP_DRAWER_SEARCH_HIDE_WEB' "$SRC/catalog/Settings.kt"
 grep -q 'APP_DRAWER_SEARCH_HIDE_PLAY_STORE' "$SRC/catalog/Settings.kt"
 grep -q 'APP_DRAWER_SEARCH_HIDE_SEARCH_IN_APPS' "$SRC/catalog/Settings.kt"
-grep -q 'APP_DRAWER(' "$SRC/catalog/FeatureCatalog.kt"
+grep -q 'APP_DRAWER = SettingsPage' "$SRC/feature/settings/SettingsPages.kt"
 
 # Every page row carries a line saying what the page holds.
 grep -q 'val summaryRes: Int' "$SRC/catalog/FeatureCatalog.kt"
-grep -q 'summary = resources.getString(page.summaryRes)' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+grep -q 'scope.string(page.summaryRes)' "$SRC/feature/settings/CommonRows.kt"
 
 # Apps hidden from the drawer go through the launcher's own per-tab predicate,
 # which is wrapped rather than replaced so a work app is still a work app. The
@@ -308,7 +353,7 @@ grep -q 'PackageManager.MATCH_ALL' "$SRC/feature/search/WebSearchApps.kt"
 # The Google app is the first choice already, so it is never also one of the rest.
 grep -q 'com.google.android.googlequicksearchbox' "$SRC/feature/search/WebSearchApps.kt"
 grep -q 'resolveActivity' "$SRC/feature/search/WebSearchApps.kt"
-grep -q 'WebSearchAppDialog' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+grep -q 'WebSearchAppDialog' "$SRC/feature/settings/AppDrawerRows.kt"
 
 # The adapter item that carries a target is renamed by the shrinker; its field
 # is found by type instead, and a row without one is never hidden.
@@ -368,8 +413,8 @@ grep -q 'androidx.preference.SeekBarPreference' "$SRC/feature/settings/Preferenc
 grep -q 'fun valueSetter' "$SRC/feature/settings/PreferenceApi.kt"
 grep -q 'mEnabled' "$SRC/feature/settings/PreferenceApi.kt"
 grep -q 'hasSlider' "$SRC/feature/settings/PreferenceApi.kt"
-grep -q 'fun companionOf' "$SRC/feature/settings/LauncherSettingsFeature.kt"
-grep -q 'api.setEnabled' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+grep -q 'fun dependOn' "$SRC/feature/settings/SettingsRow.kt"
+grep -q 'api.setEnabled' "$SRC/feature/settings/SettingsRow.kt"
 
 # The slider row is aligned with the switches, and drawn the way Material 3
 # Expressive draws a slider: a tall track, a handle that is a bar, and a gap.
@@ -427,7 +472,7 @@ grep -q '^com.google.android.apps.nexuslauncher$' "$META/scope.list"
 # Pages are assigned from Home settings, by number. The launcher's long press
 # menu is a Compose dialog in classes its shrinker renames, so there is no view
 # list to add a row to; nothing here reaches for one.
-grep -q 'FocusPagesDialog' "$SRC/feature/settings/LauncherSettingsFeature.kt"
+grep -q 'FocusPagesDialog' "$SRC/feature/settings/HomeScreenRows.kt"
 ! grep -rq 'OptionsPopupView' "$SRC"
 ! grep -rq 'showForSystemShortcuts' "$SRC"
 [ ! -e "$SRC/feature/focus/FocusAssignFeature.kt" ]
@@ -454,10 +499,11 @@ grep -q 'bindItems' "$SRC/feature/focus/FocusHomeFeature.kt"
 grep -q 'itemsIdMap' "$SRC/feature/focus/FocusHomeFeature.kt"
 grep -q 'SparseArray<Any?>(items.size())' "$SRC/feature/focus/FocusHomeFeature.kt"
 
-# The one write that would turn a hidden page into a deleted one is held off,
-# and the feature refuses to install at all if it cannot be found.
+# An emptied page is left to the launcher to remove, which only touches views,
+# and a removed page is forgotten so a new page cannot inherit its Mode.
 grep -q 'stripEmptyScreens' "$SRC/feature/focus/FocusHomeFeature.kt"
-grep -q 'isFiltering()) null else chain.proceed()' "$SRC/feature/focus/FocusHomeFeature.kt"
+grep -q 'focus.forget' "$SRC/feature/focus/FocusHomeFeature.kt"
+! grep -q 'isFiltering()) null else chain.proceed()' "$SRC/feature/focus/FocusHomeFeature.kt"
 
 # Deciding which screens to show has no Android in it, so it can be reasoned about.
 ! grep -qE '^import android' "$SRC/focus/FocusPlan.kt"
@@ -477,7 +523,7 @@ grep -q 'zen_mode_config_etag' "$SRC/focus/FocusSource.kt"
 # Reading the Modes is a root shell in another process, so it happens once per
 # prompt, on the thread that asked to look, and never again while binding.
 grep -q 'activeModes ?: read()' "$SRC/feature/focus/FocusHomeFeature.kt"
-[ "$(grep -c 'source.modes()' "$SRC/feature/focus/FocusHomeFeature.kt")" = 1 ]
+[ "$(grep -c 'source.snapshot()' "$SRC/feature/focus/FocusHomeFeature.kt")" = 1 ]
 
 # The page swap is Material 3 Expressive: content leaves before it is replaced,
 # and what arrives is sprung into place rather than wiped in.
@@ -500,8 +546,8 @@ grep -q 'moduleApplicationInfo.packageName' "$SRC/feature/focus/FocusHomeFeature
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.0.9"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 9' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.1.0"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 11' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"

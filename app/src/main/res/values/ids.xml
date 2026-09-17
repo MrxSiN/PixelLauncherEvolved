@@ -6,4 +6,11 @@
       the launcher's process because they come from this package's resources.
     -->
     <item name="ple_row_original" type="id" />
+
+    <!-- The radio button or value a settings row shows at its end. -->
+    <item name="ple_row_accessory" type="id" />
+
+    <!-- The "move earlier" and "move later" accessibility actions on a page being arranged. -->
+    <item name="ple_action_move_earlier" type="id" />
+    <item name="ple_action_move_later" type="id" />
 </resources>

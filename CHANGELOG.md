@@ -1,5 +1,109 @@
 # Changelog
 
+## 0.1.0
+
+Fully compatible with Android 17 QPR1 (September 2026), build CP3A.260905.009,
+Pixel Launcher 907: 57 of 57 launcher contracts resolve, with no fallbacks.
+
+### Added
+
+- Settings reorganised into Home screen, App drawer, Overview, Layout & taskbar
+  and Advanced pages, each with headed groups drawn as Material 3 Expressive
+  cards. Switches read as what is shown rather than what is hidden; the stored
+  keys are unchanged. The layout modes are one radio group whose dot springs in.
+  A row greyed out by a switch stays on the page rather than vanishing.
+- Compatibility & diagnostics, under Advanced: module and framework versions,
+  Android, build, launcher versionCode, libxposed API, root, each feature's
+  status, hook counts and every launcher contract, with a report to copy.
+- Launcher contracts: every member a tweak stands on, checked against the
+  running launcher once per process. A unit test holds each to the feature
+  sources.
+- Per-feature compatibility gating. A feature whose required members are
+  missing is not installed, and its switch is greyed out and says it is
+  unavailable on that launcher version.
+- Automatic compatibility analysis, logged the first time each launcher
+  versionCode starts.
+- Safe Mode. Uncaught launcher crashes are recorded; three within 60 seconds
+  switch the experimental layout mode off before any feature installs, and the
+  home screen offers to restore it or keep it disabled.
+- Backup & restore, under Advanced: export settings to a portable JSON file
+  through the system file picker, import one, or reset all tweaks.
+- Organize home screens moves on Material's shared axis and answers predictive
+  back by shrinking towards the swipe.
+- Organize home screens, a row on the Home screen page that opens a full screen
+  laid out as an Android 17 Settings page: every page as a live preview,
+  including the ones a Mode hides, which carry that Mode's icon and name. A page
+  is moved by touching and holding it, then dragging; it lifts on a spring, the
+  others spring aside, and screen readers get Move earlier and Move later. The
+  launcher shows pages in ascending screen id, so leaving the screen gives the
+  moved pages the ids of their new positions, in one statement on the
+  launcher's model thread, and reloads. Focus assignments and saved page
+  pictures follow their pages. The first page cannot move: At a Glance sits over
+  its top rows, and another page's top row would be drawn under it.
+
+### Fixed
+
+- Overview only lost its snackbar hook on Android 17 QPR1, which folded
+  Snackbar.getDismissTimeout(ActivityContext) into Snackbar.show(ActivityContext,
+  CharSequence, int, Runnable, Runnable). The phone-surface list wraps show now.
+- A page given to a Mode that was later deleted in Settings stayed hidden and
+  could not be offered to another Mode. A Mode no longer reported by the device
+  gives its pages back, and leaves the Mode order.
+- Tweaks load at boot. The launcher starts before the first unlock, when
+  credential encrypted storage refuses to open a preference file, so every tweak
+  failed to install until the launcher was restarted. Settings now live in device
+  protected storage. The file earlier versions wrote is moved on the first
+  unlocked start; a locked start that finds it still there uses the defaults,
+  moves it on unlock, and restarts the launcher when the screen goes off.
+
+- With Modes home screens on, a newly installed app went onto a page a Mode
+  hides, because the launcher places a new app on the first screen in its model
+  with room, and the model holds every screen. The Mode pages are now added to
+  the screens its space finder passes over, so the app goes onto an ordinary
+  page or a new one. Dragging an icon past the last page also failed: the page
+  the drag makes gets an id one above every screen, and the hook that stops the
+  launcher laying out hidden pages refused it for not being on the visible list.
+  Only pages that exist and are hidden are refused now, and the new page is taken
+  in without rebinding the workspace, which used to race the icon being saved. A
+  page made while a Mode's pages are showing belongs to that Mode.
+- With Modes home screens on, removing the last icon from a page — uninstalling
+  its app, say — left a blank page. The launcher's removal of empty pages was
+  being held off to protect hidden pages, but on this launcher it only removes
+  page views and never touches a hidden page. It runs again, and a removed page
+  is dropped from every Mode, so a later page that reuses its id is not hidden.
+- Modes pages previews of pages a Mode hides were deleted from disk whenever the
+  first capture after a launcher start ran before the saved pictures had been
+  read back. A picture is now dropped only once its page is gone. A page with no
+  picture is drawn on geometry measured off a real page — grid, icon and label
+  size — with labels, and the dock and search bar borrowed from a photographed
+  page, faded in from above the search bar rather than across it. A widget is
+  inflated from its preview layout at its home screen size in the theme in
+  force, so it follows dark mode; one with only a preview image shows that.
+
+### Changed
+
+- Focus home screens is now called Modes home screens, and Focus pages is now
+  Modes pages, after the Modes they follow. Existing page assignments are kept.
+
+- Dialogs arrive and leave on Android 17's own dialog window animation rather
+  than a spring of their own, which also gave closing no animation at all.
+- A new build of the module reaches the launcher without a force-stop: the
+  launcher restarts itself the next time the screen goes off. It is not hot
+  reloaded in place, because its views and callbacks belong to the build that
+  made them.
+- Modes pages is drawn the way Android 17 QPR1 draws Material 3 Expressive
+  dialogs: an extra-large rounded surface, pill buttons with the committing one
+  filled, and Google Sans type. The Modes are one grouped card led by the icon
+  Settings shows for each Mode, now carried from the module's app with the rest
+  of the Mode, and the Mode that is on wears a badge. A page picked for a Mode
+  shrinks inside a primary outline on a spring while its corners grow rounder,
+  and gets a filled check. The colour roles, card shapes and type scale the
+  settings rows already used are shared with these dialogs rather than copied.
+- Open Web Search with is the same kind of dialog: the apps are one grouped card,
+  each row led by the app's icon (the Google app's for the launcher's own answer)
+  and ended by a radio button whose dot springs in. A tap still chooses and
+  closes, a moment after the radio answers.
+
 ## 0.0.9
 
 ### Fixed

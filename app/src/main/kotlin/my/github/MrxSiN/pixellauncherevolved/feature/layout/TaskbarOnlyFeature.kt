@@ -2,6 +2,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.layout
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 
@@ -15,6 +16,8 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * icons have to leave the stashed pill whole.
  */
 class TaskbarOnlyFeature : ToggleFeature(Settings.TASKBAR_ONLY) {
+
+    override val compatibility = CompatibilityFeature.TASKBAR_ONLY
     // Device profiles are built once at startup. Both transitions need a restart.
     override val isLive: Boolean = false
 

@@ -305,6 +305,11 @@ class PreferenceApi(classLoader: ClassLoader) {
         notifyChanged.invoke(row)
     }
 
+    /** Asks a row to bind again, for one whose accessory reads a value that has changed. */
+    fun refresh(row: Any) {
+        notifyChanged?.invoke(row)
+    }
+
     fun createAction(
         context: Context,
         key: String,
