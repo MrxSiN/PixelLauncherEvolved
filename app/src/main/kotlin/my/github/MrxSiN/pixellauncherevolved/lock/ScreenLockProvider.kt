@@ -19,7 +19,7 @@ import android.os.Bundle
  */
 class ScreenLockProvider : ContentProvider() {
 
-    private val screenLocker: ScreenLocker = RootScreenLocker()
+    private val screenLocker: ScreenLocker = SingleFlightScreenLocker(RootScreenLocker())
 
     override fun onCreate(): Boolean = true
 

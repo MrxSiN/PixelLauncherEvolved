@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.1.1
+
+### Added
+
+- Double tap status bar to sleep. Two taps on the status bar turn the screen
+  off, switched on under Home screen → Gestures. The status bar is SystemUI's
+  own view rather than the launcher's, so the gesture is watched inside
+  SystemUI, which holds `DEVICE_POWER` itself: unlike the home screen gesture,
+  this one needs no root. Taps a child of the status bar wants — a chip, the
+  clock — still do what that child does.
+- Both sleep gestures now end the screen around the point they were taken at.
+  SystemUI opens the screen from an ambient-display tap with a circle growing
+  out of the finger; the same circle, driven against a falling reveal amount,
+  closes it. The point is carried from the launcher to SystemUI in a broadcast
+  that only a sender holding `STATUS_BAR` can send.
+- SystemUI is now a second scoped package. Every tweak still installs in the
+  launcher; SystemUI is entered only for the two things the launcher cannot do,
+  which is drawing the screen off and seeing a touch on the status bar.
+
+### Fixed
+
+- Double tap to sleep opened the camera. The screen was ended by injecting
+  `KEYCODE_POWER`, which the platform counts: two inside the multi-press window
+  are its own "press power twice for the camera" gesture, so a gesture that
+  fired twice — or a tap repeated because the root shell had not answered yet
+  — launched the camera instead. It now sends `KEYCODE_SLEEP`, which carries
+  no gesture and only ever sleeps. Pressing the power button twice still opens
+  the camera, because nothing touches the power button's own path.
+- A second screen off asked for while the first was still reaching the root
+  shell is dropped rather than run, so a repeated tap cannot land a stale key on
+  a screen the user has since woken.
+- The screen off no longer sweeps in from the power button's edge. That reveal
+  is what SystemUI uses for a sleep whose reason is the power button, which is
+  what injecting the power key made it.
+
+### Changed
+
+- Advanced page: Backup & restore moved above Restart Pixel Launcher and
+  Compatibility & diagnostics, which now carry a Launcher heading of their own
+  rather than reading as part of the backup card.
+
 ## 0.1.0
 
 Fully compatible with Android 17 QPR1 (September 2026), build CP3A.260905.009,

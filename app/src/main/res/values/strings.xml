@@ -43,6 +43,7 @@
     <string name="settings_group_layout_mode">Layout mode</string>
     <string name="settings_group_taskbar">Taskbar</string>
     <string name="settings_group_backup">Backup &amp; restore</string>
+    <string name="settings_group_launcher">Launcher</string>
 
     <string name="backup_export_title">Export settings</string>
     <string name="backup_export_summary">Save every tweak to a file</string>
@@ -95,6 +96,8 @@
     <string name="feature_home_blur_strength_summary">Stronger to the right, weaker to the left. Now %1$d%%.</string>
     <string name="feature_home_double_tap_to_sleep_title">Double tap to sleep</string>
     <string name="feature_home_double_tap_to_sleep_summary">Two taps on an empty spot turn the screen off. Needs root.</string>
+    <string name="feature_status_bar_double_tap_to_sleep_title">Double tap status bar to sleep</string>
+    <string name="feature_status_bar_double_tap_to_sleep_summary">Two taps on the status bar turn the screen off. No root needed.</string>
     <string name="feature_home_search_opens_drawer_title">Search bar opens app search</string>
     <string name="feature_home_search_opens_drawer_summary">The home search bar opens the app drawer’s search instead of the Google app.</string>
     <string name="pages_reorganize_title">Organize home screens</string>

@@ -40,6 +40,11 @@ object FeatureCatalog {
         titleRes = R.string.feature_home_double_tap_to_sleep_title,
         summaryRes = R.string.feature_home_double_tap_to_sleep_summary,
     )
+    val STATUS_BAR_DOUBLE_TAP_TO_SLEEP = CatalogEntry(
+        setting = Settings.STATUS_BAR_DOUBLE_TAP_TO_SLEEP,
+        titleRes = R.string.feature_status_bar_double_tap_to_sleep_title,
+        summaryRes = R.string.feature_status_bar_double_tap_to_sleep_summary,
+    )
     val SEARCH_OPENS_DRAWER = CatalogEntry(
         setting = Settings.HOME_SEARCH_OPENS_DRAWER,
         titleRes = R.string.feature_home_search_opens_drawer_title,
@@ -101,6 +106,7 @@ object FeatureCatalog {
         HOME_BLUR_WALLPAPER,
         FOCUS_HOME_SCREENS,
         DOUBLE_TAP_TO_SLEEP,
+        STATUS_BAR_DOUBLE_TAP_TO_SLEEP,
         SEARCH_OPENS_DRAWER,
         WEB_SEARCH,
         PLAY_STORE,

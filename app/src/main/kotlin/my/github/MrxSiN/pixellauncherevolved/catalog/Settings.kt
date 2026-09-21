@@ -30,6 +30,14 @@ object Settings {
      */
     val HOME_BLUR_STRENGTH = IntSetting("home_blur_strength", default = 50, range = 0..100)
     val HOME_DOUBLE_TAP_TO_SLEEP = BoolSetting("home_double_tap_to_sleep", default = false)
+
+    /**
+     * Two taps on the status bar, which is SystemUI's surface rather than the
+     * launcher's. The switch is here with the home screen one because that is
+     * where a person looks for it; the gesture is watched in SystemUI.
+     */
+    val STATUS_BAR_DOUBLE_TAP_TO_SLEEP =
+        BoolSetting("status_bar_double_tap_to_sleep", default = false)
     val HOME_SEARCH_OPENS_DRAWER = BoolSetting("home_search_opens_drawer", default = false)
 
     /**

@@ -1,51 +1,47 @@
-# Pixel Launcher Evolved v0.1.0
+# Pixel Launcher Evolved v0.1.1
 
-**Fully compatible with the latest Android release: Android 17 QPR1 (September 2026),
-build `CP3A.260905.009`, Pixel Launcher `907`.** Every launcher member the module stands on
-resolves — 57 of 57, no fallbacks — and every tweak is available. Tested on a Pixel 8 Pro with
-Vector v2.2.
+Tested on a Pixel 8 Pro running Android 17 QPR1 (September 2026), build `CP3A.260905.009`,
+Pixel Launcher `907`, with Vector v2.2. Every launcher member the module stands on still
+resolves — 57 of 57, no fallbacks.
 
-### What's new
+### What's in it
 
-- **Settings, reorganised** into Home screen, App drawer, Overview, Layout & taskbar and Advanced,
-  each with headed groups of Material 3 Expressive cards, as Android 17 QPR1 Settings draws them.
-  Switches read as what is shown; the layout modes are one radio group.
-- **Organize home screens**: every page on one screen, including pages a Mode hides, arranged by
-  touch and hold, then drag. It moves on Material's shared axis, with predictive back.
-- **Modes home screens** and **Modes pages** (formerly Focus home screens and Focus pages).
-- **Compatibility & diagnostics**, under Advanced: module, Android, build, launcher version,
-  libxposed API and root, each feature's status, hook counts, every launcher contract, and a report
-  to copy.
-- **Per-feature compatibility gating**: a tweak whose launcher members are missing is not
-  installed, and its switch says *Unavailable on Pixel Launcher …* instead of doing nothing.
-- **Automatic compatibility analysis** the first time each new launcher version starts, written to
-  `adb logcat -s PixelLauncherEvolved`.
-- **Safe Mode**: three launcher crashes within a minute turn the experimental layout mode off
-  before it loads again, and the home screen asks whether to restore it.
-- **Backup & restore**, under Advanced: export settings to a JSON file, import them, or reset all
-  tweaks.
+- **Double tap status bar to sleep**: two taps on the status bar turn the screen off, under
+  Home screen → Gestures. Needs no root — the gesture is watched inside SystemUI, which can end
+  the screen itself. Taps on the clock or a chip still do what those do.
+- **Both sleep gestures close the screen around your finger**: the light shrinks into the spot
+  you tapped and goes out there, the reverse of the circle SystemUI opens the screen with when
+  you tap the always-on display.
 
 ### Fixed
 
-- **Snackbar in Overview only**: Android 17 QPR1 folded `Snackbar.getDismissTimeout` into
-  `Snackbar.show`, so the snackbar hook was lost. It follows `show` now.
-- **Modes pages** kept a page hidden for a Mode that had been deleted in Settings; a deleted Mode's
-  pages come back.
-- **Tweaks load at boot**: settings live in device protected storage and load before the first
-  unlock.
-- **Home screen pages with Modes home screens on**: new apps no longer land on a hidden page, a
-  dragged icon always has a page to land on, and an emptied page no longer stays behind.
+- **Double tap to sleep no longer opens the camera**: it sent the power key, and two power keys
+  in quick succession are Android's own press-power-twice-for-the-camera gesture. It sends the
+  sleep key now. Pressing the power button twice still opens the camera.
+- **A repeated tap no longer stacks up screen offs**: a second one asked for while the first is
+  still reaching the root shell is dropped, so a late key cannot catch a screen you have woken
+  again.
+- **The screen off no longer sweeps in from the power button's edge.**
+
+### Changed
+
+- **Advanced**: Backup & restore sits at the top, and Restart Pixel Launcher and Compatibility &
+  diagnostics have a Launcher section of their own.
 
 ### Install
 
-1. Install `PixelLauncherEvolved-v0.1.0.apk`
-2. Enable Pixel Launcher Evolved in Vector (static scope: Pixel Launcher)
+1. Install `PixelLauncherEvolved-v0.1.1.apk`
+2. Enable Pixel Launcher Evolved in Vector (static scope: Pixel Launcher and SystemUI)
 3. Force-stop Pixel Launcher once, or reboot
 4. Long press the home screen → Home settings → Pixel Launcher Evolved
 
 ### Notes
 
 - Needs a framework with libxposed API 101+, such as Vector v2.2.
+- **SystemUI is new in the module's scope.** It is entered only to draw the screen off and to
+  watch the status bar. If your framework does not apply the new scope on update, grant it in
+  the manager and let SystemUI restart; without it the status bar gesture does nothing and the
+  screen off keeps its old animation.
 - Updating from v0.0.9 or earlier: settings are kept. After installing, the launcher restarts
   itself the next time the screen goes off.
 - A layout mode change applies after **Restart Pixel Launcher**.

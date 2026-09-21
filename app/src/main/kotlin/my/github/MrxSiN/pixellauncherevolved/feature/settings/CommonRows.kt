@@ -7,11 +7,13 @@ import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
  * A switch described by the catalogue.
  *
  * @param requires what the tweak behind the switch stands on in the launcher,
- * which greys the switch out on a launcher build that lacks it.
+ * which greys the switch out on a launcher build that lacks it. Null for a
+ * tweak that stands on nothing of the launcher's — one watched in SystemUI —
+ * which no launcher build can take away.
  */
 internal class ToggleRow(
     private val entry: CatalogEntry,
-    private val requires: CompatibilityFeature,
+    private val requires: CompatibilityFeature? = null,
 ) : SettingsRow {
 
     override fun addTo(group: Any, scope: RowScope) {
@@ -24,7 +26,7 @@ internal class ToggleRow(
             onChange = { on -> scope.switch(entry, on) },
         )
         scope.api.add(group, row)
-        scope.requires(requires, row)
+        requires?.let { scope.requires(it, row) }
     }
 }
 

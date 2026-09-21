@@ -40,6 +40,7 @@ object SettingsBackupFormat {
         "blur" to Settings.HOME_BLUR_WALLPAPER,
         "modesHomeScreens" to Settings.FOCUS_HOME_SCREENS,
         "doubleTapToSleep" to Settings.HOME_DOUBLE_TAP_TO_SLEEP,
+        "statusBarDoubleTapToSleep" to Settings.STATUS_BAR_DOUBLE_TAP_TO_SLEEP,
         "searchBarOpensAppSearch" to Settings.HOME_SEARCH_OPENS_DRAWER,
         "hideWebSearch" to Settings.APP_DRAWER_SEARCH_HIDE_WEB,
         "hidePlayStore" to Settings.APP_DRAWER_SEARCH_HIDE_PLAY_STORE,

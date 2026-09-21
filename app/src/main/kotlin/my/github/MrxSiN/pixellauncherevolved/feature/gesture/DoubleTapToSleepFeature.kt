@@ -4,11 +4,14 @@ import android.view.MotionEvent
 import android.view.ViewConfiguration
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.core.DoubleTap
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 import my.github.MrxSiN.pixellauncherevolved.lock.ScreenLock
+import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealAnnouncer
+import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealScrim
 
 /**
  * Turns the screen off when an empty part of the home screen is tapped twice.
@@ -35,7 +38,11 @@ import my.github.MrxSiN.pixellauncherevolved.lock.ScreenLock
  * the launcher already answered instead.
  *
  * Turning the screen off is not something the launcher can do — see
- * [ScreenLock] — so the module app sends the power-key event through root.
+ * [ScreenLock] — so the module app sends the sleep key through root.
+ *
+ * Drawing it is not the launcher's either. Where the tap landed is announced
+ * to SystemUI first, which opens the screen off around that point rather than
+ * from nowhere — see [SleepRevealScrim].
  */
 class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP) {
 
@@ -55,6 +62,7 @@ class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP)
         }
 
         val screen = ScreenOff(context)
+        val reveal = SleepRevealAnnouncer(context.appContext, context.logger)
         val taps = DoubleTap(ViewConfiguration.get(context.appContext))
 
         context.hookAfter(
@@ -74,45 +82,14 @@ class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP)
                 return@hookAfter
             }
 
-            if (taps.isSecond(event)) screen.off()
+            if (taps.isSecond(event)) {
+                // Announced first: the reveal is drawn by the time root answers.
+                reveal.announce(event.rawX.toInt(), event.rawY.toInt())
+                screen.off()
+            }
         }
 
         context.logger.info("Home: double tap on an empty spot turns the screen off")
-    }
-}
-
-/** The platform's own idea of what counts as one tap following another. */
-private class DoubleTap(configuration: ViewConfiguration) {
-
-    private val slop = configuration.scaledDoubleTapSlop.toFloat()
-    private val timeout = ViewConfiguration.getDoubleTapTimeout().toLong()
-
-    private var lastTime = 0L
-    private var lastX = 0f
-    private var lastY = 0f
-
-    /**
-     * @return true when [event] completes a double tap, which also spends it:
-     *   three taps are one double tap and one first tap, not two.
-     */
-    fun isSecond(event: MotionEvent): Boolean {
-        val x = event.x
-        val y = event.y
-        val time = event.eventTime
-
-        val second = time - lastTime <= timeout &&
-            Math.hypot((x - lastX).toDouble(), (y - lastY).toDouble()) <= slop
-
-        lastTime = if (second) 0L else time
-        lastX = x
-        lastY = y
-
-        return second
-    }
-
-    /** A non-empty or disabled tap breaks the sequence. */
-    fun reset() {
-        lastTime = 0L
     }
 }
 
@@ -140,7 +117,7 @@ private class ScreenOff(private val context: FeatureContext) {
                     logger.warn("Double tap to sleep: the module's app did not answer")
 
                 !answer.getBoolean(ScreenLock.LOCKED) ->
-                    logger.warn("Double tap to sleep: root power-key command failed")
+                    logger.warn("Double tap to sleep: root sleep-key command failed")
 
                 else -> logger.info("Double tap to sleep: screen off")
             }

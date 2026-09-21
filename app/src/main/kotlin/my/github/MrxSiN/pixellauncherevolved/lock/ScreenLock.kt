@@ -6,8 +6,9 @@ import android.net.Uri
  * The one thing the launcher cannot do for itself: turn the screen off.
  *
  * `PowerManager.goToSleep` needs `DEVICE_POWER`, a signature permission the
- * Pixel Launcher does not hold. The module app therefore invokes the same
- * power-key event through `su`.
+ * Pixel Launcher does not hold. The module app therefore sends the sleep key
+ * through `su` — see [RootScreenLocker] for why the sleep key and not the
+ * power key.
  *
  * So the gesture is recognised in the launcher and carried out in the app. The
  * call goes over a content provider rather than a broadcast because a provider

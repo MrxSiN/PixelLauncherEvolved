@@ -10,17 +10,25 @@ grep -q '^staticScope=true$' "$META/module.prop"
 grep -q '^my.github.MrxSiN.pixellauncherevolved.PixelLauncherEvolvedModule$' "$META/java_init.list"
 grep -q '^com.google.android.apps.nexuslauncher$' "$META/scope.list"
 
-# Entry point: launcher only, first package only, no hooking logic inline.
+# SystemUI is scoped for one thing: drawing a screen off the launcher asked for
+# around the point it was taken at. Every tweak still lives in the launcher.
+grep -q '^com.android.systemui$' "$META/scope.list"
+test "$(wc -l < "$META/scope.list")" -eq 2
+
+# Entry point: the two scoped packages, first package only, no hooking inline.
 grep -q 'com.google.android.apps.nexuslauncher' "$SRC/PixelLauncherEvolvedModule.kt"
+grep -q 'com.android.systemui' "$SRC/bridge/Bridge.kt"
+grep -q 'Bridge.SYSTEM_UI_PACKAGE' "$SRC/PixelLauncherEvolvedModule.kt"
 grep -q 'isFirstPackage' "$SRC/PixelLauncherEvolvedModule.kt"
 grep -q 'XposedModule' "$SRC/PixelLauncherEvolvedModule.kt"
 grep -q 'FeatureRegistry.install' "$SRC/PixelLauncherEvolvedModule.kt"
 
-# Installation waits for the launcher application, because the settings file it
-# reads lives in that application own data directory.
-grep -q "LauncherStartup" "$SRC/PixelLauncherEvolvedModule.kt"
-grep -q "com.android.launcher3.LauncherApplication" "$SRC/hook/LauncherStartup.kt"
-grep -q "onApplicationCreated" "$SRC/hook/LauncherStartup.kt"
+# Installation waits for the scoped application, because the settings file the
+# launcher reads lives in that application own data directory.
+grep -q "ApplicationStartup" "$SRC/PixelLauncherEvolvedModule.kt"
+grep -q "com.android.launcher3.LauncherApplication" "$SRC/PixelLauncherEvolvedModule.kt"
+grep -q "com.android.systemui.application.impl.SystemUIApplicationImpl" "$SRC/PixelLauncherEvolvedModule.kt"
+grep -q "onApplicationCreated" "$SRC/hook/ApplicationStartup.kt"
 
 # Settings live beside the launcher that reads them, in one file this module owns.
 grep -q "pixel_launcher_evolved" "$SRC/settings/LauncherSettings.kt"
@@ -362,8 +370,59 @@ grep -q 'isTarget(it.type)' "$SRC/feature/search/SearchResultItems.kt"
 
 # Deciding which results to hide has no Android in it, so it can be tested.
 ! grep -qE '^import android' "$SRC/feature/search/SearchResultKind.kt"
+
+# The screen is ended with the sleep key, never the power key: the power key is
+# a toggle the platform counts, and two of them are its own camera gesture, so
+# a repeated tap used to open the camera. The sleep key also leaves SystemUI on
+# the reveal an ambient display tap uses, played the other way.
 grep -q 'ProcessBuilder("su"' "$SRC/lock/ScreenLocker.kt"
-grep -q 'KEYCODE_POWER' "$SRC/lock/ScreenLocker.kt"
+grep -q 'KEYCODE_SLEEP' "$SRC/lock/ScreenLocker.kt"
+! grep -q 'KEYCODE_POWER' "$SRC/lock/ScreenLocker.kt"
+
+# Reaching the root shell is slow enough for a second gesture to arrive first,
+# so the provider runs one screen off at a time.
+grep -q 'SingleFlightScreenLocker(RootScreenLocker())' "$SRC/lock/ScreenLockProvider.kt"
+
+# The screen off is drawn around the point the gesture was taken at. The point
+# crosses to SystemUI in a broadcast taken only from a sender holding STATUS_BAR,
+# which the launcher holds as a privileged app, and SystemUI answers the lift
+# effect's own step with the circle rather than handing it a CircleReveal: the
+# shipped class has no constructor left to call.
+grep -q 'android.permission.STATUS_BAR' "$SRC/bridge/Bridge.kt"
+grep -q 'rawX' "$SRC/feature/gesture/DoubleTapToSleepFeature.kt"
+grep -q 'com.android.systemui.statusbar.LightRevealScrim' "$SRC/reveal/SleepRevealScrim.kt"
+grep -q 'com.android.systemui.statusbar.LiftReveal' "$SRC/reveal/SleepRevealScrim.kt"
+grep -q 'setRevealAmountOnScrim' "$SRC/reveal/SleepRevealScrim.kt"
+
+# Deciding the circle has no Android in it, so it can be tested.
+! grep -qE '^import android' "$SRC/reveal/CircleReveal.kt"
+! grep -qE '^import android' "$SRC/reveal/SleepRevealOrigin.kt"
+
+# The status bar belongs to SystemUI, so the gesture is watched there and needs
+# no root: SystemUI holds DEVICE_POWER itself. Only the switch is the
+# launcher's, and the launcher says what it says rather than SystemUI reading a
+# file it has no business in.
+grep -q 'com.android.systemui.statusbar.phone.PhoneStatusBarView' "$SRC/statusbar/StatusBarSleep.kt"
+grep -q 'onTouchEvent' "$SRC/statusbar/StatusBarSleep.kt"
+grep -q 'goToSleep' "$SRC/lock/SystemUiScreenLocker.kt"
+! grep -q 'ProcessBuilder' "$SRC/lock/SystemUiScreenLocker.kt"
+grep -q 'Bridge.STATUS_BAR_SLEEP' "$SRC/feature/statusbar/StatusBarSleepFeature.kt"
+
+# The feature is its own preference change listener. SharedPreferences holds a
+# listener weakly, and a field written but never read is removed by the
+# shrinker, so a lambda kept in one is collected at the next GC and the switch
+# silently stops reaching SystemUI. The feature outlives the process's GCs
+# because FeatureRegistry holds it.
+grep -q 'SharedPreferences.OnSharedPreferenceChangeListener' "$SRC/feature/statusbar/StatusBarSleepFeature.kt"
+grep -q 'override fun onSharedPreferenceChanged' "$SRC/feature/statusbar/StatusBarSleepFeature.kt"
+grep -q 'Bridge.ASK' "$SRC/statusbar/StatusBarSleep.kt"
+grep -q 'Bridge.ASK' "$SRC/feature/statusbar/StatusBarSleepFeature.kt"
+
+# One tap counter for both gestures, and both leave their point in the same
+# place for the reveal to find.
+! grep -q 'class DoubleTap' "$SRC/feature/gesture/DoubleTapToSleepFeature.kt"
+grep -q 'class DoubleTap' "$SRC/core/DoubleTap.kt"
+grep -q 'origin.remember' "$SRC/statusbar/StatusBarSleep.kt"
 
 # Wallpaper blur changes what the home state reports and lets the launcher draw
 # it, so the effect is the launcher's own and a deeper state deepens it rather
@@ -461,13 +520,12 @@ grep -q 'HomeWallpaperBlurFeature' "$SRC/hook/FeatureRegistry.kt"
 
 # The switch is in the launcher's own Home settings. The secure-settings key,
 # the Wallpaper & Style hook and the live-wallpaper render models stay gone, and
-# the module stays scoped to the launcher alone.
+# the wallpaper app is never scoped. The scope itself is pinned at the top.
 ! grep -rq 'pixel_launcher_evolved_home_blur_wallpaper' "$SRC"
 ! grep -rq 'magicportrait' "$SRC"
 ! grep -rq 'com.google.android.apps.wallpaper' "$SRC"
 [ ! -d "$SRC/feature/magicportrait" ]
-grep -q '^com.google.android.apps.nexuslauncher$' "$META/scope.list"
-[ "$(wc -l < "$META/scope.list")" -eq 1 ]
+! grep -q 'wallpaper' "$META/scope.list"
 
 # Pages are assigned from Home settings, by number. The launcher's long press
 # menu is a Compose dialog in classes its shrinker renames, so there is no view
@@ -546,8 +604,8 @@ grep -q 'moduleApplicationInfo.packageName' "$SRC/feature/focus/FocusHomeFeature
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.1.0"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 11' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.1.1"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 12' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"

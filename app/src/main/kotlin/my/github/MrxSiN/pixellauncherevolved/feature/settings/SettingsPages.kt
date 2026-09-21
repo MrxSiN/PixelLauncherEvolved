@@ -57,7 +57,14 @@ internal object SettingsPages {
                 R.string.settings_group_pages,
                 listOf(OrganizePagesRow, ToggleRow(FeatureCatalog.FOCUS_HOME_SCREENS, CompatibilityFeature.FOCUS_HOME_SCREENS), FocusPagesRow),
             ),
-            SettingsGroup(R.string.settings_group_gestures, listOf(ToggleRow(FeatureCatalog.DOUBLE_TAP_TO_SLEEP, CompatibilityFeature.DOUBLE_TAP_TO_SLEEP))),
+            SettingsGroup(
+                R.string.settings_group_gestures,
+                listOf(
+                    ToggleRow(FeatureCatalog.DOUBLE_TAP_TO_SLEEP, CompatibilityFeature.DOUBLE_TAP_TO_SLEEP),
+                    // Watched in SystemUI, so no launcher member greys it out.
+                    ToggleRow(FeatureCatalog.STATUS_BAR_DOUBLE_TAP_TO_SLEEP),
+                ),
+            ),
             SettingsGroup(R.string.settings_group_search, listOf(PageLinkRow(SEARCH_BAR))),
         ),
     )
@@ -113,8 +120,8 @@ internal object SettingsPages {
         titleRes = R.string.settings_page_advanced,
         summaryRes = R.string.settings_page_advanced_summary,
         groups = listOf(
-            SettingsGroup(null, listOf(RestartRow, PageLinkRow(DIAGNOSTICS))),
             SettingsGroup(R.string.settings_group_backup, listOf(BackupRows)),
+            SettingsGroup(R.string.settings_group_launcher, listOf(RestartRow, PageLinkRow(DIAGNOSTICS))),
         ),
     )
 

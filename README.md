@@ -68,7 +68,8 @@ running launcher on the next frame.
 | Pages & layout | **Organize home screens** | Reorder and manage your Home screen pages. Every page on one screen, including pages a Mode hides, marked with that Mode. Touch and hold a page, then drag it into place; the order is saved when you leave. The first page keeps At a Glance, so it stays first. | — |
 | Pages & layout | **Modes home screens** | Gives home screen pages to one of the device's Modes — Bedtime, Driving, Sleeping, whatever you have. While that Mode is on, only its pages show; when it ends, the ordinary pages come back. | ✅ |
 | Pages & layout | **Modes pages** | Choose which pages each Mode shows, from live previews of each page. | ✅ |
-| Gestures | **Double tap to sleep** | Two taps on an empty spot turn the screen off. | ✅ |
+| Gestures | **Double tap to sleep** | Two taps on an empty spot turn the screen off, closing the screen around the spot you tapped. | ✅ |
+| Gestures | **Double tap status bar to sleep** | The same, from two taps on the status bar. Watched in SystemUI, so it needs no root. | ✅ |
 | Search | **Home screen search bar** | A page of its own. **Search bar opens app search** makes the home search bar open the app drawer with its search box focused, instead of the Google app. The bar's own buttons keep their actions. | — |
 
 <table>
@@ -250,7 +251,7 @@ does not assume they stayed put.
 | **Launcher** | Pixel Launcher (`com.google.android.apps.nexuslauncher`), tested on `versionCode` 907 |
 | **Device** | Pixel (tested on Pixel 8 Pro) |
 | **Framework** | [Vector](https://github.com/JingMatrix/Vector) v2.2+, or any framework implementing libxposed API 101+ |
-| **Root** | Required for Double tap to sleep and Modes home screens |
+| **Root** | Required for Double tap to sleep and Modes home screens. Double tap status bar to sleep needs none |
 
 Built against the modern [libxposed API](https://github.com/libxposed/api)
 (`io.github.libxposed:api`), not the legacy `de.robv.android.xposed` bridge.
@@ -265,8 +266,10 @@ Built against the modern [libxposed API](https://github.com/libxposed/api)
 5. Long press home → Home settings → Pixel Launcher Evolved
 ```
 
-The module declares a **static scope**, so there is nothing to pick. It has no icon in the app
-drawer and no screen of its own. Settings stored by earlier versions are carried across.
+The module declares a **static scope**, so there is nothing to pick: the Pixel Launcher, and
+SystemUI for the one thing the launcher cannot draw — the screen off that Double tap to sleep
+asks for, opened around the spot you tapped. It has no icon in the app drawer and no screen of
+its own. Settings stored by earlier versions are carried across.
 
 Updating needs no force-stop: after a new build is installed, the launcher restarts itself the
 next time the screen goes off.
