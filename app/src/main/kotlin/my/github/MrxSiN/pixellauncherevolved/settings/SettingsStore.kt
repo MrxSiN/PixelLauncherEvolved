@@ -27,7 +27,16 @@ interface SettingsStore : SettingsSource {
  */
 class SharedPreferencesStore(
     private val preferences: SharedPreferences,
-) : SettingsStore, SettingsSource by SharedPreferencesSettings(preferences) {
+) : SettingsStore {
+
+    override fun get(setting: BoolSetting): Boolean =
+        runCatching { preferences.getBoolean(setting.key, setting.default) }
+            .getOrDefault(setting.default)
+
+    override fun get(setting: IntSetting): Int =
+        runCatching { preferences.getInt(setting.key, setting.default) }
+            .getOrDefault(setting.default)
+            .coerceIn(setting.range)
 
     override fun put(setting: BoolSetting, value: Boolean) {
         preferences.edit().putBoolean(setting.key, value).apply()

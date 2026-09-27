@@ -70,7 +70,7 @@ class TaskbarOnlyFeature : ToggleFeature(Settings.TASKBAR_ONLY) {
 private class TaskbarPresence(private val context: FeatureContext) {
 
     fun install() {
-        val factory = requireNotNull(DeviceProfiles.propertiesFactory(context))
+        val factory = requireNotNull(context.findClass(DeviceProfiles.PROPERTIES_FACTORY))
         val properties = requireNotNull(
             context.findClass("com.android.launcher3.deviceprofile.DeviceProperties"),
         )
@@ -132,7 +132,7 @@ private class HotseatHandoff(private val context: FeatureContext) {
     private var launcherProfile: java.lang.ref.WeakReference<Any>? = null
 
     fun install() {
-        val profile = requireNotNull(DeviceProfiles.profile(context))
+        val profile = requireNotNull(context.findClass(DeviceProfiles.PROFILE))
         val stateController = requireNotNull(
             context.findClass("com.android.launcher3.taskbar.TaskbarLauncherStateController"),
         )
@@ -182,7 +182,7 @@ private class HotseatHandoff(private val context: FeatureContext) {
 private class TaskbarIconCount(private val context: FeatureContext) {
 
     fun install() {
-        val profile = requireNotNull(DeviceProfiles.profile(context))
+        val profile = requireNotNull(context.findClass(DeviceProfiles.PROFILE))
         val taskbarView = requireNotNull(context.findClass("com.android.launcher3.taskbar.TaskbarView"))
         val activityContext = requireNotNull(
             context.findClass("com.android.launcher3.taskbar.TaskbarActivityContext"),

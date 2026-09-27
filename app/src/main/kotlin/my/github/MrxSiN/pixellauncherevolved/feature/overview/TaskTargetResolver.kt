@@ -13,26 +13,20 @@ import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble.BubbleTarget
 
-/** Turns an Overview task card into the application it represents. */
-interface TaskTargetResolver {
-
-    /** Returns null when the card has no bubbleable application. */
-    fun resolve(taskView: View): BubbleTarget?
-}
-
 /**
- * Reads the recorded task of a `com.android.quickstep.views.TaskView`.
+ * Turns an Overview task card into the application it represents, or null when
+ * the card has none that can be bubbled. Reads the recorded task of a `com.android.quickstep.views.TaskView`.
  *
  * A task keeps the intent that started it, which is exactly what the shell
  * needs to re-open the application inside a bubble. Resolution runs on every
  * layout pass, so the reflective members are looked up once and reused.
  */
-class TaskViewTargetResolver(private val logger: Logger) : TaskTargetResolver {
+class TaskViewTargetResolver(private val logger: Logger) {
 
     private val firstTaskMethods = HashMap<Class<*>, Method>()
     private val fields = HashMap<String, Field>()
 
-    override fun resolve(taskView: View): BubbleTarget? = try {
+    fun resolve(taskView: View): BubbleTarget? = try {
         val task = firstTask(taskView)
         val key = task?.let { field(it, "key").get(it) }
         val baseIntent = key?.let { field(it, "baseIntent").get(it) as Intent? }

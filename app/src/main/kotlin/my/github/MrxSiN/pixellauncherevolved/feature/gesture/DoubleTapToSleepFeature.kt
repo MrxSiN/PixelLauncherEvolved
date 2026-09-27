@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.gesture
 
+import android.content.Intent
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 
@@ -7,6 +8,7 @@ import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
+import my.github.MrxSiN.pixellauncherevolved.bridge.Bridge
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.DoubleTap
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
@@ -14,7 +16,6 @@ import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 import my.github.MrxSiN.pixellauncherevolved.lock.ScreenLock
-import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealAnnouncer
 import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealScrim
 
 /**
@@ -66,7 +67,6 @@ class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP)
         }
 
         val screen = ScreenOff(context)
-        val reveal = SleepRevealAnnouncer(context.appContext, context.logger)
         val taps = DoubleTap(ViewConfiguration.get(context.appContext))
 
         context.hookAfter(
@@ -88,7 +88,14 @@ class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP)
 
             if (taps.isSecond(event)) {
                 // Announced first: the reveal is drawn by the time root answers.
-                reveal.announce(event.rawX.toInt(), event.rawY.toInt())
+                // Where the gesture was taken, for SystemUI's reveal. Not waited on:
+                // the root shell turning the screen off is far slower than the broadcast.
+                val where = Intent(Bridge.SLEEP_FROM)
+                    .setPackage(Bridge.SYSTEM_UI_PACKAGE)
+                    .putExtra(Bridge.EXTRA_X, event.rawX.toInt())
+                    .putExtra(Bridge.EXTRA_Y, event.rawY.toInt())
+                runCatching { context.appContext.sendBroadcast(where) }
+                    .onFailure { context.logger.warn("SystemUI was not told where the screen off began", it) }
                 screen.off()
             }
         }

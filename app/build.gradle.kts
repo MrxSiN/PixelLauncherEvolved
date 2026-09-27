@@ -102,10 +102,10 @@ dependencies {
     compileOnly(libs.libxposed.api)
     compileOnly(project(":stubs"))
 
-    // The only runtime dependency left. The settings rows are built from the
-    // launcher's own androidx.preference classes by reflection, and the page
-    // previews are drawn with plain views, so nothing else is packaged.
-    implementation(libs.androidx.core.ktx)
+    // Annotations only. The settings rows are built from the launcher's own
+    // androidx.preference classes by reflection, and the page previews are
+    // drawn with plain views, so DexKit is the only packaged library.
+    compileOnly(libs.androidx.annotation)
     implementation(libs.dexkit)
 
     testImplementation(libs.junit)

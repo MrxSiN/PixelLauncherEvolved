@@ -1,6 +1,5 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.layout
 
-import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 
 /**
  * Where the launcher decides what kind of device it is laying out for.
@@ -31,11 +30,4 @@ internal object DeviceProfiles {
 
     const val BUILD = "build"
     const val CREATE_PROPERTIES = "createDeviceProperties"
-
-    fun profile(context: FeatureContext): Class<*>? = context.findClass(PROFILE)
-
-    fun builder(context: FeatureContext): Class<*>? = context.findClass(BUILDER)
-
-    fun propertiesFactory(context: FeatureContext): Class<*>? =
-        context.findClass(PROPERTIES_FACTORY)
 }

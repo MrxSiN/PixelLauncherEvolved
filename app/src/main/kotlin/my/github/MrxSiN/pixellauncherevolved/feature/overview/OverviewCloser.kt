@@ -8,21 +8,9 @@ import java.lang.reflect.Method
 import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 
-/** Takes the Overview screen out of the way before another surface appears. */
-interface OverviewCloser {
-
-    /**
-     * Restores whatever Overview was opened over, then runs [afterClosed].
-     *
-     * That is the app the user came from when Overview was entered from one,
-     * and the home screen otherwise. Implementations must run the callback
-     * exactly once, including when there is nothing to close.
-     */
-    fun close(taskView: View, afterClosed: Runnable)
-}
-
 /**
- * Puts Overview away through the launcher's own transitions.
+ * Puts Overview away through the launcher's own transitions, then runs the
+ * callback exactly once, including when there is nothing to close.
  *
  * A bubble raised while Overview is still up ends up behind it, so Overview has
  * to settle first. What it settles onto should be whatever the user was looking
@@ -34,9 +22,9 @@ interface OverviewCloser {
  * task card that answers to them, which keeps this free of launcher class names
  * and covers `LauncherRecentsView` as well as the fallback surfaces.
  */
-class RecentsViewOverviewCloser(private val logger: Logger) : OverviewCloser {
+class RecentsViewOverviewCloser(private val logger: Logger) {
 
-    override fun close(taskView: View, afterClosed: Runnable) {
+    fun close(taskView: View, afterClosed: Runnable) {
         val recentsView = findRecentsView(taskView)
 
         if (recentsView != null &&

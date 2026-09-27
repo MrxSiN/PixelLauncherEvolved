@@ -14,4 +14,4 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 org-json = { group = "org.json", name = "json", version = "20250517" }
 
 dexkit = { group = "org.luckypray", name = "dexkit", version.ref = "dexkit" }
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.19.0" }
+androidx-annotation = { group = "androidx.annotation", name = "annotation", version = "1.9.1" }

@@ -200,15 +200,15 @@ grep -q '"isLargeScreen"' "$SRC/feature/layout/TabletModeFeature.kt"
 grep -q 'com.android.launcher3.deviceprofile.DeviceProperties' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 grep -q 'taskbarConfiguration' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 grep -q 'isTaskbarPresent' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
-grep -q 'DeviceProfiles.propertiesFactory' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+grep -q 'DeviceProfiles.PROPERTIES_FACTORY' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 ! grep -q 'deoptimize' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 
 # The device profile classes are named once: CP2A nested the builder inside
 # DeviceProfile and CP3A gave it a class of its own, and both layout features
 # read the profile through the same place.
 grep -q 'com.android.launcher3.deviceprofile.DeviceProfileBuilder' "$SRC/feature/layout/DeviceProfiles.kt"
-grep -q 'DeviceProfiles.builder' "$SRC/feature/layout/OverviewOnlyFeature.kt"
-grep -q 'DeviceProfiles.profile' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+grep -q 'DeviceProfiles.BUILDER' "$SRC/feature/layout/OverviewOnlyFeature.kt"
+grep -q 'DeviceProfiles.PROFILE' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 ! grep -rq 'DeviceProfile..Builder"' "$SRC"
 
 # The taskbar aligns onto a hotseat the launcher's own profile lays out, so the
@@ -463,7 +463,7 @@ grep -q 'class IntSetting' "$SRC/catalog/Setting.kt"
 grep -q 'HOME_BLUR_STRENGTH' "$SRC/catalog/Settings.kt"
 grep -q 'fun depthFor' "$SRC/wallpaper/HomeBlurDepth.kt"
 grep -q 'FULL_DEPTH' "$SRC/wallpaper/HomeBlurDepth.kt"
-grep -q 'coerceIn(setting.range)' "$SRC/settings/SharedPreferencesSettings.kt"
+grep -q 'coerceIn(setting.range)' "$SRC/settings/SettingsStore.kt"
 
 # The slider row is greyed out with the switch above it rather than hidden, and
 # every member of the launcher's SeekBarPreference is renamed, so its bounds are

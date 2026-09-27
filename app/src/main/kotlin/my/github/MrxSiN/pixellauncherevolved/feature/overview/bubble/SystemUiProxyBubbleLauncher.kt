@@ -21,7 +21,7 @@ import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 class SystemUiProxyBubbleLauncher(
     private val classLoader: ClassLoader,
     private val logger: Logger,
-) : BubbleLauncher {
+) {
 
     private class Binding(
         val singleton: Field,
@@ -33,7 +33,8 @@ class SystemUiProxyBubbleLauncher(
     private var resolved = false
     private var binding: Binding? = null
 
-    override fun launch(context: Context, target: BubbleTarget): Boolean {
+    /** Returns true when the request reached the shell. */
+    fun launch(context: Context, target: BubbleTarget): Boolean {
         val binding = binding() ?: return false
 
         return try {

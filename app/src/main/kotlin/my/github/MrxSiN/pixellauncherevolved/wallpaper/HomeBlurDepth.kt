@@ -42,9 +42,6 @@ class HomeBlurDepth {
     @Volatile
     var strength: Int = DEFAULT_STRENGTH
 
-    /** The blur radius home rests at, for a launcher whose deepest is [maxRadius]. */
-    fun radiusForHome(maxRadius: Int): Float = radiusFor(strength, maxRadius)
-
     /**
      * The depth the home state reports, for the [asked] one it reports itself.
      *
@@ -85,16 +82,5 @@ class HomeBlurDepth {
         /** [strength] as a share of [FULL_DEPTH]. */
         fun depthFor(strength: Int): Float =
             FULL_DEPTH * strength.coerceIn(0, 100) / 100f
-
-        /**
-         * The same depth as a blur radius, for a launcher whose deepest blur is
-         * [maxRadius] pixels.
-         *
-         * `mapDepthToBlur` scales linearly to the full radius at [FULL_DEPTH],
-         * and a strength is a share of that depth, so a strength is the same
-         * share of the radius.
-         */
-        fun radiusFor(strength: Int, maxRadius: Int): Float =
-            maxRadius * strength.coerceIn(0, 100) / 100f
     }
 }

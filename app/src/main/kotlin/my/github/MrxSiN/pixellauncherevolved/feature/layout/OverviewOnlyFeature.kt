@@ -153,8 +153,8 @@ private class GridOverviewProfiles(
 ) {
 
     fun install() {
-        val profile = requireNotNull(DeviceProfiles.profile(context))
-        val builder = requireNotNull(DeviceProfiles.builder(context))
+        val profile = requireNotNull(context.findClass(DeviceProfiles.PROFILE))
+        val builder = requireNotNull(context.findClass(DeviceProfiles.BUILDER))
         val propertiesOf = requireNotNull(Reflect.field(profile, "deviceProperties"))
         val overviewOf = requireNotNull(Reflect.field(profile, "overviewProfile"))
 
@@ -566,7 +566,7 @@ private class GridCardAppChip(private val context: FeatureContext) {
     /** Asks the launcher how big a full-height card is, and what a grid one is of it. */
     private class LargeTile(private val context: FeatureContext) {
 
-        private val profile = requireNotNull(DeviceProfiles.profile(context))
+        private val profile = requireNotNull(context.findClass(DeviceProfiles.PROFILE))
         private val overviewOf = requireNotNull(Reflect.field(profile, "overviewProfile"))
         private val rowSpacing = requireNotNull(
             Reflect.field(
@@ -733,7 +733,7 @@ private class PhoneActionRow(private val context: FeatureContext) {
         val actionsView = requireNotNull(
             context.findClass("com.android.quickstep.views.OverviewActionsView"),
         )
-        val profile = requireNotNull(DeviceProfiles.profile(context))
+        val profile = requireNotNull(context.findClass(DeviceProfiles.PROFILE))
 
         keepShown(actionsView)
         keepPlaced(actionsView, profile)

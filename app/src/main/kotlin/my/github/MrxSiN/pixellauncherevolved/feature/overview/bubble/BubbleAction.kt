@@ -3,14 +3,14 @@ package my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble
 import android.view.View
 
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
-import my.github.MrxSiN.pixellauncherevolved.feature.overview.OverviewCloser
-import my.github.MrxSiN.pixellauncherevolved.feature.overview.TaskTargetResolver
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.RecentsViewOverviewCloser
+import my.github.MrxSiN.pixellauncherevolved.feature.overview.TaskViewTargetResolver
 
 /** Reopens the app behind a task card as a floating bubble. */
 class BubbleAction(
-    private val targetResolver: TaskTargetResolver,
-    private val overviewCloser: OverviewCloser,
-    private val bubbleLauncher: BubbleLauncher,
+    private val targetResolver: TaskViewTargetResolver,
+    private val overviewCloser: RecentsViewOverviewCloser,
+    private val bubbleLauncher: SystemUiProxyBubbleLauncher,
     private val logger: Logger,
 ) {
 

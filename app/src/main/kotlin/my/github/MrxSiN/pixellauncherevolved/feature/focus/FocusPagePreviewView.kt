@@ -17,7 +17,6 @@ import android.text.TextPaint
 import android.text.TextUtils
 import android.view.View
 
-import androidx.core.graphics.withClip
 
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -159,18 +158,19 @@ internal class FocusPagePreviewView(
     private fun drawPage(canvas: Canvas, radius: Float) {
         clip.reset()
         clip.addRoundRect(page, radius, radius, Path.Direction.CW)
-        canvas.withClip(clip) {
-            val snapshot = preview.snapshot
-            if (snapshot != null) {
-                paint.color = Color.WHITE
-                drawBitmap(snapshot, null, page, paint)
-            } else {
-                drawWallpaper(this)
-                paint.color = Color.argb(32, 0, 0, 0)
-                drawRect(page, paint)
-                drawPageContents(this)
-            }
+        val saved = canvas.save()
+        canvas.clipPath(clip)
+        val snapshot = preview.snapshot
+        if (snapshot != null) {
+            paint.color = Color.WHITE
+            canvas.drawBitmap(snapshot, null, page, paint)
+        } else {
+            drawWallpaper(canvas)
+            paint.color = Color.argb(32, 0, 0, 0)
+            canvas.drawRect(page, paint)
+            drawPageContents(canvas)
         }
+        canvas.restoreToCount(saved)
     }
 
     /**
@@ -386,25 +386,26 @@ internal class FocusPagePreviewView(
         if (preview != null && preview.intrinsicWidth > 0 && preview.intrinsicHeight > 0) {
             clip.reset()
             clip.addRoundRect(widget, corner, corner, Path.Direction.CW)
-            canvas.withClip(clip) {
-                // Fitted rather than cropped, so whatever the widget is
-                // recognised by stays in the picture.
-                val scale = min(
-                    widget.width() / preview.intrinsicWidth,
-                    widget.height() / preview.intrinsicHeight,
-                )
-                val drawWidth = preview.intrinsicWidth * scale
-                val drawHeight = preview.intrinsicHeight * scale
-                val left = widget.centerX() - drawWidth / 2f
-                val top = widget.centerY() - drawHeight / 2f
-                preview.setBounds(
-                    left.roundToInt(),
-                    top.roundToInt(),
-                    (left + drawWidth).roundToInt(),
-                    (top + drawHeight).roundToInt(),
-                )
-                preview.draw(this)
-            }
+            val saved = canvas.save()
+            canvas.clipPath(clip)
+            // Fitted rather than cropped, so whatever the widget is
+            // recognised by stays in the picture.
+            val scale = min(
+                widget.width() / preview.intrinsicWidth,
+                widget.height() / preview.intrinsicHeight,
+            )
+            val drawWidth = preview.intrinsicWidth * scale
+            val drawHeight = preview.intrinsicHeight * scale
+            val left = widget.centerX() - drawWidth / 2f
+            val top = widget.centerY() - drawHeight / 2f
+            preview.setBounds(
+                left.roundToInt(),
+                top.roundToInt(),
+                (left + drawWidth).roundToInt(),
+                (top + drawHeight).roundToInt(),
+            )
+            preview.draw(canvas)
+            canvas.restoreToCount(saved)
             return
         }
 
