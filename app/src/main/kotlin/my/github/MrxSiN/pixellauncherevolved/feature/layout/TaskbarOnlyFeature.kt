@@ -80,7 +80,7 @@ private class TaskbarPresence(private val context: FeatureContext) {
         )
 
         val create = requireNotNull(
-            factory.declaredMethods.firstOrNull { it.name == DeviceProfiles.CREATE_PROPERTIES }
+            Reflect.declared(factory, DeviceProfiles.CREATE_PROPERTIES) { true }
                 ?.apply { isAccessible = true },
         )
 
@@ -136,7 +136,7 @@ private class HotseatHandoff(private val context: FeatureContext) {
         val stateController = requireNotNull(
             context.findClass("com.android.launcher3.taskbar.TaskbarLauncherStateController"),
         )
-        val offsetY = profile.getDeclaredMethod("getTaskbarOffsetY")
+        val offsetY = Reflect.declaredMethod(profile, "getTaskbarOffsetY")
         val launcherProfileOf = requireNotNull(Reflect.method(stateController, "getDeviceProfile"))
 
         context.xposed.hook(launcherProfileOf).intercept { chain ->
@@ -261,7 +261,7 @@ private class TaskbarRevealShape(private val context: FeatureContext) {
         val taskbarView = requireNotNull(context.findClass("com.android.launcher3.taskbar.TaskbarView"))
 
         val reveal = requireNotNull(
-            controller.declaredMethods.firstOrNull { it.name == "animateIconsForReveal" },
+            Reflect.declared(controller, "animateIconsForReveal") { true },
         ).apply { isAccessible = true }
         val bandHeightOf = requireNotNull(Reflect.field(controller, "mStashedHandleHeight"))
         val viewOf = requireNotNull(Reflect.field(controller, "mTaskbarView"))

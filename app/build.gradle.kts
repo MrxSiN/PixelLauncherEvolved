@@ -37,6 +37,7 @@ android {
         targetSdk = 37
         versionCode = 13
         versionName = appVersion
+        ndk { abiFilters += "arm64-v8a" }
     }
 
     buildTypes {
@@ -105,6 +106,7 @@ dependencies {
     // launcher's own androidx.preference classes by reflection, and the page
     // previews are drawn with plain views, so nothing else is packaged.
     implementation(libs.androidx.core.ktx)
+    implementation(libs.dexkit)
 
     testImplementation(libs.junit)
     testImplementation(libs.org.json)

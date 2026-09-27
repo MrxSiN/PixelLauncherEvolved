@@ -14,3 +14,10 @@ a circular badge under a long diagonal shadow — so the two sit together on a
 home screen, but it contains none of Google's marks. The Pixel Launcher's own
 icon is the Google "G", which is a Google trademark and is deliberately not
 reproduced here.
+
+## Third-party code
+
+The module packages [DexKit](https://github.com/LuckyPray/DexKit) (LGPL-3.0),
+with its native library `libdexkit.so`, and FlatBuffers for Java (Apache-2.0),
+which DexKit uses to pass queries. DexKit is only loaded after a launcher update
+has renamed or moved something the module looks up by name.

@@ -300,9 +300,7 @@ private class TaskbarRow private constructor(
                 runCatching { Reflect.field(launcherState, name)?.get(null) }.getOrNull()
             }
 
-            val applyState = controller.declaredMethods.firstOrNull {
-                it.name == "applyState" && it.parameterTypes.size == 2
-            } ?: return null
+            val applyState = Reflect.declared(controller, "applyState") { it.parameterTypes.size == 2 } ?: return null
 
             return TaskbarRow(
                 context = context,

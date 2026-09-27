@@ -4,6 +4,14 @@ Tested on a Pixel 8 Pro running Android 17 QPR1 (September 2026), build `CP3A.26
 Pixel Launcher `907`. A performance release: every tweak does what it did in v0.1.1, and your
 settings carry over untouched.
 
+### Survives launcher updates
+
+- When a Pixel Launcher update renames or moves something a tweak hooks, the module now finds it
+  again with [DexKit](https://github.com/LuckyPray/DexKit) instead of switching the tweak off. It
+  compares a fingerprint recorded from a launcher that worked, and only accepts a clear match.
+- This runs once after each launcher update, in the background, and never on a normal start, which
+  costs under a millisecond more.
+
 ### Faster
 
 - **Overview**: opening and closing Overview takes the launcher about 45% less main-thread time,

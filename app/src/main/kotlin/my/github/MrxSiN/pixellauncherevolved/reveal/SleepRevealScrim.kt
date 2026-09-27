@@ -11,7 +11,9 @@ import java.lang.reflect.Method
 import io.github.libxposed.api.XposedInterface
 
 import my.github.MrxSiN.pixellauncherevolved.bridge.Bridge
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
 /**
  * Draws this module's screen off around the point it was asked for, inside
@@ -127,12 +129,12 @@ class SleepRevealScrim(
     }
 
     private fun findClass(name: String): Class<*>? =
-        runCatching { Class.forName(name, false, classLoader) }
+        runCatching { Host.clsOrThrow(classLoader, name) }
             .onFailure { logger.warn("SystemUI does not have $name; the screen off keeps its own reveal", it) }
             .getOrNull()
 
     private fun method(owner: Class<*>, name: String, vararg types: Class<*>): Method? =
-        runCatching { owner.getDeclaredMethod(name, *types) }
+        runCatching { Reflect.declaredMethod(owner, name, *types) }
             .onFailure { logger.warn("SystemUI does not have ${owner.simpleName}.$name", it) }
             .getOrNull()
 

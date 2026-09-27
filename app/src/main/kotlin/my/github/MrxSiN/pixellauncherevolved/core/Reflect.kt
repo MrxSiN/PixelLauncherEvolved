@@ -10,7 +10,8 @@ import java.lang.reflect.Method
  * on a base class rather than on the type actually in hand, so neither
  * `getMethod` nor a single `getDeclaredMethod` is enough on its own. Both
  * lookups return null instead of throwing: a launcher update that renames one
- * member should disable one tweak, not crash the process it runs in.
+ * member should disable one tweak, not crash the process it runs in; a
+ * renamed member is matched by [Host] before giving up.
  */
 object Reflect {
 
@@ -26,7 +27,7 @@ object Reflect {
             current = current.superclass
         }
 
-        return null
+        return Host.method(type, name, parameterTypes, false)
     }
 
     fun field(type: Class<*>, name: String): Field? {
@@ -38,6 +39,26 @@ object Reflect {
             current = current.superclass
         }
 
-        return null
+        return Host.field(type, name)
+    }
+
+    /** [Class.getDeclaredMethod], or the method [Host] matched a missing name to. */
+    fun declaredMethod(type: Class<*>, name: String, vararg parameterTypes: Class<*>): Method = try {
+        type.getDeclaredMethod(name, *parameterTypes)
+    } catch (missing: NoSuchMethodException) {
+        Host.method(type, name, parameterTypes, true) ?: throw missing
+    }
+
+    /** [Class.getDeclaredField], accessible, or the field [Host] matched a missing name to. */
+    fun declaredField(type: Class<*>, name: String): Field = try {
+        type.getDeclaredField(name)
+    } catch (missing: NoSuchFieldException) {
+        Host.field(type, name)?.takeIf { it.declaringClass == type } ?: throw missing
+    }.apply { isAccessible = true }
+
+    /** The first method [type] declares under [name], or the name [Host] matched it to, that passes [test]. */
+    inline fun declared(type: Class<*>, name: String, test: (Method) -> Boolean): Method? {
+        val current = Host.name(type, name)
+        return type.declaredMethods.firstOrNull { it.name == current && test(it) }
     }
 }

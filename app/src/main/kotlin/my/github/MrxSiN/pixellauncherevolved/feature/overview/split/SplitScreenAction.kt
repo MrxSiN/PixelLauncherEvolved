@@ -3,6 +3,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.overview.split
 import android.content.Context
 import android.view.View
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
@@ -68,8 +69,9 @@ class SplitScreenAction(private val logger: Logger) {
     private fun start(recentsView: Any, container: Any, context: Context): Boolean {
         val stagePosition = stagePosition(recentsView, context)
 
+        val initiate = Host.name(recentsView.javaClass, INITIATE_SPLIT_SELECT)
         val method = recentsView.javaClass.methods.firstOrNull { candidate ->
-            candidate.name == INITIATE_SPLIT_SELECT &&
+            candidate.name == initiate &&
                 candidate.parameterTypes.size == (if (stagePosition == null) 1 else 3) &&
                 candidate.parameterTypes[0].isInstance(container)
         }
@@ -100,8 +102,9 @@ class SplitScreenAction(private val logger: Logger) {
             ?: return null
 
         val profile = deviceProfile(context) ?: return null
+        val getOption = Host.name(handler.javaClass, GET_SPLIT_POSITION_OPTION)
         val option = handler.javaClass.methods
-            .firstOrNull { it.name == GET_SPLIT_POSITION_OPTION && it.parameterTypes.size == 1 }
+            .firstOrNull { it.name == getOption && it.parameterTypes.size == 1 }
             ?.invoke(handler, profile)
             ?: return null
 
@@ -109,7 +112,7 @@ class SplitScreenAction(private val logger: Logger) {
     }.getOrNull()
 
     private fun deviceProfile(context: Context): Any? = runCatching {
-        val containerType = Class.forName(CONTAINER_CLASS, false, context.classLoader)
+        val containerType = Host.clsOrThrow(context.classLoader, CONTAINER_CLASS)
         val container = Reflect.method(containerType, CONTAINER_FROM_CONTEXT, Context::class.java)
             ?.invoke(null, context)
             ?: return null
@@ -128,7 +131,7 @@ class SplitScreenAction(private val logger: Logger) {
         val name = if (stagePosition == STAGE_TOP_OR_LEFT) EVENT_LEFT_TOP else EVENT_RIGHT_BOTTOM
 
         @Suppress("UNCHECKED_CAST")
-        val type = Class.forName(LAUNCHER_EVENT_CLASS, false, context.classLoader)
+        val type = Host.clsOrThrow(context.classLoader, LAUNCHER_EVENT_CLASS)
             as Class<out Enum<*>>
 
         type.enumConstants?.firstOrNull { it.name == name }

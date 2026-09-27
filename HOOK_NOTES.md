@@ -36,6 +36,37 @@ moved, and each is noted again where it appears.
 `string/recents_clear_all`, `drawable/ic_remove_task_option` and
 `dimen/overview_actions_button_spacing` are all still there.
 
+## Surviving an update
+
+Every class, method and field is still looked up by the name written in the
+sources. `core/Host.java` only steps in after a name misses:
+
+1. `host.map` (in the launcher's device protected data, `ple_host/`) holds the
+   answer for this launcher build and module build: the current name, or none.
+   A normal start reads this one small file and nothing else.
+2. An unanswered miss is matched by `core/HostDex.java` with DexKit against
+   `host.db`, the fingerprints recorded from the last build where the name
+   resolved (or `ple/<package>.db` shipped in the module, recorded from
+   `CP3A.260905.009`). A match needs the same static-ness and types, must score
+   at least 0.25 on strings, calls, callers and fields used, and must lead the
+   runner-up by 0.1 and 1.5 times; otherwise the lookup stays missing and the
+   tweak reports itself unavailable as before.
+3. The first start of each new launcher build records fresh fingerprints on a
+   background thread (about 0.3 to 0.6 s once) for every class listed in
+   `ple/host.syms`, their launcher superclasses and members the sources name.
+   Regenerate that list with `python scripts/host-symbols.py` after adding a
+   lookup.
+
+A method whose signature changed, or that the shrinker inlined, still cannot be
+found this way; that needs a code change, as before.
+
+To check the matcher on a device, create the file `ple_host/selftest` in the
+launcher's device protected data and restart the launcher. It pretends every
+fingerprinted member and class was renamed, with no drift and with a quarter and
+half of each fingerprint dropped, and logs how many it found, got wrong or
+missed. On `CP3A.260905.009`: members 400 / 313 / 183 found and classes
+93 / 90 / 86 of 95, none wrong at any level.
+
 ## The bubble entry point
 
 The launcher reaches the shell's bubble controller through its own proxy:

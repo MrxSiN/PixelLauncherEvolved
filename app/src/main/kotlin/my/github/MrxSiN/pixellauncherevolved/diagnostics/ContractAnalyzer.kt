@@ -7,9 +7,13 @@ package my.github.MrxSiN.pixellauncherevolved.diagnostics
  * because that is how the tweaks themselves look members up: a member the
  * launcher declares privately on a base class is one a tweak can reach.
  *
+ * @param rename whether a member missing by name is found under another one.
  * @param load the launcher's class by binary name, or null when it has none.
  */
-class ContractAnalyzer(private val load: (String) -> Class<*>?) {
+class ContractAnalyzer(
+    private val rename: (Class<*>, Member) -> Boolean = { _, _ -> false },
+    private val load: (String) -> Class<*>?,
+) {
 
     fun analyze(contracts: List<LauncherContract>): ContractReport =
         ContractReport(contracts.map(::check))
@@ -33,7 +37,7 @@ class ContractAnalyzer(private val load: (String) -> Class<*>?) {
         val type = load(signature.owner) ?: return false
         val member = signature.member ?: return true
 
-        return runCatching { hierarchy(type).any { declares(it, member) } }.getOrDefault(false)
+        return runCatching { hierarchy(type).any { declares(it, member) } || rename(type, member) }.getOrDefault(false)
     }
 
     private fun declares(type: Class<*>, member: Member): Boolean = when (member) {

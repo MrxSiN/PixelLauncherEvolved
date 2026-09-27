@@ -9,6 +9,7 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.core.AndroidLogger
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.hook.ApplicationStartup
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
@@ -65,6 +66,7 @@ class PixelLauncherEvolvedModule : XposedModule() {
     }
 
     private fun installLauncher(application: Application, classLoader: ClassLoader, logger: Logger) {
+        Host.init(application, classLoader, moduleApplicationInfo.sourceDir, logger)
         val restarter = LauncherRestarter(application, logger)
         restarter.watchModule(moduleApplicationInfo.packageName, moduleApplicationInfo.sourceDir)
         SettingsStorageMove(application, logger).apply {
@@ -90,6 +92,7 @@ class PixelLauncherEvolvedModule : XposedModule() {
                 logger = logger,
             ),
         )
+        Host.settle()
     }
 
     /**
@@ -97,10 +100,12 @@ class PixelLauncherEvolvedModule : XposedModule() {
      * leaves the spot it was taken at, and the reveal draws around it.
      */
     private fun installSystemUi(application: Application, classLoader: ClassLoader, logger: Logger) {
+        Host.init(application, classLoader, moduleApplicationInfo.sourceDir, logger)
         val origin = SleepRevealOrigin(now = SystemClock::uptimeMillis)
 
         SleepRevealScrim(this, classLoader, application, logger, origin).install()
         StatusBarSleep(this, classLoader, application, logger, origin).install()
+        Host.settle()
     }
 
     /**

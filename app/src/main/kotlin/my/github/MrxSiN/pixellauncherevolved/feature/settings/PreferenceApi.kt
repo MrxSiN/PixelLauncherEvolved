@@ -5,6 +5,7 @@ import android.util.AttributeSet
 
 import java.lang.reflect.Proxy
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
 /**
@@ -363,7 +364,7 @@ class PreferenceApi(classLoader: ClassLoader) {
     private companion object {
 
         fun load(classLoader: ClassLoader, name: String): Class<*>? =
-            runCatching { Class.forName(name, false, classLoader) }.getOrNull()
+            Host.cls(classLoader, name)
 
         /**
          * `RecyclerView.ViewHolder.itemView`, found by type.

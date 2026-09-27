@@ -5,3 +5,6 @@
 *.jar binary
 *.png binary
 *.webp binary
+
+# Recorded fingerprints: keep bytes exact.
+app/src/main/resources/ple/*.db binary

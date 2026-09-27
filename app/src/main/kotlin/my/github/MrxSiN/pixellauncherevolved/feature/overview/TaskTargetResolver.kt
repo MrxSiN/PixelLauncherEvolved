@@ -10,6 +10,7 @@ import java.lang.reflect.Method
 
 import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble.BubbleTarget
 
 /** Turns an Overview task card into the application it represents. */
@@ -53,7 +54,7 @@ class TaskViewTargetResolver(private val logger: Logger) : TaskTargetResolver {
         val method = synchronized(firstTaskMethods) {
             firstTaskMethods.getOrPut(taskView.javaClass) {
                 // Declared on TaskView but reached through its subclasses too.
-                taskView.javaClass.getMethod("getFirstTask")
+                requireNotNull(Reflect.method(taskView.javaClass, "getFirstTask"))
             }
         }
         return Invoke.noArgs(method, taskView)
@@ -61,7 +62,7 @@ class TaskViewTargetResolver(private val logger: Logger) : TaskTargetResolver {
 
     private fun field(owner: Any, name: String): Field = synchronized(fields) {
         fields.getOrPut("${owner.javaClass.name}#$name") {
-            owner.javaClass.getDeclaredField(name).apply { isAccessible = true }
+            Reflect.declaredField(owner.javaClass, name)
         }
     }
 

@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import java.lang.ref.WeakReference
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings as Tweaks
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
@@ -149,16 +150,19 @@ private class TaskbarWindow(private val context: FeatureContext) {
             context.findClass("com.android.quickstep.RecentsAnimationCallbacks"),
         )
 
+        val start = Host.name(callbacks, "onAnimationStart")
+        val canceled = Host.name(callbacks, "onAnimationCanceled")
+        val finished = Host.name(callbacks, "onAnimationFinished")
         for (method in callbacks.declaredMethods) {
             when (method.name) {
-                "onAnimationStart" -> context.xposed.hook(method).intercept { chain ->
+                start -> context.xposed.hook(method).intercept { chain ->
                     hide()
                     chain.proceed()
                 }
 
                 // Whatever else happens, the window is the launcher's again by
                 // the time the animation it belonged to is over.
-                "onAnimationCanceled", "onAnimationFinished" ->
+                canceled, finished ->
                     context.xposed.hook(method).intercept { chain ->
                         show()
                         chain.proceed()
@@ -222,9 +226,7 @@ private class TaskbarWindow(private val context: FeatureContext) {
         val stateFlags = Reflect.field(controller, "mState")
         val isInLauncher = Reflect.method(controller, "isInLauncher", Int::class.javaPrimitiveType!!)
 
-        val applyState = controller.declaredMethods.firstOrNull {
-            it.name == "applyState" && it.parameterTypes.size == 2
-        }
+        val applyState = Reflect.declared(controller, "applyState") { it.parameterTypes.size == 2 }
 
         if (applyState == null) {
             context.logger.warn("Taskbar transitions cannot be followed; leaving the taskbar alone")

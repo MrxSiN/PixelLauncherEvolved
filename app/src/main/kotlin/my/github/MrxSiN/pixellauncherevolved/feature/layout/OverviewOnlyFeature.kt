@@ -158,7 +158,7 @@ private class GridOverviewProfiles(
         val propertiesOf = requireNotNull(Reflect.field(profile, "deviceProperties"))
         val overviewOf = requireNotNull(Reflect.field(profile, "overviewProfile"))
 
-        context.xposed.hook(builder.getDeclaredMethod(DeviceProfiles.BUILD)).intercept { chain ->
+        context.xposed.hook(Reflect.declaredMethod(builder, DeviceProfiles.BUILD)).intercept { chain ->
             chain.proceed()?.also { built ->
                 runCatching {
                     metrics.applyTo(overviewOf.get(built))

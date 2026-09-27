@@ -12,7 +12,9 @@ import java.lang.reflect.Method
 import java.util.concurrent.Executor
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPlan
@@ -56,8 +58,8 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         val intArray = context.findClass(INT_ARRAY)
         val itemInfo = context.findClass(ITEM_INFO)
 
-        val bindScreens = callbacks?.declaredMethods?.firstOrNull {
-            it.name == BIND_SCREENS && it.parameterTypes.size == 1 && it.parameterTypes[0] == intArray
+        val bindScreens = callbacks?.let {
+            Reflect.declared(it, BIND_SCREENS) { m -> m.parameterTypes.size == 1 && m.parameterTypes[0] == intArray }
         }
         val wrap = intArray?.method(WRAP, IntArray::class.java)
         val toArray = intArray?.method(TO_ARRAY)
@@ -290,9 +292,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         container: Field,
         focus: FocusHome,
     ) {
-        val bindItems = callbacks.declaredMethods.firstOrNull {
-            it.name == BIND_ITEMS && it.parameterTypes.size == 2
-        }
+        val bindItems = Reflect.declared(callbacks, BIND_ITEMS) { it.parameterTypes.size == 2 }
 
         if (bindItems == null) {
             context.logger.warn("The launcher's item binding is unavailable; a hidden page may keep its icons")
@@ -326,9 +326,10 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
      * left an icon with nowhere to land.
      */
     private fun hideEmptyPages(context: FeatureContext, focus: FocusHome) {
-        val insert = context.findClass(WORKSPACE)?.declaredMethods?.firstOrNull {
-            it.name == INSERT_SCREEN && it.parameterTypes.size == 2 &&
-                it.parameterTypes.all { type -> type == Int::class.javaPrimitiveType }
+        val insert = context.findClass(WORKSPACE)?.let { workspace ->
+            Reflect.declared(workspace, INSERT_SCREEN) {
+                it.parameterTypes.size == 2 && it.parameterTypes.all { type -> type == Int::class.javaPrimitiveType }
+            }
         }
 
         if (insert == null) {
@@ -364,8 +365,8 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
      * ```
      */
     private fun keepNewAppsOffModePages(context: FeatureContext, focus: FocusHome) {
-        val finder = context.findClass(SPACE_FINDER)?.declaredMethods?.firstOrNull {
-            it.name == FIND_SPACE && it.parameterTypes.size == 5 && it.parameterTypes[3].name == INT_SET
+        val finder = context.findClass(SPACE_FINDER)?.let { spaceFinder ->
+            Reflect.declared(spaceFinder, FIND_SPACE) { it.parameterTypes.size == 5 && it.parameterTypes[3].name == INT_SET }
         }
         val add = context.findClass(INT_SET)?.method(ADD, Int::class.javaPrimitiveType!!)
         if (finder == null || add == null) {
@@ -486,9 +487,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         workspace: Class<*>,
         reveal: FocusPageReveal,
     ) {
-        val bindingEnd = workspace.declaredMethods.firstOrNull {
-            it.name == REMOVE_EXTRA_EMPTY_SCREEN_DELAYED && it.parameterTypes.size == 3
-        }
+        val bindingEnd = Reflect.declared(workspace, REMOVE_EXTRA_EMPTY_SCREEN_DELAYED) { it.parameterTypes.size == 3 }
         if (bindingEnd == null) {
             context.logger.warn("The launcher's binding completion is unavailable; Focus page reveal is disabled")
             return
@@ -518,9 +517,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         toArray: Method,
         focus: FocusHome,
     ) {
-        val commit = workspace.declaredMethods.firstOrNull {
-            it.name == COMMIT_EMPTY_SCREENS && it.parameterTypes.isEmpty()
-        }
+        val commit = Reflect.declared(workspace, COMMIT_EMPTY_SCREENS) { it.parameterTypes.isEmpty() }
         val screenOrder = workspace.field(SCREEN_ORDER)
         if (commit == null || screenOrder == null) {
             context.logger.warn("The launcher's page commit is unavailable; new pages need a reload to appear in Focus pages")
@@ -547,8 +544,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         val activity = current?.get() ?: return false
         val launcherModel = model.get(activity) ?: return false
 
-        launcherModel.javaClass
-            .getMethod(FORCE_RELOAD, String::class.java)
+        requireNotNull(Reflect.method(launcherModel.javaClass, FORCE_RELOAD, String::class.java))
             .invoke(launcherModel, RELOAD_REASON)
         true
     }
@@ -558,10 +554,12 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
     private fun Class<*>.method(name: String, vararg types: Class<*>): Method? =
         runCatching { getMethod(name, *types) }.getOrNull()
             ?: runCatching { getDeclaredMethod(name, *types) }.getOrNull()
+            ?: Host.method(this, name, types, false)
 
     private fun Class<*>.field(name: String): Field? =
         runCatching { getField(name) }.getOrNull()
             ?: runCatching { getDeclaredField(name).apply { isAccessible = true } }.getOrNull()
+            ?: Host.field(this, name)
 
     private companion object {
         const val MODEL_CALLBACKS = "com.android.launcher3.ModelCallbacks"

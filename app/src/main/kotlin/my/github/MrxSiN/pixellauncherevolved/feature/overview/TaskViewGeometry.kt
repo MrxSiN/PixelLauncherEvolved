@@ -4,6 +4,7 @@ import android.graphics.Rect
 import android.view.View
 
 import java.lang.reflect.Method
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
 /**
  * Reports the thumbnail area of an Overview task card.
@@ -23,7 +24,7 @@ class TaskViewGeometry {
         runCatching {
             val method = synchronized(methods) {
                 methods.getOrPut(taskView.javaClass) {
-                    taskView.javaClass.getMethod("getThumbnailBounds", Rect::class.java)
+                    requireNotNull(Reflect.method(taskView.javaClass, "getThumbnailBounds", Rect::class.java))
                 }
             }
 

@@ -5,7 +5,9 @@ import android.content.res.Resources
 
 import io.github.libxposed.api.XposedInterface
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.LauncherAnalysis
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsStore
 
@@ -43,8 +45,7 @@ class FeatureContext(
     /** What this launcher build offers each tweak, checked once for the life of the process. */
     val analysis: LauncherAnalysis by lazy { LauncherAnalysis.run(appContext, classLoader, logger) }
 
-    fun findClass(name: String): Class<*>? =
-        runCatching { Class.forName(name, false, classLoader) }.getOrNull()
+    fun findClass(name: String): Class<*>? = Host.cls(classLoader, name)
 
     /**
      * Hooks one method, running [after] once the original has returned.
@@ -59,7 +60,7 @@ class FeatureContext(
         after: (thisObject: Any?, args: List<Any?>) -> Unit,
     ) {
         try {
-            val method = owner.getDeclaredMethod(methodName, *parameterTypes)
+            val method = Reflect.declaredMethod(owner, methodName, *parameterTypes)
             xposed.hook(method).intercept { chain ->
                 val result = chain.proceed()
                 runCatching { after(chain.thisObject, chain.args) }

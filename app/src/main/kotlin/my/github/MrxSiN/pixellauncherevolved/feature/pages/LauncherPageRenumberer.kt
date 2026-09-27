@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 
 import java.util.concurrent.Executor
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
@@ -79,15 +80,15 @@ internal class LauncherPageRenumberer(
 
     private fun launcher(): Launcher {
         val loader = context.classLoader
-        val appStateClass = Class.forName(APP_STATE, false, loader)
+        val appStateClass = Host.clsOrThrow(loader, APP_STATE)
         val singleton = requireNotNull(Reflect.field(appStateClass, INSTANCE)).get(null)
         val appState = requireNotNull(
-            Reflect.method(Class.forName(SINGLETON, false, loader), GET, Context::class.java)
+            Reflect.method(Host.clsOrThrow(loader, SINGLETON), GET, Context::class.java)
         ).invoke(singleton, context)
         val model = requireNotNull(Reflect.field(appStateClass, MODEL)).get(appState)!!
         val controller = requireNotNull(Reflect.field(model.javaClass, DB_CONTROLLER)).get(model)!!
         val helper = requireNotNull(Reflect.method(controller.javaClass, OPEN_HELPER)).invoke(controller) as SQLiteOpenHelper
-        val executor = requireNotNull(Reflect.field(Class.forName(EXECUTORS, false, loader), MODEL_EXECUTOR))
+        val executor = requireNotNull(Reflect.field(Host.clsOrThrow(loader, EXECUTORS), MODEL_EXECUTOR))
             .get(null) as Executor
         val reload = requireNotNull(Reflect.method(model.javaClass, FORCE_RELOAD, String::class.java))
 

@@ -3,6 +3,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.overview
 import android.content.Context
 import android.view.View
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
@@ -40,9 +41,7 @@ class ClearAllAction(
     }
 
     private fun recentsView(source: View): Any? {
-        val containerType = runCatching {
-            Class.forName(CONTAINER_CLASS, false, classLoader)
-        }.getOrNull() ?: return null
+        val containerType = Host.cls(classLoader, CONTAINER_CLASS) ?: return null
 
         val container = Reflect.method(containerType, CONTAINER_FROM_CONTEXT, Context::class.java)
             ?.invoke(null, source.context)

@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.layout
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
@@ -15,7 +16,7 @@ class TabletModeFeature : ToggleFeature(Settings.TABLET_MODE) {
     override fun install(context: FeatureContext) {
         val owner = requireNotNull(context.findClass("com.android.launcher3.display.LauncherDisplayInfo"))
         val bounds = requireNotNull(context.findClass("com.android.launcher3.util.WindowBounds"))
-        val method = owner.getDeclaredMethod("isLargeScreen", bounds)
+        val method = Reflect.declaredMethod(owner, "isLargeScreen", bounds)
         check(method.returnType == Boolean::class.javaPrimitiveType)
         context.xposed.hook(method).intercept { true }
         context.logger.info("Tablet mode: launcher large-screen classification enabled")

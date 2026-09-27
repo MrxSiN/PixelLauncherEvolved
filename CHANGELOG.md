@@ -2,6 +2,16 @@
 
 ## 0.1.2
 
+### Added
+
+- Tweaks keep working when a launcher update renames or moves what they hook.
+  Every lookup is still by name first. When a name is gone, the module matches
+  it with DexKit against a fingerprint (strings, calls, callers, fields, types)
+  recorded from a launcher build where it resolved, and writes the answer down
+  for that launcher build, so DexKit runs once per update and never on a normal
+  start. Fingerprints are refreshed in the background the first time each new
+  launcher build starts. A normal start costs about half a millisecond more.
+
 ### Changed
 
 - Overview costs the launcher about half the main-thread time it did. Each task

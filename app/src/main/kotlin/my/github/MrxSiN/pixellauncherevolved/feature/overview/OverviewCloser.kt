@@ -5,6 +5,7 @@ import android.view.ViewParent
 
 import java.lang.reflect.Method
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 
 /** Takes the Overview screen out of the way before another surface appears. */
@@ -131,5 +132,6 @@ class RecentsViewOverviewCloser(private val logger: Logger) : OverviewCloser {
 
         fun method(target: Any, name: String, vararg parameterTypes: Class<*>): Method? =
             runCatching { target.javaClass.getMethod(name, *parameterTypes) }.getOrNull()
+                ?: Host.method(target.javaClass, name, parameterTypes, false)
     }
 }

@@ -11,7 +11,9 @@ import io.github.libxposed.api.XposedInterface
 
 import my.github.MrxSiN.pixellauncherevolved.bridge.Bridge
 import my.github.MrxSiN.pixellauncherevolved.core.DoubleTap
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.lock.ScreenLocker
 import my.github.MrxSiN.pixellauncherevolved.lock.SystemUiScreenLocker
 import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealOrigin
@@ -50,7 +52,7 @@ class StatusBarSleep(
     fun install() {
         val statusBar = findClass(STATUS_BAR_VIEW) ?: return
 
-        val onTouch = runCatching { statusBar.getDeclaredMethod("onTouchEvent", MotionEvent::class.java) }
+        val onTouch = runCatching { Reflect.declaredMethod(statusBar, "onTouchEvent", MotionEvent::class.java) }
             .onFailure { logger.warn("SystemUI's status bar does not report its touches", it) }
             .getOrNull() ?: return
 
@@ -120,7 +122,7 @@ class StatusBarSleep(
     }
 
     private fun findClass(name: String): Class<*>? =
-        runCatching { Class.forName(name, false, classLoader) }
+        runCatching { Host.clsOrThrow(classLoader, name) }
             .onFailure { logger.warn("SystemUI does not have $name; the status bar gesture is not installed", it) }
             .getOrNull()
 

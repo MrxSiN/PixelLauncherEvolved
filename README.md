@@ -324,6 +324,13 @@ the very same map.
 
 </details>
 
+**Launcher updates.** Every launcher class, method and field is looked up by name. When a monthly
+update renames or moves one, the module matches it with [DexKit](https://github.com/LuckyPray/DexKit)
+against a fingerprint (strings, calls, callers, fields and types) recorded from a launcher build
+where the name still resolved, and remembers the answer for that launcher build. DexKit runs once
+per update, never on a normal start, and a lookup it cannot match with confidence is reported as
+unavailable exactly as before. A method whose signature changed still needs a module update.
+
 `HOOK_NOTES.md` records the launcher internals each feature relies on, and how they were verified
 on a device.
 
@@ -344,6 +351,7 @@ kept by name, because the framework resolves it from `META-INF/xposed/java_init.
 
 ```
 PixelLauncherEvolvedModule   Xposed entry: recognises the launcher, hands off
+core/                        reflection helpers; Host/HostDex match renamed launcher symbols
 catalog/                     every switch and layout mode described once
 settings/                    where a setting is stored, and how it is read
 safemode/                    crash loop detection and recovery
@@ -361,6 +369,15 @@ Adding a tweak means adding a `LauncherFeature` with the `CompatibilityFeature` 
 `FeatureCatalog` and `SettingsPages`. Nothing existing changes. Unit tests hold the contracts to
 the feature sources, every feature to a compatibility entry, and every switch to a name in the
 backup format.
+
+## Credits
+
+| Project | Contribution |
+|---|---|
+| [DexKit](https://github.com/LuckyPray/DexKit) by LuckyPray | Runtime DEX parsing that finds launcher classes and members again after an update renames them (LGPL-3.0). |
+| [libxposed API](https://github.com/libxposed/api), [Vector](https://github.com/JingMatrix/Vector), [LSPosed](https://github.com/LSPosed/LSPosed) | The hooking API and frameworks the module runs on. |
+| [FlatBuffers](https://github.com/google/flatbuffers) | Query serialization used by DexKit (Apache-2.0). |
+| [AOSP Launcher3](https://android.googlesource.com/platform/packages/apps/Launcher3/) | The open source base of Pixel Launcher, used as the reference for its internals. |
 
 ---
 

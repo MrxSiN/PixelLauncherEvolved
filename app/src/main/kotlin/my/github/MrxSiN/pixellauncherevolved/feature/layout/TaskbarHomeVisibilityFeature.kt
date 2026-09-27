@@ -188,14 +188,11 @@ private class TaskbarLauncherView private constructor(
          * void one that takes booleans and nothing else. Its first argument is
          * still the report, which is the only one this feature reads.
          */
-        private fun visibilityChangedOn(controller: Class<*>): Method? = controller.declaredMethods
-            .firstOrNull { method ->
-                method.name == VISIBILITY_CHANGED &&
-                    method.returnType == Void.TYPE &&
-                    method.parameterTypes.isNotEmpty() &&
-                    method.parameterTypes.all { it == Boolean::class.javaPrimitiveType }
-            }
-            ?.apply { isAccessible = true }
+        private fun visibilityChangedOn(controller: Class<*>): Method? = Reflect.declared(controller, VISIBILITY_CHANGED) { method ->
+            method.returnType == Void.TYPE &&
+                method.parameterTypes.isNotEmpty() &&
+                method.parameterTypes.all { it == Boolean::class.javaPrimitiveType }
+        }?.apply { isAccessible = true }
 
         fun of(context: FeatureContext): TaskbarLauncherView? {
             val controller = context.findClass(UI_CONTROLLER)
@@ -204,7 +201,7 @@ private class TaskbarLauncherView private constructor(
             val activity = context.findClass(BASE_ACTIVITY)
 
             val visibilityChanged = controller?.let(::visibilityChangedOn)
-            val init = controller?.declaredMethods?.firstOrNull { it.name == INIT }
+            val init = controller?.let { Reflect.declared(it, INIT) { true } }
             val stateControllerOf = controller?.let { Reflect.field(it, STATE_CONTROLLER_FIELD) }
             val stateFlags = stateController?.let { Reflect.field(it, STATE_FLAGS) }
             val isInLauncher = stateController?.let {
@@ -227,8 +224,8 @@ private class TaskbarLauncherView private constructor(
                     Boolean::class.javaPrimitiveType!!,
                 )
             }
-            val applyStashState = stashController?.declaredMethods?.firstOrNull { method ->
-                method.name == APPLY_STASH_STATE && method.parameterTypes.isEmpty()
+            val applyStashState = stashController?.let {
+                Reflect.declared(it, APPLY_STASH_STATE) { method -> method.parameterTypes.isEmpty() }
             }
 
             if (visibilityChanged == null || init == null || stateControllerOf == null ||

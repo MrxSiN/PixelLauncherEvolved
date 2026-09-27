@@ -2,6 +2,7 @@ package my.github.MrxSiN.pixellauncherevolved.diagnostics
 
 import android.content.Context
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 
 /**
@@ -23,11 +24,29 @@ class LauncherAnalysis(
     companion object {
 
         fun run(context: Context, classLoader: ClassLoader, logger: Logger): LauncherAnalysis {
-            val analyzer = ContractAnalyzer { name ->
-                runCatching { Class.forName(name, false, classLoader) }.getOrNull()
-            }
+            val analyzer = ContractAnalyzer(rename = rename@{ type, member ->
+                when (member) {
+                    is Member.Field -> Host.field(type, member.name) != null
+                    is Member.Method -> {
+                        val parameters = member.parameters
+                        if (parameters == null) {
+                            generateSequence(type) { it.superclass }.any { Host.name(it, member.name) != member.name }
+                        } else {
+                            val types = parameters.map { PRIMITIVES[it] ?: Host.cls(classLoader, it) ?: return@rename false }
+                            Host.method(type, member.name, types.toTypedArray(), false) != null
+                        }
+                    }
+                }
+            }) { name -> Host.cls(classLoader, name) }
             return LauncherAnalysis(launcherVersion(context, logger), analyzer.analyze(LauncherContracts.all))
         }
+
+        private val PRIMITIVES = mapOf(
+            "boolean" to Boolean::class.javaPrimitiveType!!,
+            "int" to Int::class.javaPrimitiveType!!,
+            "float" to Float::class.javaPrimitiveType!!,
+            "long" to Long::class.javaPrimitiveType!!,
+        )
 
         /** The launcher's `versionCode`, which is what changes with each monthly update. */
         fun launcherVersion(context: Context, logger: Logger): String = runCatching {

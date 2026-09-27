@@ -2,6 +2,7 @@
 agp = "9.3.1"
 libxposed = "102.0.0"
 junit = "4.13.2"
+dexkit = "2.3.0"
 
 [plugins]
 agp-app = { id = "com.android.application", version.ref = "agp" }
@@ -12,4 +13,5 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 # android.jar only stubs org.json, so unit tests of the backup format need the real one.
 org-json = { group = "org.json", name = "json", version = "20250517" }
 
+dexkit = { group = "org.luckypray", name = "dexkit", version.ref = "dexkit" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.19.0" }

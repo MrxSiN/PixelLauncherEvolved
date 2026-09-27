@@ -2,6 +2,8 @@ package my.github.MrxSiN.pixellauncherevolved.feature.focus
 
 import java.lang.reflect.Method
 
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+
 /**
  * The one call that hands the launcher its whole workspace.
  *
@@ -35,5 +37,5 @@ internal object WorkspaceBinding {
         callbacks.declared(BIND_WITH_INFLATION, parameters = 3) ?: callbacks.declared(BIND_COMPLETE, parameters = 2)
 
     private fun Class<*>.declared(name: String, parameters: Int): Method? =
-        declaredMethods.firstOrNull { it.name == name && it.parameterTypes.size == parameters }
+        Reflect.declared(this, name) { it.parameterTypes.size == parameters }
 }

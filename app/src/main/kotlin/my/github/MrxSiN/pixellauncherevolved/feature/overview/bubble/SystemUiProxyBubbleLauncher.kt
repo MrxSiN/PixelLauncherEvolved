@@ -7,7 +7,9 @@ import android.os.UserHandle
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
 /**
  * Reaches the shell through the launcher's own `SystemUiProxy`.
@@ -57,15 +59,16 @@ class SystemUiProxyBubbleLauncher(
         resolved = true
 
         binding = try {
-            val proxyClass = Class.forName(PROXY_CLASS, false, classLoader)
-            val singletonClass = Class.forName(SINGLETON_CLASS, false, classLoader)
-            val entryPointClass = Class.forName(ENTRY_POINT_CLASS, false, classLoader)
-            val locationClass = Class.forName(BUBBLE_BAR_LOCATION_CLASS, false, classLoader)
+            val proxyClass = Host.clsOrThrow(classLoader, PROXY_CLASS)
+            val singletonClass = Host.clsOrThrow(classLoader, SINGLETON_CLASS)
+            val entryPointClass = Host.clsOrThrow(classLoader, ENTRY_POINT_CLASS)
+            val locationClass = Host.clsOrThrow(classLoader, BUBBLE_BAR_LOCATION_CLASS)
 
             Binding(
-                singleton = proxyClass.getDeclaredField("INSTANCE").apply { isAccessible = true },
-                singletonGet = singletonClass.getDeclaredMethod("get", Context::class.java),
-                showAppBubble = proxyClass.getDeclaredMethod(
+                singleton = Reflect.declaredField(proxyClass, "INSTANCE"),
+                singletonGet = Reflect.declaredMethod(singletonClass, "get", Context::class.java),
+                showAppBubble = Reflect.declaredMethod(
+                    proxyClass,
                     "showAppBubble",
                     Intent::class.java,
                     UserHandle::class.java,
