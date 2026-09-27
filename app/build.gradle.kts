@@ -99,6 +99,7 @@ androidComponents {
 dependencies {
     // Hook side: provided by the framework at runtime, never packaged.
     compileOnly(libs.libxposed.api)
+    compileOnly(project(":stubs"))
 
     // The only runtime dependency left. The settings rows are built from the
     // launcher's own androidx.preference classes by reflection, and the page

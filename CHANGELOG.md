@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- App drawer search reads each result by calling the system's search result
+  class directly instead of through reflection. Measured on a Pixel 8 Pro,
+  filtering a keystroke's results takes about 18% less time and allocates a
+  third less.
+
 ## 0.1.2
 
 ### Changed

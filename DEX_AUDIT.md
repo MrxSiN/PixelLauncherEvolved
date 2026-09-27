@@ -61,7 +61,7 @@ those allocations; the rest are the button's own measure and layout (see `OPTIMI
 |---|---|---|
 | Hidden-apps drawer predicate (`HiddenAppsFeature.shown` lambda) | `HiddenAppsFeature$$ExternalSyntheticLambda2.test` | `Method.invoke` with the shared `Invoke.NONE` array (inlined; no `new-array` or `copyOf`); `Boolean.valueOf` from `runCatching` (cached `TRUE`/`FALSE`, no allocation); `Log.w` only on failure |
 | `SharedPreferencesHiddenAppsStore.hidden` | `SharedPreferencesHiddenAppsStore.a` | the `split`/`filter`/set allocations and the new `Parsed` holder, only when the stored text changed; none on a hit (72,000 measured calls: 0 allocations each) |
-| `HiddenSearchResults.hides`, `SearchTargets.read` | merged into `AppDrawerSearchFeature.e` | per result batch: the kinds array and the kept `ArrayList`; per result: one `SearchResult`, three `Method.invoke` with `Invoke.NONE`, and `Field.get`. The field is resolved once per result class (`getDeclaredFields` runs only on a cache miss). No iterator per result |
+| `HiddenSearchResults.hides`, `SearchTargets.read` | merged into `AppDrawerSearchFeature.e` | per result batch: the kinds array and the kept `ArrayList`; per result: one `SearchResult`, three direct `invoke-virtual` calls on `android.app.search.SearchTarget` (compile-only stub, ledger entry 11; no `Method.invoke`, no boxing), and `Field.get`. The field is resolved once per result class (`getDeclaredFields` runs only on a cache miss). No iterator per result |
 
 ## Touch paths
 

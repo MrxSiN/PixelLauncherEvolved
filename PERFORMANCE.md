@@ -224,11 +224,9 @@ Batch p50 (µs) for the rejected MethodHandle build (d) against entries 1–7 (c
 6 c 132.5 106.1 107.4 104.9     6 d 442.8 350.7 332.4 303.8
 ```
 
-At ~100 µs for about 23 results per keystroke, the filter now costs about 4 µs per result. What
-remains is mostly three reflective getter calls and one `Field.get` per result (see `DEX_AUDIT.md`).
-The one cheaper route not tried would be direct calls to `android.app.search.SearchTarget` through
-compile-only stubs. Its getters are `@SystemApi`, so that route depends on hidden-API policy for
-code loaded into the launcher and needs its own compatibility check before it is worth measuring.
+At ~100 µs for about 23 results per keystroke, the filter costs about 4 µs per result. At this
+point most of that was three reflective getter calls and one `Field.get` per result. The next run
+below replaces the getter calls with direct calls.
 
 ## Run 2026-09-27: double tap to sleep, instrumentation builds
 
@@ -258,3 +256,36 @@ The measured candidate let its thread exit after 60 s idle, which the gesture's 
 hit. The shipped version keeps one core thread, so the taps 2–12 row is its steady state. On device
 the thread was still parked 75 s after a tap. End to end, the provider's root call dominates: the
 saving is about 1 ms of about 225 ms.
+
+## Run 2026-09-27: direct `SearchTarget` calls, instrumentation builds
+
+Same probe and workload as the search runs above. A = v0.1.2 (`bc3163c`) + `SearchProbe`, B = A +
+ledger entry 11 + `SearchProbe`, both release builds with the same signing key. Command:
+`A=a B=b bash scripts/bench-search-probe.sh search-ab.txt 6 80`, then
+`python scripts/bench-probe-summary.py search-ab.txt a b`. Phone on battery (74%), thermal status 0,
+settings as above (Play Store and Search in Apps results hidden).
+
+| statistic (per filter call) | A (reflection) | B (direct) | change |
+|---|---|---|---|
+| p50, µs | 100.2 (IQR 96.9–114.2) | 82.4 (78.5–104.4) | −17.8% |
+| mean, µs | 115.2 (108.4–133.2) | 97.6 (94.3–114.4) | −15.3% |
+| p95, µs | 202.4 (172.0–222.5) | 181.8 (157.8–202.9) | −10.2% |
+| p99, µs | 472.7 (374.9–813.2) | 453.3 (343.6–554.1) | −4.1% |
+| allocations | 52.3 (51.9–52.8) | 34.4 (34.2–34.7) | −34.3% |
+| results | 23.7 | 23.8 | |
+
+n = 19 batches of 100 calls per variant. Batch p50 by round, in µs (the first batch of each block
+includes warm-up):
+
+```
+1 a 111.5  93.5 107.7         1 b 107.5  83.0  75.9
+2 a 121.6  98.6  98.5         2 b 103.8  82.8  80.2
+3 a 116.9  92.1 100.2         3 b 104.9  82.4  79.9  78.7
+4 a 122.7  97.8 100.6  89.1   4 b 106.2  89.7  77.8
+5 a 119.0  97.5  96.2         5 b 105.3  77.7  76.7
+6 a 120.8  94.9 101.7         6 b 105.1  81.1  78.2
+```
+
+B beats A at every batch position in every round. Removing the three reflective calls per result
+saves about 18 µs and 18 allocations per keystroke. The allocations that remain are the result
+batch's own list and the one `SearchResult` per result.

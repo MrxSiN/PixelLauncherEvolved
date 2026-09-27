@@ -186,6 +186,36 @@ entries 1–6 together as one candidate, not one change at a time.
 - **Result:** rejected and reverted. The gain is noise-level, and it ties the "needs" flags to the hide
   rules, so a future rule change could silently read too little.
 
+## 11. Search results read through direct `SearchTarget` calls instead of reflection
+
+- **Hypothesis:** the search filter made three `Method.invoke` calls per result (`getResultType`,
+  `getLayoutType`, `getPackageName`), about 70 per keystroke, and `getResultType` came back boxed.
+  The class is `@SystemApi`, so the public SDK leaves it out, but the launcher process already
+  reflects on it successfully. Compiling against a stub and calling the device's own class directly
+  should skip the reflective dispatch.
+- **Path:** new compile-only module `stubs/` (`android/app/search/SearchTarget.java`, three getter
+  signatures, never packaged); `feature/search/SearchTargets.kt`.
+- **Mechanism:** `SearchTargets.read` casts to `SearchTarget` after the same `isInstance` check and
+  calls the getters. The three getters are still looked up by reflection at install, so a device
+  without them still leaves the feature uninstalled, as before.
+- **Correctness:** same values (`int` result type; `null` layout type or package read as `""`), same
+  `runCatching` around the reads. `SearchTarget` is a final framework class, and the class that
+  `isInstance` checks is the same boot class the stub links to. Unit tests and
+  `check-project.sh` pass. On the device (release build), typing `cal` delivered three
+  `com.android.vending` targets to the launcher, and none were shown (Play Store results hidden).
+  No filter warnings, no hidden-API denials in logcat.
+- **DEX:** `invoke-virtual Landroid/app/search/SearchTarget;.getResultType:()I` (and the two
+  `String` getters) inlined into the filter; no `Method.invoke`, no `Integer.valueOf`.
+- **Measured (instrumentation build, `SearchProbe`, Pixel 8 Pro, not charging, thermal 0; A = v0.1.2
+  `bc3163c`, B = A + this; 6 interleaved rounds × 80 typed queries, 19 batches of 100 filter calls
+  each, ~23.7 results per call):** allocations per call 52.3 → 34.4 (−34.3%; IQRs 51.9–52.8 vs
+  34.2–34.7, no overlap). p50 100.2 → 82.4 µs (−17.8%), mean −15.3%, p95 −10.2%, p99 −4.1%. The
+  pooled p50 IQRs overlap only because each block's first batch is slower (warm-up). Batch for
+  batch at the same position in the same round, B was faster in all 19 pairs.
+- **Result:** accepted (measured). This does not contradict entry 9. That entry was an
+  `asType`-adapted `MethodHandle`, which is slower than reflection on ART. This is a plain
+  `invoke-virtual`.
+
 ## Examined, not changed
 
 - **Task card layout** (`TaskCardButtonDecorator.onTaskViewLaidOut` → `place` →
@@ -206,5 +236,8 @@ entries 1–6 together as one candidate, not one change at a time.
 - **`StatusBarSleep` in SystemUI** calls `PowerManager.goToSleep` synchronously on the touch thread.
   Existing behavior, a single Binder call; not moved without a measurement.
 - **Search result filtering** (`AppDrawerSearchFeature.keep`) still builds a `HiddenSearchResults`,
-  a kinds set and a filtered list once per result batch, plus one `SearchResult` (and a boxed
-  result type from reflection) per result. That is per keystroke, not per frame; left as is.
+  a kinds set and a filtered list once per result batch, plus one `SearchResult` per result. That is per keystroke, not per frame; left as is.
+- **Home search bar touch hooks** (`HomeSearchBarFeature`): the `onTouchEvent` hook builds one
+  `Gesture` and reads the long-press field on each event. The widget host only gets `onTouchEvent`
+  for the events it intercepted (the search bar, where that work is needed) or that no child
+  consumed. Skipping the read for unclaimed widgets would save almost nothing, so it was left as is.
