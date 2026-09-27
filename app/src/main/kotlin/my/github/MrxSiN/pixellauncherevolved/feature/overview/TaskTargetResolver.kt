@@ -8,6 +8,7 @@ import android.view.View
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 
+import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.feature.overview.bubble.BubbleTarget
 
@@ -55,7 +56,7 @@ class TaskViewTargetResolver(private val logger: Logger) : TaskTargetResolver {
                 taskView.javaClass.getMethod("getFirstTask")
             }
         }
-        return method.invoke(taskView)
+        return Invoke.noArgs(method, taskView)
     }
 
     private fun field(owner: Any, name: String): Field = synchronized(fields) {

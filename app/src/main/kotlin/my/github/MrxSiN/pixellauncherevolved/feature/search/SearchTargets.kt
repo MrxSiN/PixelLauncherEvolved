@@ -2,6 +2,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.search
 
 import java.lang.reflect.Method
 
+import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 
@@ -32,9 +33,9 @@ class SearchTargets private constructor(
 
         return runCatching {
             SearchResult(
-                resultType = resultTypeOf.invoke(value) as Int,
-                layoutType = layoutTypeOf.invoke(value) as? String ?: "",
-                packageName = packageNameOf.invoke(value) as? String ?: "",
+                resultType = Invoke.noArgs(resultTypeOf, value) as Int,
+                layoutType = Invoke.noArgs(layoutTypeOf, value) as? String ?: "",
+                packageName = Invoke.noArgs(packageNameOf, value) as? String ?: "",
             )
         }.getOrNull()
     }

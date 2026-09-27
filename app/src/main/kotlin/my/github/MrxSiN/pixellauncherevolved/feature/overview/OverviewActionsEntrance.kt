@@ -48,13 +48,23 @@ object OverviewActionsEntrance {
      * an entrance nobody saw.
      */
     fun applyTo(row: ViewGroup, progress: Float): Boolean {
-        val buttons = row.visibleChildren()
-        if (buttons.isEmpty() || row.width == 0) return false
+        // Counted, then walked again, rather than collected: this runs on
+        // every frame of the opening.
+        val childCount = row.childCount
+        var count = 0
+        for (child in 0 until childCount) {
+            if (row.getChildAt(child).visibility == View.VISIBLE) count++
+        }
+        if (count == 0 || row.width == 0) return false
 
         val rise = row.resources.displayMetrics.density * RISE_DP
 
-        buttons.forEachIndexed { index, button ->
-            val own = progressOf(index, buttons.size, progress)
+        var index = 0
+        for (child in 0 until childCount) {
+            val button = row.getChildAt(child)
+            if (button.visibility != View.VISIBLE) continue
+
+            val own = progressOf(index++, count, progress)
             val spatial = SPATIAL.getInterpolation(own)
 
             button.alpha = FADE.getInterpolation(minOf(own * FADE_LEAD, 1f))
@@ -78,12 +88,15 @@ object OverviewActionsEntrance {
             // The curves live in the placement, so this only has to walk
             // evenly from one end of it to the other.
             interpolator = LinearInterpolator()
-            addUpdateListener { applyTo(row, it.animatedValue as Float) }
+            // The fraction is the value for a linear run from 0 to 1, and
+            // reading it does not box a Float every frame.
+            addUpdateListener { applyTo(row, it.animatedFraction) }
         }
 
     /** Gives the buttons their resting state, which is where an arrival ends. */
     fun settle(row: ViewGroup) {
-        for (button in row.children()) {
+        for (child in 0 until row.childCount) {
+            val button = row.getChildAt(child)
             button.alpha = 1f
             button.translationY = 0f
             button.scaleX = 1f
@@ -110,11 +123,6 @@ object OverviewActionsEntrance {
 
         return ((progress - start) / (1f - (count - 1) * stagger)).coerceIn(0f, 1f)
     }
-
-    private fun ViewGroup.children(): List<View> = (0 until childCount).map(::getChildAt)
-
-    private fun ViewGroup.visibleChildren(): List<View> =
-        children().filter { it.visibility == View.VISIBLE }
 
     /**
      * How much of its own arrival a button spends fading in.

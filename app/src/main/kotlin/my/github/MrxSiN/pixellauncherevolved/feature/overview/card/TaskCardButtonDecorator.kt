@@ -47,6 +47,14 @@ class TaskCardButtonDecorator(
     /** How far each card has grown back into its app, by card. */
     private val fullscreen = WeakHashMap<ViewGroup, Float>()
 
+    /**
+     * The chip's resource id, or [UNRESOLVED] until first asked.
+     *
+     * Asked for per card on every frame, and a resource name does not change
+     * its id within a process, so the name is looked up once.
+     */
+    private var chipId = UNRESOLVED
+
     /** Adds the button as soon as the card finishes inflating. */
     fun onTaskViewInflated(taskView: ViewGroup) = attach(taskView)
 
@@ -82,7 +90,10 @@ class TaskCardButtonDecorator(
 
     /** Fades the button out while a card grows into a full screen app. */
     fun onFullscreenProgress(taskView: ViewGroup, progress: Float) {
-        fullscreen[taskView] = progress.coerceIn(0f, 1f)
+        // The launcher repeats the same progress on cards that are sitting
+        // still; storing it again would only box another Float.
+        val clamped = progress.coerceIn(0f, 1f)
+        if (fullscreen[taskView] != clamped) fullscreen[taskView] = clamped
         findButton(taskView)?.let { follow(taskView, it) }
     }
 
@@ -104,7 +115,11 @@ class TaskCardButtonDecorator(
     }
 
     private fun chipOf(taskView: ViewGroup): View? {
-        val id = LauncherResources(taskView.context).id(CHIP_ID)
+        var id = chipId
+        if (id == UNRESOLVED) {
+            id = LauncherResources(taskView.context).id(CHIP_ID)
+            chipId = id
+        }
 
         return if (id == 0) null else taskView.findViewById(id)
     }
@@ -177,12 +192,19 @@ class TaskCardButtonDecorator(
     private companion object {
         /** The launcher's own app chip on a task card. */
         const val CHIP_ID = "icon"
+
+        const val UNRESOLVED = Int.MIN_VALUE
     }
 
-    private fun findButton(taskView: ViewGroup): View? =
-        (taskView.childCount - 1 downTo 0)
-            .map(taskView::getChildAt)
-            .firstOrNull { it.tag == factory.tag }
+    private fun findButton(taskView: ViewGroup): View? {
+        // Walked by index: this runs per card on every frame it is attached.
+        val tag = factory.tag
+        for (index in taskView.childCount - 1 downTo 0) {
+            val child = taskView.getChildAt(index)
+            if (child.tag == tag) return child
+        }
+        return null
+    }
 }
 
 /**

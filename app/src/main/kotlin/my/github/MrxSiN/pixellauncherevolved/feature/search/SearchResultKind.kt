@@ -76,10 +76,17 @@ class HiddenSearchResults(
     private val apps: Set<String>,
 ) {
 
-    val isEmpty: Boolean get() = kinds.isEmpty() && apps.isEmpty()
+    /** Copied once per batch so asking per result walks an array, not a new iterator. */
+    private val kindArray = kinds.toTypedArray()
 
-    fun hides(result: SearchResult): Boolean =
-        kinds.any { it.matches(result) } || (result.isApp && result.packageName in apps)
+    val isEmpty: Boolean get() = kindArray.isEmpty() && apps.isEmpty()
+
+    fun hides(result: SearchResult): Boolean {
+        for (index in kindArray.indices) {
+            if (kindArray[index].matches(result)) return true
+        }
+        return result.isApp && result.packageName in apps
+    }
 }
 
 /** The kinds currently switched off, read fresh so a change applies at once. */

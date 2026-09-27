@@ -27,12 +27,25 @@ class SharedPreferencesHiddenAppsStore(
     private val preferences: SharedPreferences,
 ) : HiddenAppsStore {
 
-    override fun hidden(): Set<String> = runCatching { preferences.getString(KEY, "") }
-        .getOrNull()
-        .orEmpty()
-        .split(SEPARATOR)
-        .filter { it.isNotBlank() }
-        .toSet()
+    /**
+     * The last stored text and what it parsed to.
+     *
+     * The drawer asks once per app on every rebuild, so the text is parsed only
+     * when it differs from last time; the preference file hands back the same
+     * string until it is written, which makes the usual check an identity one.
+     */
+    @Volatile
+    private var parsed = Parsed("", emptySet())
+
+    override fun hidden(): Set<String> {
+        val raw = runCatching { preferences.getString(KEY, "") }.getOrNull().orEmpty()
+        val last = parsed
+        if (raw === last.raw || raw == last.raw) return last.names
+
+        val names = raw.split(SEPARATOR).filter { it.isNotBlank() }.toSet()
+        parsed = Parsed(raw, names)
+        return names
+    }
 
     override fun hide(packageNames: Set<String>) {
         val editor = preferences.edit()
@@ -43,6 +56,8 @@ class SharedPreferencesHiddenAppsStore(
         }
         editor.apply()
     }
+
+    private class Parsed(val raw: String, val names: Set<String>)
 
     private companion object {
         const val KEY = "app_drawer_hidden_apps"

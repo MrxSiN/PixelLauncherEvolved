@@ -1,0 +1,1220 @@
+{
+ "module": {
+  "module.prop": [
+   "minApiVersion=101",
+   "targetApiVersion=102",
+   "staticScope=true"
+  ],
+  "scope.list": [
+   "com.google.android.apps.nexuslauncher",
+   "com.android.systemui"
+  ],
+  "java_init.list": [
+   "my.github.MrxSiN.pixellauncherevolved.PixelLauncherEvolvedModule"
+  ]
+ },
+ "components": [
+  {
+   "kind": "provider",
+   "name": ".focus.FocusProvider",
+   "authorities": "${applicationId}.focus",
+   "exported": "true"
+  },
+  {
+   "kind": "provider",
+   "name": ".lock.ScreenLockProvider",
+   "authorities": "${applicationId}.screenlock",
+   "exported": "true"
+  }
+ ],
+ "settings": [
+  {
+   "name": "TASKBAR_ONLY",
+   "type": "Bool",
+   "key": "taskbar_only",
+   "default": "false"
+  },
+  {
+   "name": "TABLET_MODE",
+   "type": "Bool",
+   "key": "tablet_mode",
+   "default": "false"
+  },
+  {
+   "name": "OVERVIEW_ONLY",
+   "type": "Bool",
+   "key": "overview_only",
+   "default": "false"
+  },
+  {
+   "name": "HOME_BLUR_WALLPAPER",
+   "type": "Bool",
+   "key": "home_blur_wallpaper",
+   "default": "false"
+  },
+  {
+   "name": "HOME_BLUR_STRENGTH",
+   "type": "Int",
+   "key": "home_blur_strength",
+   "default": "50"
+  },
+  {
+   "name": "HOME_DOUBLE_TAP_TO_SLEEP",
+   "type": "Bool",
+   "key": "home_double_tap_to_sleep",
+   "default": "false"
+  },
+  {
+   "name": "STATUS_BAR_DOUBLE_TAP_TO_SLEEP",
+   "type": "Bool",
+   "key": "status_bar_double_tap_to_sleep",
+   "default": "false"
+  },
+  {
+   "name": "HOME_SEARCH_OPENS_DRAWER",
+   "type": "Bool",
+   "key": "home_search_opens_drawer",
+   "default": "false"
+  },
+  {
+   "name": "APP_DRAWER_SEARCH_HIDE_WEB",
+   "type": "Bool",
+   "key": "app_drawer_search_hide_web",
+   "default": "false"
+  },
+  {
+   "name": "APP_DRAWER_SEARCH_HIDE_PLAY_STORE",
+   "type": "Bool",
+   "key": "app_drawer_search_hide_play_store",
+   "default": "false"
+  },
+  {
+   "name": "APP_DRAWER_SEARCH_HIDE_SEARCH_IN_APPS",
+   "type": "Bool",
+   "key": "app_drawer_search_hide_search_in_apps",
+   "default": "false"
+  },
+  {
+   "name": "FOCUS_HOME_SCREENS",
+   "type": "Bool",
+   "key": "focus_home_screens",
+   "default": "false"
+  },
+  {
+   "name": "OVERVIEW_HIDE_TASKBAR_ALL_APPS",
+   "type": "Bool",
+   "key": "overview_hide_taskbar_all_apps",
+   "default": "false"
+  },
+  {
+   "name": "OVERVIEW_BUBBLE_BUTTON",
+   "type": "Bool",
+   "key": "overview_bubble_button",
+   "default": "true"
+  },
+  {
+   "name": "OVERVIEW_SPLIT_BUTTON",
+   "type": "Bool",
+   "key": "overview_split_button",
+   "default": "true"
+  },
+  {
+   "name": "OVERVIEW_HIDE_SCREENSHOT",
+   "type": "Bool",
+   "key": "overview_hide_screenshot",
+   "default": "false"
+  },
+  {
+   "name": "OVERVIEW_HIDE_SELECT",
+   "type": "Bool",
+   "key": "overview_hide_select",
+   "default": "false"
+  },
+  {
+   "name": "OVERVIEW_CLEAR_ALL_IN_ACTIONS",
+   "type": "Bool",
+   "key": "overview_clear_all_in_actions",
+   "default": "false"
+  }
+ ],
+ "features": [
+  {
+   "id": "app_drawer_hidden_apps",
+   "file": "feature/apps/HiddenAppsFeature.kt",
+   "compatibility": "HIDDEN_APPS"
+  },
+  {
+   "id": "app_drawer_hide_apps_picker",
+   "file": "feature/apps/HideAppsPickerFeature.kt",
+   "compatibility": "HIDDEN_APPS"
+  },
+  {
+   "id": "compatibility_watch",
+   "file": "feature/diagnostics/CompatibilityWatchFeature.kt",
+   "compatibility": null
+  },
+  {
+   "id": "focus_home_screens",
+   "file": "feature/focus/FocusHomeFeature.kt",
+   "compatibility": "FOCUS_HOME_SCREENS"
+  },
+  {
+   "id": "home_double_tap_to_sleep",
+   "file": "feature/gesture/DoubleTapToSleepFeature.kt",
+   "compatibility": "DOUBLE_TAP_TO_SLEEP"
+  },
+  {
+   "id": "overview_only",
+   "file": "feature/layout/OverviewOnlyFeature.kt",
+   "compatibility": "OVERVIEW_ONLY"
+  },
+  {
+   "id": "tablet_mode",
+   "file": "feature/layout/TabletModeFeature.kt",
+   "compatibility": "FULL_TABLET_LAYOUT"
+  },
+  {
+   "id": "overview_hide_taskbar_all_apps",
+   "file": "feature/layout/TaskbarAllAppsButtonFeature.kt",
+   "compatibility": "TASKBAR_APP_DRAWER_BUTTON"
+  },
+  {
+   "id": "taskbar_home_visibility",
+   "file": "feature/layout/TaskbarHomeVisibilityFeature.kt",
+   "compatibility": null
+  },
+  {
+   "id": "taskbar_only",
+   "file": "feature/layout/TaskbarOnlyFeature.kt",
+   "compatibility": "TASKBAR_ONLY"
+  },
+  {
+   "id": "taskbar_transition",
+   "file": "feature/layout/TaskbarTransitionFeature.kt",
+   "compatibility": null
+  },
+  {
+   "id": "overview_actions",
+   "file": "feature/overview/OverviewActionsFeature.kt",
+   "compatibility": "OVERVIEW_ACTIONS"
+  },
+  {
+   "id": "overview_actions_motion",
+   "file": "feature/overview/OverviewActionsMotionFeature.kt",
+   "compatibility": null
+  },
+  {
+   "id": "overview_bubble_button",
+   "file": "feature/overview/OverviewBubbleFeature.kt",
+   "compatibility": "BUBBLE_LAUNCHER"
+  },
+  {
+   "id": "overview_clear_all_in_actions",
+   "file": "feature/overview/OverviewClearAllButtonFeature.kt",
+   "compatibility": "OVERVIEW_ACTIONS"
+  },
+  {
+   "id": "overview_split_button",
+   "file": "feature/overview/OverviewSplitButtonFeature.kt",
+   "compatibility": "SPLIT_SCREEN"
+  },
+  {
+   "id": "safe_mode",
+   "file": "feature/safemode/SafeModeFeature.kt",
+   "compatibility": null
+  },
+  {
+   "id": "app_drawer_search_results",
+   "file": "feature/search/AppDrawerSearchFeature.kt",
+   "compatibility": "APP_DRAWER_SEARCH"
+  },
+  {
+   "id": "home_search_opens_drawer",
+   "file": "feature/search/HomeSearchBarFeature.kt",
+   "compatibility": "HOME_SEARCH_BAR"
+  },
+  {
+   "id": "app_drawer_search_web_app",
+   "file": "feature/search/WebSearchAppFeature.kt",
+   "compatibility": "APP_DRAWER_SEARCH"
+  },
+  {
+   "id": "launcher_settings",
+   "file": "feature/settings/LauncherSettingsFeature.kt",
+   "compatibility": null
+  },
+  {
+   "id": "status_bar_double_tap_to_sleep",
+   "file": "feature/statusbar/StatusBarSleepFeature.kt",
+   "compatibility": null
+  },
+  {
+   "id": "home_blur_wallpaper",
+   "file": "feature/wallpaper/HomeWallpaperBlurFeature.kt",
+   "compatibility": "BLUR_WALLPAPER"
+  }
+ ],
+ "files": {
+  "bridge/Bridge.kt": {
+   "host_classes": [
+    "com.android.systemui",
+    "com.google.android.apps.nexuslauncher"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "diagnostics/LauncherContracts.kt": {
+   "host_classes": [
+    "com.android.launcher3.BubbleTextView",
+    "com.android.launcher3.DeviceProfile",
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.LauncherAppState",
+    "com.android.launcher3.LauncherState",
+    "com.android.launcher3.ModelCallbacks",
+    "com.android.launcher3.Workspace",
+    "com.android.launcher3.allapps.ActivityAllAppsContainerView",
+    "com.android.launcher3.deviceprofile.DeviceProperties",
+    "com.android.launcher3.display.LauncherDisplayInfo",
+    "com.android.launcher3.model.WorkspaceItemSpaceFinder",
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.model.data.WorkspaceData\\$MutableWorkspaceData",
+    "com.android.launcher3.qsb.OseWidgetController",
+    "com.android.launcher3.statehandlers.DepthController",
+    "com.android.launcher3.statehandlers.LauncherDepthController",
+    "com.android.launcher3.statemanager.BaseState",
+    "com.android.launcher3.statemanager.StateManager",
+    "com.android.launcher3.taskbar.LauncherTaskbarUIController",
+    "com.android.launcher3.taskbar.TaskbarStashController",
+    "com.android.launcher3.taskbar.TaskbarView",
+    "com.android.launcher3.touch.WorkspaceTouchListener",
+    "com.android.launcher3.uioverrides.QuickstepLauncher",
+    "com.android.launcher3.util.DaggerSingletonObject",
+    "com.android.launcher3.util.Executors",
+    "com.android.launcher3.util.WindowBounds",
+    "com.android.launcher3.views.ActivityContext",
+    "com.android.launcher3.views.Snackbar",
+    "com.android.launcher3.widget.LauncherAppWidgetHostView",
+    "com.android.quickstep.BaseContainerInterface",
+    "com.android.quickstep.SystemUiProxy",
+    "com.android.quickstep.util.BaseDepthControllerImpl",
+    "com.android.quickstep.views.IconAppChipView",
+    "com.android.quickstep.views.OverviewActionsView",
+    "com.android.quickstep.views.RecentsView",
+    "com.android.quickstep.views.RecentsViewContainer",
+    "com.android.quickstep.views.TaskView",
+    "com.android.wm.shell.shared.bubbles.BubbleBarLocation",
+    "com.android.wm.shell.shared.bubbles.logging.EntryPoint"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/apps/HiddenAppsFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.allapps.ActivityAllAppsContainerView\\$AdapterHolder",
+    "com.android.launcher3.allapps.AlphabeticalAppsList",
+    "com.android.launcher3.model.data.ItemInfo"
+   ],
+   "host_members": [
+    "getTargetPackage",
+    "onResume",
+    "setup"
+   ],
+   "hooks": 2,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/apps/HiddenAppsStore.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/apps/HideAppsPickerFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.BubbleTextView",
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.LauncherState",
+    "com.android.launcher3.model.data.AppInfo",
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.statemanager.BaseState",
+    "com.android.launcher3.statemanager.StateManager",
+    "com.android.launcher3.statemanager.StatefulContainer",
+    "com.android.launcher3.uioverrides.QuickstepLauncher"
+   ],
+   "host_members": [
+    "getDragLayer",
+    "getIconBounds",
+    "getStateManager",
+    "getTargetPackage",
+    "goToState",
+    "onDraw",
+    "onResume",
+    "performClick"
+   ],
+   "hooks": 4,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/backup/BackupRows.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/backup/DocumentRequests.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/diagnostics/DiagnosticsRows.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 1,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "feature/focus/FocusHomeFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.BaseActivity",
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.ModelCallbacks",
+    "com.android.launcher3.Workspace",
+    "com.android.launcher3.model.WorkspaceItemSpaceFinder",
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.model.data.WorkspaceData\\$MutableWorkspaceData",
+    "com.android.launcher3.util.IntArray",
+    "com.android.launcher3.util.IntSet"
+   ],
+   "host_members": [
+    "onResume",
+    "onWindowFocusChanged"
+   ],
+   "hooks": 10,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/focus/FocusPagePreview.kt": {
+   "host_classes": [],
+   "host_members": [
+    "getColorSpace",
+    "getHardwareBuffer",
+    "getScreenIdForPageIndex",
+    "getTargetComponent",
+    "isPageInTransition"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "feature/focus/FocusPageSnapshotStore.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 2,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/focus/FocusRefresh.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 2,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/gesture/DoubleTapToSleepFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.touch.WorkspaceTouchListener"
+   ],
+   "host_members": [
+    "mLongPressState",
+    "onTouch"
+   ],
+   "hooks": 1,
+   "threads": 2,
+   "root": false,
+   "binder": [
+    "resolver.call"
+   ],
+   "preferences": false
+  },
+  "feature/layout/DeviceProfiles.kt": {
+   "host_classes": [
+    "com.android.launcher3.DeviceProfile",
+    "com.android.launcher3.deviceprofile.DeviceProfileBuilder",
+    "com.android.launcher3.deviceprofile.DeviceProperties\\$Factory"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/layout/OverviewOnlyFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.DeviceProfile",
+    "com.android.launcher3.DropTargetBar",
+    "com.android.launcher3.InvariantDeviceProfile",
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.QuickstepTransitionManager",
+    "com.android.launcher3.Workspace",
+    "com.android.launcher3.allapps.ActivityAllAppsContainerView",
+    "com.android.launcher3.deviceprofile.DeviceProperties",
+    "com.android.launcher3.deviceprofile.OverviewProfile",
+    "com.android.launcher3.model.data.AppPairInfo",
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.states.RotationHelper",
+    "com.android.launcher3.touch.AbstractStateChangeTouchController",
+    "com.android.launcher3.uioverrides.QuickstepLauncher",
+    "com.android.launcher3.util.DaggerSingletonObject",
+    "com.android.launcher3.views.AbstractSlideInView",
+    "com.android.launcher3.views.ActivityContext",
+    "com.android.launcher3.views.Snackbar",
+    "com.android.launcher3.widget.LauncherAppWidgetProviderInfo",
+    "com.android.quickstep.BaseContainerInterface",
+    "com.android.quickstep.LauncherActivityInterface",
+    "com.android.quickstep.views.IconAppChipView",
+    "com.android.quickstep.views.OverviewActionsView",
+    "com.android.quickstep.views.RecentsView",
+    "com.android.quickstep.views.RecentsViewContainer"
+   ],
+   "host_members": [
+    "actionsHeight",
+    "actionsTopMarginPx",
+    "appIconSize",
+    "appTitle",
+    "calculateCollapsedTextWidth",
+    "collapsedMenuDefaultWidth",
+    "deviceProperties",
+    "getBottomMargin",
+    "getChipWidth",
+    "getCollapsedBackgroundLtrBounds",
+    "getOverviewActionsClaimedSpaceBelow",
+    "heightPx",
+    "insets",
+    "mDp",
+    "mTaskSize",
+    "maxWidth",
+    "minWidthAllowed",
+    "onFinishInflate",
+    "overviewProfile",
+    "setMaxWidth",
+    "showAsGrid",
+    "updateHiddenFlags"
+   ],
+   "hooks": 7,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/layout/TabletModeFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.display.LauncherDisplayInfo",
+    "com.android.launcher3.util.WindowBounds"
+   ],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/layout/TaskbarAllAppsButtonFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.LauncherState",
+    "com.android.launcher3.taskbar.TaskbarControllers",
+    "com.android.launcher3.taskbar.TaskbarLauncherStateController",
+    "com.android.launcher3.taskbar.TaskbarView",
+    "com.android.launcher3.taskbar.TaskbarViewController"
+   ],
+   "host_members": [
+    "getIconLayoutWidth",
+    "mAllAppsButtonContainer",
+    "mControllers",
+    "mIconTouchSize",
+    "mItemMarginLeftRight",
+    "mLauncherState",
+    "mTaskbarDividerContainer",
+    "mTaskbarView",
+    "taskbarViewController"
+   ],
+   "hooks": 2,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/layout/TaskbarHomeVisibilityFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.BaseActivity",
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.LauncherInteractor",
+    "com.android.launcher3.taskbar.LauncherTaskbarUIController",
+    "com.android.launcher3.taskbar.TaskbarControllers",
+    "com.android.launcher3.taskbar.TaskbarLauncherStateController",
+    "com.android.launcher3.taskbar.TaskbarStashController",
+    "com.android.launcher3.util.Executors"
+   ],
+   "host_members": [
+    "applyState",
+    "isInLauncher",
+    "onLauncherVisibilityChanged",
+    "onPause",
+    "onResume",
+    "updateStateForFlag"
+   ],
+   "hooks": 4,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/layout/TaskbarOnlyFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.deviceprofile.DeviceProperties",
+    "com.android.launcher3.taskbar.TaskbarActivityContext",
+    "com.android.launcher3.taskbar.TaskbarLauncherStateController",
+    "com.android.launcher3.taskbar.TaskbarView",
+    "com.android.launcher3.taskbar.TaskbarViewController"
+   ],
+   "host_members": [
+    "calculateMaxNumIcons",
+    "getDeviceProfile",
+    "hotseatProfile",
+    "isTaskbarPresent",
+    "mActivityContext",
+    "mDeviceProfile",
+    "mIconTouchSize",
+    "mStashedHandleHeight",
+    "mTaskbarView",
+    "numShownIcons",
+    "taskbarConfiguration"
+   ],
+   "hooks": 5,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/layout/TaskbarTransitionFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.LauncherState",
+    "com.android.launcher3.taskbar.TaskbarLauncherStateController",
+    "com.android.launcher3.taskbar.TaskbarView",
+    "com.android.quickstep.RecentsAnimationCallbacks",
+    "com.android.systemui.shared.system.RecentsAnimationControllerCompat"
+   ],
+   "host_members": [
+    "detachNavigationBarFromApp",
+    "isInLauncher",
+    "isTaskbarAlignedWithHotseat",
+    "mLauncherState",
+    "mState",
+    "onAttachedToWindow"
+   ],
+   "hooks": 5,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/bubble/SystemUiProxyBubbleLauncher.kt": {
+   "host_classes": [
+    "com.android.launcher3.util.DaggerSingletonObject",
+    "com.android.quickstep.SystemUiProxy",
+    "com.android.wm.shell.shared.bubbles.BubbleBarLocation",
+    "com.android.wm.shell.shared.bubbles.logging.EntryPoint"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/card/TaskCardHooks.kt": {
+   "host_classes": [],
+   "host_members": [
+    "onFinishInflate",
+    "onLayout",
+    "setFullscreenProgress"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/ClearAllAction.kt": {
+   "host_classes": [
+    "com.android.quickstep.views.RecentsViewContainer"
+   ],
+   "host_members": [
+    "getOverviewPanel"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/OverviewActionsMotionFeature.kt": {
+   "host_classes": [
+    "com.android.quickstep.views.TaskView"
+   ],
+   "host_members": [
+    "onFinishInflate",
+    "setFullscreenProgress"
+   ],
+   "hooks": 2,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/OverviewActionsRow.kt": {
+   "host_classes": [
+    "com.android.quickstep.views.OverviewActionsView"
+   ],
+   "host_members": [
+    "onFinishInflate",
+    "updateForGroupedTask"
+   ],
+   "hooks": 2,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/OverviewBubbleFeature.kt": {
+   "host_classes": [
+    "com.android.quickstep.views.TaskView"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/OverviewCloser.kt": {
+   "host_classes": [],
+   "host_members": [
+    "canStartHomeSafely",
+    "getRunningTaskView"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/OverviewSplitButtonFeature.kt": {
+   "host_classes": [
+    "com.android.quickstep.views.TaskView"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/split/SplitScreenAction.kt": {
+   "host_classes": [
+    "com.android.launcher3.logging.StatsLogManager\\$LauncherEvent",
+    "com.android.quickstep.views.RecentsViewContainer"
+   ],
+   "host_members": [
+    "getDeviceProfile",
+    "getPagedOrientationHandler",
+    "getRecentsView",
+    "getSplitPositionOption",
+    "getTaskContainers"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/pages/LauncherPageRenumberer.kt": {
+   "host_classes": [
+    "com.android.launcher3.LauncherAppState",
+    "com.android.launcher3.util.DaggerSingletonObject",
+    "com.android.launcher3.util.Executors"
+   ],
+   "host_members": [
+    "getOpenHelper"
+   ],
+   "hooks": 0,
+   "threads": 1,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/safemode/SafeModeFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.Launcher"
+   ],
+   "host_members": [
+    "onResume"
+   ],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/search/AppDrawerSearchFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.allapps.ActivityAllAppsContainerView"
+   ],
+   "host_members": [
+    "setSearchResults"
+   ],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/search/HomeSearchBarFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.ExtendedEditText",
+    "com.android.launcher3.LauncherState",
+    "com.android.launcher3.allapps.ActivityAllAppsContainerView",
+    "com.android.launcher3.allapps.SearchUiManager",
+    "com.android.launcher3.statemanager.BaseState",
+    "com.android.launcher3.statemanager.StateManager",
+    "com.android.launcher3.statemanager.StatefulContainer",
+    "com.android.launcher3.views.ActivityContext",
+    "com.android.launcher3.widget.LauncherAppWidgetHostView"
+   ],
+   "host_members": [
+    "ALL_APPS",
+    "getAppsView",
+    "getEditText",
+    "getStateManager",
+    "goToState",
+    "mHasPerformedLongPress",
+    "mLongPressHelper",
+    "mSearchUiManager",
+    "onInterceptTouchEvent",
+    "onTouchEvent",
+    "requestFocusExplicitly",
+    "showKeyboard"
+   ],
+   "hooks": 2,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/search/SearchBarWidgets.kt": {
+   "host_classes": [
+    "com.android.launcher3.qsb.OseWidgetController",
+    "com.android.launcher3.widget.LauncherAppWidgetHostView"
+   ],
+   "host_members": [
+    "applyTo"
+   ],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/search/SearchResultKind.kt": {
+   "host_classes": [
+    "com.android.vending"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/search/SearchTargets.kt": {
+   "host_classes": [
+    "android.app.search.SearchTarget"
+   ],
+   "host_members": [
+    "getLayoutType",
+    "getPackageName",
+    "getResultType"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/search/WebSearchApp.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/search/WebSearchAppFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.uioverrides.QuickstepLauncher",
+    "com.google.android.PIXEL_SEARCH"
+   ],
+   "host_members": [
+    "startActivitySafely",
+    "title"
+   ],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/search/WebSearchApps.kt": {
+   "host_classes": [
+    "com.google.android.googlequicksearchbox"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/settings/AppDrawerRows.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/settings/HomeScreenRows.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/settings/LauncherSettingsFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.settings.SettingsActivity\\$LauncherSettingsFragment"
+   ],
+   "host_members": [
+    "getPreferenceScreen",
+    "onCreatePreferences"
+   ],
+   "hooks": 3,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/settings/PreferenceApi.kt": {
+   "host_classes": [],
+   "host_members": [
+    "addPreference",
+    "mContext",
+    "mEnabled",
+    "mIconSpaceReserved",
+    "mKey",
+    "mOnChangeListener",
+    "mOnClickListener",
+    "mParentGroup",
+    "mPersistent",
+    "mPreferenceManager",
+    "mPreferences",
+    "mVisible",
+    "notifyChanged",
+    "onAttachedToHierarchy",
+    "requireContext",
+    "setChecked",
+    "setKey",
+    "setPreferenceScreen",
+    "setSummary",
+    "setTitle"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/statusbar/StatusBarSleepFeature.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/wallpaper/HomeWallpaperBlurFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.statemanager.BaseState",
+    "com.android.launcher3.uioverrides.QuickstepLauncher"
+   ],
+   "host_members": [
+    "onResume",
+    "onStateSetEnd"
+   ],
+   "hooks": 7,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/wallpaper/LauncherDepth.kt": {
+   "host_classes": [
+    "com.android.launcher3.LauncherState",
+    "com.android.launcher3.anim.PendingAnimation",
+    "com.android.launcher3.statehandlers.DepthController",
+    "com.android.launcher3.statehandlers.LauncherDepthController",
+    "com.android.launcher3.statemanager.BaseState",
+    "com.android.launcher3.states.StateAnimationConfig",
+    "com.android.launcher3.views.ActivityContext",
+    "com.android.quickstep.util.BaseDepthControllerImpl",
+    "com.android.quickstep.util.ScalingWorkspaceRevealAnim"
+   ],
+   "host_members": [
+    "getDepth",
+    "setState",
+    "setStateWithAnimation"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "focus/FocusProvider.kt": {
+   "host_classes": [
+    "com.google.android.apps.nexuslauncher"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "focus/FocusStore.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "focus/ZenModes.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": true,
+   "binder": [],
+   "preferences": false
+  },
+  "hook/ApplicationStartup.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "hook/FeatureContext.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "lock/ScreenLock.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "goToSleep"
+   ],
+   "preferences": false
+  },
+  "lock/ScreenLocker.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": true,
+   "binder": [],
+   "preferences": false
+  },
+  "lock/ScreenLockProvider.kt": {
+   "host_classes": [
+    "com.google.android.apps.nexuslauncher"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "lock/SystemUiScreenLocker.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService",
+    "goToSleep"
+   ],
+   "preferences": false
+  },
+  "PixelLauncherEvolvedModule.kt": {
+   "host_classes": [
+    "com.android.launcher3.LauncherApplication",
+    "com.android.systemui.application.impl.SystemUIApplicationImpl",
+    "com.google.android.apps.nexuslauncher"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "reveal/SleepRevealScrim.kt": {
+   "host_classes": [
+    "com.android.systemui.statusbar.LiftReveal",
+    "com.android.systemui.statusbar.LightRevealScrim"
+   ],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "safemode/SafeModeStore.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "settings/LauncherSettings.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "settings/SettingsMigration.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "settings/SettingsStorageMove.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "settings/SettingsStore.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "settings/SharedPreferencesSettings.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "statusbar/StatusBarSleep.kt": {
+   "host_classes": [
+    "com.android.systemui.statusbar.phone.PhoneStatusBarView"
+   ],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  }
+ }
+}

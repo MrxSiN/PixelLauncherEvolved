@@ -9,6 +9,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.WeakHashMap
 
+import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
@@ -193,7 +194,7 @@ private class TaskbarIconWidth private constructor(
     private fun launcherWidth(row: ViewGroup): Int? {
         readingLauncher = true
         return try {
-            runCatching { iconLayoutWidth.invoke(row) as Int }.getOrNull()
+            runCatching { Invoke.noArgs(iconLayoutWidth, row) as Int }.getOrNull()
         } finally {
             readingLauncher = false
         }

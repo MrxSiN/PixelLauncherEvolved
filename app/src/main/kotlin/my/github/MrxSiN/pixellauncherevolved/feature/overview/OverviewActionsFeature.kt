@@ -40,21 +40,26 @@ class OverviewActionsFeature : LauncherFeature {
 
     override val compatibility = CompatibilityFeature.OVERVIEW_ACTIONS
 
-    /** One button, as it can be recognised in the row. */
-    private data class ActionButton(val idName: String)
-
     override val id: String = "overview_actions"
 
     /** Visibility each button had before this feature first hid it. */
     private val originalVisibility = WeakHashMap<View, Int>()
 
-    /** Resource ids by button, resolved on first use. */
-    private val resolvedIds = HashMap<ActionButton, Int>()
+    /**
+     * Each button's resource id, 0 when this launcher has none, or
+     * [UNRESOLVED] until first asked.
+     *
+     * Looked up by name once and remembered, because the row is checked before
+     * every frame it draws and a resource id does not change within a process.
+     */
+    private var screenshotId = UNRESOLVED
+    private var selectId = UNRESOLVED
 
     /** Rows already checked before they draw, so each is watched once. */
     private val watchedRows: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
 
-    override fun isEnabled(settings: SettingsSource): Boolean = hiddenButtons(settings).isNotEmpty()
+    override fun isEnabled(settings: SettingsSource): Boolean =
+        settings[Settings.OVERVIEW_HIDE_SCREENSHOT] || settings[Settings.OVERVIEW_HIDE_SELECT]
 
     override fun install(context: FeatureContext) {
         val actionsView = OverviewActionsRow.find(context)
@@ -65,7 +70,7 @@ class OverviewActionsFeature : LauncherFeature {
 
         val apply: (Any?, List<Any?>) -> Unit = { row, _ ->
             val group = row as ViewGroup
-            apply(group, hiddenButtons(context.settings))
+            apply(group, context.settings)
             watchBeforeDraw(group, context.settings)
         }
 
@@ -85,65 +90,65 @@ class OverviewActionsFeature : LauncherFeature {
 
         row.viewTreeObserver.addOnPreDrawListener(
             ViewTreeObserver.OnPreDrawListener {
-                !row.isShown || !apply(row, hiddenButtons(settings))
+                !row.isShown || !apply(row, settings)
             },
         )
     }
 
-    private fun hiddenButtons(settings: SettingsSource): List<ActionButton> = buildList {
-        if (settings[Settings.OVERVIEW_HIDE_SCREENSHOT]) add(SCREENSHOT)
-        if (settings[Settings.OVERVIEW_HIDE_SELECT]) add(SELECT)
+    /** Hides and restores the row's buttons, answering whether any of them changed. */
+    private fun apply(actionsRow: ViewGroup, settings: SettingsSource): Boolean {
+        if (screenshotId == UNRESOLVED) screenshotId = idOf(actionsRow, SCREENSHOT_ID)
+        if (selectId == UNRESOLVED) selectId = idOf(actionsRow, SELECT_ID)
+
+        return walk(
+            actionsRow,
+            settings[Settings.OVERVIEW_HIDE_SCREENSHOT],
+            settings[Settings.OVERVIEW_HIDE_SELECT],
+            false,
+        )
     }
 
-    /** Hides and restores the row's buttons, answering whether any of them changed. */
-    private fun apply(actionsRow: ViewGroup, hidden: List<ActionButton>): Boolean {
-        val hiddenIds = hidden.mapNotNullTo(HashSet()) { idOf(actionsRow, it) }
-        val knownIds = ALL.mapNotNullTo(HashSet()) { idOf(actionsRow, it) }
+    /** A button's resource id, or 0 when this launcher has none. */
+    private fun idOf(row: View, name: String): Int =
+        LauncherResources(row.context).id(name).let { if (it == View.NO_ID) 0 else it }
 
-        var changed = false
-        walk(actionsRow) { view ->
-            if (view.id !in knownIds) return@walk false
-
-            if (view.id in hiddenIds) {
+    /**
+     * Visits the tree, stopping at either button, and answers whether any
+     * button changed; [changed] is what earlier branches already answered.
+     */
+    private fun walk(view: View, hideScreenshot: Boolean, hideSelect: Boolean, changed: Boolean): Boolean {
+        val id = view.id
+        val isScreenshot = screenshotId != 0 && id == screenshotId
+        if (isScreenshot || (selectId != 0 && id == selectId)) {
+            if (if (isScreenshot) hideScreenshot else hideSelect) {
                 if (view.visibility != View.GONE) {
                     originalVisibility.putIfAbsent(view, view.visibility)
                     view.visibility = View.GONE
-                    changed = true
+                    return true
                 }
             } else {
-                originalVisibility.remove(view)?.let {
-                    changed = changed || view.visibility != it
-                    view.visibility = it
+                val original = originalVisibility.remove(view)
+                if (original != null) {
+                    val restored = changed || view.visibility != original
+                    view.visibility = original
+                    return restored
                 }
             }
-
-            true
+            return changed
         }
-        return changed
-    }
 
-    /**
-     * A button's resource id, or null when this launcher has none.
-     *
-     * Looked up by name once and remembered, because the row is checked before
-     * every frame it draws and a resource id does not change within a process.
-     */
-    private fun idOf(row: View, button: ActionButton): Int? =
-        resolvedIds.getOrPut(button) { LauncherResources(row.context).id(button.idName) }
-            .takeIf { it != View.NO_ID && it != 0 }
-
-    /** Visits the tree, stopping at any branch [onView] claims. */
-    private fun walk(view: View, onView: (View) -> Boolean) {
-        if (onView(view)) return
-
+        var result = changed
         if (view is ViewGroup) {
-            for (index in 0 until view.childCount) walk(view.getChildAt(index), onView)
+            for (index in 0 until view.childCount) {
+                result = walk(view.getChildAt(index), hideScreenshot, hideSelect, result)
+            }
         }
+        return result
     }
 
     private companion object {
-        val SCREENSHOT = ActionButton("action_screenshot")
-        val SELECT = ActionButton("action_select")
-        val ALL = listOf(SCREENSHOT, SELECT)
+        const val SCREENSHOT_ID = "action_screenshot"
+        const val SELECT_ID = "action_select"
+        const val UNRESOLVED = Int.MIN_VALUE
     }
 }

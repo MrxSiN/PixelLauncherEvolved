@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 
 import java.lang.ref.WeakReference
 
+import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
@@ -155,7 +156,7 @@ class HideAppsPickerFeature : LauncherFeature {
         val item = view.tag
         if (!appInfo.isInstance(item)) return null
 
-        return runCatching { packageOf.invoke(item) as? String }.getOrNull()?.takeIf { it.isNotBlank() }
+        return runCatching { Invoke.noArgs(packageOf, item) as? String }.getOrNull()?.takeIf { it.isNotBlank() }
     }
 
     /** Brings the drawer up, once, when settings has asked for it. */

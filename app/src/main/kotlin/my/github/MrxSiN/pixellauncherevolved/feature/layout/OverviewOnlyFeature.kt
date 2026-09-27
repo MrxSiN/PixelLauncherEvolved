@@ -6,6 +6,7 @@ import android.content.res.Resources
 import android.graphics.Rect
 import android.view.View
 
+import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
@@ -649,10 +650,10 @@ private class GridCardAppChip(private val context: FeatureContext) {
 
         fun applyTo(chip: View) {
             val title = appTitleOf.get(chip) as View
-            val bounds = collapsedBounds.invoke(chip) as Rect
+            val bounds = Invoke.noArgs(collapsedBounds, chip) as Rect
 
             title.layoutParams?.width = collapsedTextWidth.invoke(chip, bounds.width()) as Int
-            chip.layoutParams?.width = chipWidth.invoke(chip) as Int
+            chip.layoutParams?.width = Invoke.noArgs(chipWidth, chip) as Int
         }
     }
 
@@ -831,7 +832,7 @@ private class PhoneActionRow(private val context: FeatureContext) {
                 runCatching {
                     val deviceProfile = requireNotNull(chain.args.getOrNull(0))
                     val out = chain.args.getOrNull(1) as Rect
-                    val below = claimedBelow.invoke(deviceProfile) as Int
+                    val below = Invoke.noArgs(claimedBelow, deviceProfile) as Int
 
                     out.bottom = metrics.heightOf(deviceProfile) -
                         maxOf(metrics.bottomInsetOf(deviceProfile), below + metrics.actionsSpaceOf(deviceProfile))

@@ -3,6 +3,10 @@ package my.github.MrxSiN.pixellauncherevolved.feature.gesture
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
+
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.DoubleTap
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
@@ -96,8 +100,13 @@ class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP)
 /**
  * Asks this module's own app to end the screen.
  *
- * On its own thread, because it is a binder call that may have to start that
+ * Off the main thread, because it is a binder call that may have to start that
  * app's process, and the gesture arrives on the one drawing the home screen.
+ *
+ * One thread is kept once the first tap has made it, so a later tap is handed
+ * to a thread already waiting rather than one being started for it; a second
+ * tap while the first is still waiting gets a thread of its own, as it always
+ * did, and that one goes away again after a minute.
  */
 private class ScreenOff(private val context: FeatureContext) {
 
@@ -107,7 +116,7 @@ private class ScreenOff(private val context: FeatureContext) {
         val resolver = context.appContext.contentResolver
         val logger = context.logger
 
-        Thread {
+        worker.execute {
             val answer = runCatching { resolver.call(uri, ScreenLock.LOCK, null, null) }
                 .onFailure { logger.warn("The screen could not be reached to turn off", it) }
                 .getOrNull()
@@ -121,6 +130,16 @@ private class ScreenOff(private val context: FeatureContext) {
 
                 else -> logger.info("Double tap to sleep: screen off")
             }
-        }.start()
+        }
+    }
+
+    private val worker by lazy {
+        ThreadPoolExecutor(1, Int.MAX_VALUE, KEEP_ALIVE_SECONDS, TimeUnit.SECONDS, SynchronousQueue()) {
+            Thread(it, "PixelLauncherEvolved-sleep").apply { isDaemon = true }
+        }
+    }
+
+    private companion object {
+        const val KEEP_ALIVE_SECONDS = 60L
     }
 }

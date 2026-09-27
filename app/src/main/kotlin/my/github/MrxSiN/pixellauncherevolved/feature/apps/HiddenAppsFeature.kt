@@ -4,6 +4,7 @@ import android.view.View
 
 import java.util.function.Predicate
 
+import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
@@ -103,7 +104,7 @@ class HiddenAppsFeature : LauncherFeature {
         // screen: a hidden app you cannot see is a hidden app you cannot get
         // back.
         belongsHere && (HideAppsSelection.isSelecting || runCatching {
-            val name = packageOf.invoke(info) as? String
+            val name = Invoke.noArgs(packageOf, info) as? String
             name == null || name !in store.hidden()
         }.getOrElse { error ->
             context.logger.warn("Unable to read an app's package; showing it", error)
