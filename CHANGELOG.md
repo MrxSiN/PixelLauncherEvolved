@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.1.2
+
+### Changed
+
+- Overview costs the launcher about half the main-thread time it did. Each task
+  card looked its app chip up by resource name on every frame the launcher drew,
+  once for the bubble button and once for the split button, and built a list of
+  its children to find its own button; the action row and its entrance built
+  lists and sets per frame as well. Those are resolved once and walked by index
+  now. Measured on a Pixel 8 Pro over 60 Overview open/close cycles: launcher
+  main-thread CPU 19.7s to 10.8s, janky frames 54 to 15, slowest 1% of frames
+  15ms to 11ms.
+- The app drawer no longer re-reads the hidden-apps list once per app. The stored
+  list is parsed when it changes, not on every check, so a rebuild of the drawer
+  asks each app in about half the time and allocates nothing for it.
+- Drawer search and a few layout paths call the launcher's own methods without
+  allocating an argument array each time, and search result filtering allocates
+  a third less per keystroke.
+- Double tap to sleep hands the screen off to a thread that is already waiting
+  instead of starting a new one per tap.
+
+Nothing about what the tweaks do, or the settings they keep, has changed.
+
 ## 0.1.1
 
 ### Added

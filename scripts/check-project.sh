@@ -604,8 +604,8 @@ grep -q 'moduleApplicationInfo.packageName' "$SRC/feature/focus/FocusHomeFeature
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.1.1"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 12' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.1.2"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 13' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"
