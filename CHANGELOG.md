@@ -1,14 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### Changed
-
-- App drawer search reads each result by calling the system's search result
-  class directly instead of through reflection. Measured on a Pixel 8 Pro,
-  filtering a keystroke's results takes about 18% less time and allocates a
-  third less.
-
 ## 0.1.2
 
 ### Changed
@@ -27,6 +18,10 @@
 - Drawer search and a few layout paths call the launcher's own methods without
   allocating an argument array each time, and search result filtering allocates
   a third less per keystroke.
+- App drawer search reads each result by calling the system's search result
+  class directly instead of through reflection. Measured on a Pixel 8 Pro,
+  filtering a keystroke's results takes about 18% less time and allocates
+  another third less.
 - Double tap to sleep hands the screen off to a thread that is already waiting
   instead of starting a new one per tap.
 

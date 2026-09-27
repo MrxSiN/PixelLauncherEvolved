@@ -11,7 +11,9 @@ settings carry over untouched.
   name on every frame; they remember it now.
 - **App drawer**: the hidden-apps check no longer re-reads the list for every app, so the drawer
   rebuilds with less work.
-- **Drawer search**: filtering results as you type creates a third less garbage per keystroke.
+- **Drawer search**: filtering results as you type creates about half the garbage per keystroke,
+  and takes about 18% less time. Results are read from the system directly instead of through
+  reflection.
 - **Double tap to sleep**: reuses a waiting thread instead of starting one per tap.
 
 How each change was measured, including the ones tried and dropped, is in `PERFORMANCE.md` and
