@@ -289,3 +289,51 @@ includes warm-up):
 B beats A at every batch position in every round. Removing the three reflective calls per result
 saves about 18 µs and 18 allocations per keystroke. The allocations that remain are the result
 batch's own list and the one `SearchResult` per result.
+
+## Run 2026-09-27: module install at launcher start, instrumentation builds
+
+`scripts/instrumentation/start-probe.patch` logs `System.nanoTime()` around each phase of
+`installLauncher` and around each feature install (contract analysis forced first so it is timed on
+its own). Run with `bash scripts/bench-start-probe.sh start-ab.txt 6 6` (start-a/start-b APKs in the
+current directory): 6 rounds in alternating order, 6 launcher restarts (`am force-stop` then Home)
+per block, first restart after each install dropped. Phone on battery, thermal 0.
+
+Baseline (`831da0a`), ms, n = 30:
+
+| phase | median | IQR |
+|---|---|---|
+| total (`installLauncher`) | 50.12 | 48.99–51.29 |
+| features (registry loop) | 43.55 | 42.36–44.81 |
+| contract analysis | 6.25 | 6.05–6.51 |
+| focus_home_screens | 5.75 | 5.52–6.06 |
+| crash guard | 3.89 | 3.84–4.03 |
+| launcher_settings | 3.84 | 3.73–3.93 |
+| taskbar_home_visibility | 3.27 | 3.19–3.34 |
+| status_bar_double_tap_to_sleep | 2.90 | 2.07–3.58 |
+| taskbar_transition | 2.29 | 2.25–2.37 |
+| home_blur_wallpaper | 2.11 | 2.03–2.20 |
+| taskbar_only | 1.86 | 1.79–1.90 |
+| restarter | 1.45 | 1.40–1.52 |
+| overview_bubble_button | 1.39 | 1.34–1.47 |
+| app_drawer_hide_apps_picker | 1.35 | 1.32–1.41 |
+| settings migration | 1.14 | 1.10–1.23 |
+| every other feature | ≤ 1.06 each | |
+
+Candidate B (ledger entries 12 + 13): total 51.45 ms (+2.7%, IQRs overlap). Analysis −0.53 ms in
+every round, blur install +0.45 ms in every round (ledger entry 12). Per-round total medians (a/b):
+51.3/51.4, 48.7/50.7, 50.2/51.2, 49.8/51.5, 50.9/51.7, 49.0/51.6.
+
+## Run 2026-09-27: one hook per method (rejected)
+
+`WORKLOADS=overview bash scripts/bench-device.sh rel-a.apk rel-b.apk fuse 4 60`, A = `831da0a`,
+B = A + ledger entry 13, release builds.
+
+| metric | A samples | B samples | median change |
+|---|---|---|---|
+| main_cpu_ns | 11.24 11.57 11.68 11.46 s | 11.09 11.35 11.47 11.59 s | −0.9% |
+| janky | 12 14 21 17 | 17 13 11 12 | −19.4% |
+| p99_ms | 10 10 11 11 | 10 10 10 10 | −4.8% |
+| alloc_mb | 156 154 154 155 | 153 155 154 154 | −0.3% |
+| gc_ms | 1449 1648 1450 1512 | 1409 1455 1434 1465 | −2.5% |
+
+Every metric's ranges overlap. Rejected.

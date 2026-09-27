@@ -216,6 +216,43 @@ entries 1–6 together as one candidate, not one change at a time.
   `asType`-adapted `MethodHandle`, which is slower than reflection on ART. This is a plain
   `invoke-virtual`.
 
+## 12. Contract analysis read each class's members once — REJECTED, reverted
+
+- **Hypothesis:** `ContractAnalyzer.declares` called `getDeclaredMethods()`/`getDeclaredFields()` for
+  every contract and every class up the hierarchy (to `Activity` and `Object` for a missing or
+  inherited member). Each call builds a new array of member objects. Caching the arrays per class
+  for one analysis would cut the 6.3 ms the analysis takes at every launcher start.
+- **Path:** `diagnostics/ContractAnalyzer.kt`.
+- **Correctness:** same arrays, so the same answers. The cache lives only as long as one analyzer.
+- **Measured (startup instrumentation build, `scripts/instrumentation/start-probe.patch`; A = `831da0a`,
+  B = A + this + entry 13; 6 interleaved rounds × 6 launcher restarts, first restart after each
+  install dropped, n = 30 each):** analysis 6.25 → 5.72 ms (−8.5%; IQRs 6.05–6.51 vs 5.62–5.97;
+  lower in every round). But `home_blur_wallpaper` install, which runs later, rose 2.11 → 2.56 ms,
+  also in every round. Total install time 50.12 → 51.45 ms (+2.7%, IQRs overlap).
+- **Result:** rejected and reverted. The saving moved to a later install step instead of leaving
+  the startup path, and total module install time did not improve.
+
+## 13. One hook per method for every `hookAfter` body — REJECTED, reverted
+
+- **Hypothesis:** several features follow the same launcher methods through `FeatureContext.hookAfter`,
+  and each call installs its own hook: `TaskView.setFullscreenProgress` ×3 (bubble, split, action
+  row motion; per card on every Overview frame), `TaskView.onLayout` ×2, `TaskView.onFinishInflate`
+  ×2, `OverviewActionsView.onFinishInflate` ×3, `Launcher.onResume` ×5. Registering one hook per
+  method, with the bodies in an array, would take the call through the framework's chain once.
+- **Path:** `hook/FeatureContext.kt` only.
+- **Correctness:** checked the current order on device first. An instrumentation build logged each body
+  with its registration number, and the bodies run last-registered first (`reg#20, 18, 16` on
+  `OverviewActionsView.onFinishInflate`, `13, 10` on `TaskView.onFinishInflate`). The fused
+  dispatcher kept that order, and a `runCatching` and warning per body. The one direct hook with a
+  shared method name (wallpaper blur, `onResume`) is on `QuickstepLauncher`, a different method.
+- **Measured (release builds, A = `831da0a`, B = A + this; `WORKLOADS=overview`, 4 interleaved
+  rounds × 60 cycles, thermal 0):** main-thread CPU 11.52 → 11.41 s (−0.9%, IQRs overlap), janky
+  frames 15.5 → 12.5 (IQRs overlap), p99 frame 10.5 → 10 ms, allocation and GC unchanged.
+  Install time for the Overview features changed by less than 0.1 ms (entry 12 run).
+- **Result:** rejected and reverted. The change is within run-to-run noise, and it adds shared
+  hook state across features that were isolated before. Measured together with entry 8's finding, the
+  libxposed dispatch per hooked call is not a cost that shows up on this device.
+
 ## Examined, not changed
 
 - **Task card layout** (`TaskCardButtonDecorator.onTaskViewLaidOut` → `place` →
@@ -241,3 +278,10 @@ entries 1–6 together as one candidate, not one change at a time.
   `Gesture` and reads the long-press field on each event. The widget host only gets `onTouchEvent`
   for the events it intercepted (the search bar, where that work is needed) or that no child
   consumed. Skipping the read for unclaimed widgets would save almost nothing, so it was left as is.
+- **`applyState` hooks** (`TaskbarAllAppsButtonFeature`, `TaskbarTransitionFeature` on
+  `TaskbarLauncherStateController.applyState`): two hooks on one method, but it runs about once per
+  launcher state change. Covered by entry 13's result.
+- **Module install at launcher start** (about 50 ms on the main thread before `Application.onCreate`
+  returns, profiled in `PERFORMANCE.md`): no single step is over 13% of it. The largest are contract
+  analysis (6.3 ms, entry 12) and Focus home screens (5.8 ms, class loading and about 10 hooks).
+  Launcher starts are rare (boot, crash, module update), so this was not pursued further.

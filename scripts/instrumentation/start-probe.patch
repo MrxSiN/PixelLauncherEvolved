@@ -1,0 +1,66 @@
+diff --git a/app/src/main/kotlin/my/github/MrxSiN/pixellauncherevolved/PixelLauncherEvolvedModule.kt b/app/src/main/kotlin/my/github/MrxSiN/pixellauncherevolved/PixelLauncherEvolvedModule.kt
+index e69750a..e67d506 100644
+--- a/app/src/main/kotlin/my/github/MrxSiN/pixellauncherevolved/PixelLauncherEvolvedModule.kt
++++ b/app/src/main/kotlin/my/github/MrxSiN/pixellauncherevolved/PixelLauncherEvolvedModule.kt
+@@ -65,15 +65,18 @@ class PixelLauncherEvolvedModule : XposedModule() {
+     }
+ 
+     private fun installLauncher(application: Application, classLoader: ClassLoader, logger: Logger) {
++        val t0 = System.nanoTime()
+         val restarter = LauncherRestarter(application, logger)
+         restarter.watchModule(moduleApplicationInfo.packageName, moduleApplicationInfo.sourceDir)
+         SettingsStorageMove(application, logger).apply {
+             restarter.restartOnScreenOff("settings moved out of credential encrypted storage")
+         }
+ 
++        val t1 = System.nanoTime()
+         val preferences = LauncherSettings.preferences(application)
+         SettingsMigration(logger).apply(preferences, frameworkPreferences(logger))
+ 
++        val t2 = System.nanoTime()
+         val settings = SharedPreferencesStore(preferences)
+         // Before any feature installs: a crash loop's tweak must not be installed again.
+         CrashGuard(SharedPreferencesSafeModeStore(preferences), settings, logger).apply {
+@@ -81,6 +84,7 @@ class PixelLauncherEvolvedModule : XposedModule() {
+             recover()
+         }
+ 
++        val t3 = System.nanoTime()
+         FeatureRegistry.install(
+             FeatureContext(
+                 xposed = this,
+@@ -90,6 +94,8 @@ class PixelLauncherEvolvedModule : XposedModule() {
+                 logger = logger,
+             ),
+         )
++        val t4 = System.nanoTime()
++        android.util.Log.i("PLEStart", "phase restarter=${t1 - t0} prefs_migration=${t2 - t1} crashguard=${t3 - t2} features=${t4 - t3} total=${t4 - t0}")
+     }
+ 
+     /**
+diff --git a/app/src/main/kotlin/my/github/MrxSiN/pixellauncherevolved/hook/FeatureRegistry.kt b/app/src/main/kotlin/my/github/MrxSiN/pixellauncherevolved/hook/FeatureRegistry.kt
+index 01fb295..f63bf58 100644
+--- a/app/src/main/kotlin/my/github/MrxSiN/pixellauncherevolved/hook/FeatureRegistry.kt
++++ b/app/src/main/kotlin/my/github/MrxSiN/pixellauncherevolved/hook/FeatureRegistry.kt
+@@ -69,6 +69,9 @@ object FeatureRegistry {
+      * the launcher down with it.
+      */
+     fun install(context: FeatureContext) {
++        val a0 = System.nanoTime()
++        context.analysis
++        android.util.Log.i("PLEStart", "feature analysis=${System.nanoTime() - a0}")
+         val wanted = features.filter { it.isLive || it.isEnabled(context.settings) }
+ 
+         for (feature in wanted) {
+@@ -80,9 +83,11 @@ object FeatureRegistry {
+                 continue
+             }
+ 
++            val f0 = System.nanoTime()
+             runCatching { feature.install(context) }
+                 .onSuccess { context.logger.info("Installed ${feature.id}") }
+                 .onFailure { context.logger.warn("Feature ${feature.id} failed to install", it) }
++            android.util.Log.i("PLEStart", "feature ${feature.id}=${System.nanoTime() - f0}")
+         }
+     }
+ }
