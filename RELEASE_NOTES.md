@@ -1,28 +1,31 @@
-# Pixel Launcher Evolved v0.1.2
+# Pixel Launcher Evolved v0.1.3
 
 Tested on a Pixel 8 Pro running Android 17 QPR1 (September 2026), build `CP3A.260905.009`,
-Pixel Launcher `907`. A performance release: every tweak does what it did in v0.1.1, and your
-settings carry over untouched.
+Pixel Launcher `907`. Your settings carry over untouched.
 
-### Survives launcher updates
+### Icon packs, in Wallpaper & style
 
-- When a Pixel Launcher update renames or moves something a tweak hooks, the module now finds it
-  again with [DexKit](https://github.com/LuckyPray/DexKit) instead of switching the tweak off. It
-  compares a fingerprint recorded from a launcher that worked, and only accepts a clear match.
-- This runs once after each launcher update, in the background, and never on a normal start, which
-  costs under a millisecond more.
+- **Wallpaper & style → Home screen → Icons pack**, right under the system's own Icons option.
+  The page grows out of the home screen card: the real home screen on top, drawn by Pixel
+  Launcher, and every installed icon pack in the picker's own option sheet under it.
+- **Preview before you apply.** Tapping a pack shows your home screen with its icons; nothing
+  changes until you press Apply.
+- **Real Pixel icons.** Pack artwork goes through the launcher's own icon pipeline, so shape,
+  shadow, work badges, dots, folders, search, predictions and the taskbar all agree. Apps the pack
+  doesn't cover keep their own icon, themed or not. Calendar icons follow the date. Pick a
+  different icon from the pack, or the stock one, for any single app.
+- **No restart.** Changing the pack redraws only the icons that changed. Coming back home after
+  a change, the new icons are brought in one after another, and a notice tells you when the
+  change has landed.
+- ADW, Nova, Apex, Go, Atom, Lawnchair and Teslacoil packs are supported. Backups include the
+  pack and your per-app icons.
 
-### Faster
+**Existing installs:** enable **Wallpaper & style** (`com.google.android.apps.wallpaper`) for
+this module in your Xposed manager, then restart it.
 
-- **Overview**: opening and closing Overview takes the launcher about 45% less main-thread time,
-  with about a quarter of the dropped frames. The task-card buttons were looking up the app chip by
-  name on every frame; they remember it now.
-- **App drawer**: the hidden-apps check no longer re-reads the list for every app, so the drawer
-  rebuilds with less work.
-- **Drawer search**: filtering results as you type creates about half the garbage per keystroke,
-  and takes about 18% less time. Results are read from the system directly instead of through
-  reflection.
-- **Double tap to sleep**: reuses a waiting thread instead of starting one per tap.
+### Fixed
 
-How each change was measured, including the ones tried and dropped, is in `PERFORMANCE.md` and
-`OPTIMIZATION_LEDGER.md`.
+- **Blur wallpaper**: Wallpaper & style's home screen preview is now blurred as your home screen
+  is, and opening or closing the app drawer no longer snaps the whole home screen to a blur and back.
+- **Focus home screens**: when a Mode changes while you're in an app, home no longer stays blank
+  for most of a second when you go back to it.

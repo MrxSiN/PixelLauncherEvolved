@@ -13,7 +13,15 @@ grep -q '^com.google.android.apps.nexuslauncher$' "$META/scope.list"
 # SystemUI is scoped for one thing: drawing a screen off the launcher asked for
 # around the point it was taken at. Every tweak still lives in the launcher.
 grep -q '^com.android.systemui$' "$META/scope.list"
-test "$(wc -l < "$META/scope.list")" -eq 2
+
+# Wallpaper & style is scoped for one thing: choosing the icon pack beside its
+# own Icons option. The choice is the launcher's, asked of it over grid_control.
+grep -q '^com.google.android.apps.wallpaper$' "$META/scope.list"
+test "$(wc -l < "$META/scope.list")" -eq 3
+grep -q 'IconsBridge.PICKER_PACKAGE' "$SRC/PixelLauncherEvolvedModule.kt"
+grep -q 'HOME_SCREEN' "$SRC/picker/IconPackPicker.kt"
+grep -q 'grid_control' "$SRC/bridge/IconsBridge.kt"
+grep -q 'callerAllowed' "$SRC/feature/icons/IconPackBridge.kt"
 
 # Entry point: the two scoped packages, first package only, no hooking inline.
 grep -q 'com.google.android.apps.nexuslauncher' "$SRC/PixelLauncherEvolvedModule.kt"
@@ -518,14 +526,13 @@ grep -q 'HomeWallpaperBlurFeature' "$SRC/hook/FeatureRegistry.kt"
 # Deciding the depth has no Android in it, so it can be tested.
 ! grep -qE '^import android' "$SRC/wallpaper/HomeBlurDepth.kt"
 
-# The switch is in the launcher's own Home settings. The secure-settings key,
-# the Wallpaper & Style hook and the live-wallpaper render models stay gone, and
-# the wallpaper app is never scoped. The scope itself is pinned at the top.
+# The switch is in the launcher's own Home settings. The secure-settings key
+# and the live-wallpaper render models stay gone; Wallpaper & style is entered
+# only for the icon pack (pinned at the top), never for the blur.
 ! grep -rq 'pixel_launcher_evolved_home_blur_wallpaper' "$SRC"
 ! grep -rq 'magicportrait' "$SRC"
-! grep -rq 'com.google.android.apps.wallpaper' "$SRC"
+! grep -rq 'com.google.android.apps.wallpaper' "$SRC/feature/wallpaper" "$SRC/wallpaper"
 [ ! -d "$SRC/feature/magicportrait" ]
-! grep -q 'wallpaper' "$META/scope.list"
 
 # Pages are assigned from Home settings, by number. The launcher's long press
 # menu is a Compose dialog in classes its shrinker renames, so there is no view
@@ -604,8 +611,8 @@ grep -q 'moduleApplicationInfo.packageName' "$SRC/feature/focus/FocusHomeFeature
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.1.2"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 13' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.1.3"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 14' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"
