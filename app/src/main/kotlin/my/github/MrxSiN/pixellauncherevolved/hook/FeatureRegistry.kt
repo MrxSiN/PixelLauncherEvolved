@@ -7,6 +7,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.safemode.SafeModeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusHomeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.gesture.DoubleTapToSleepFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.icons.IconPackFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.OverviewOnlyFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarAllAppsButtonFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarHomeVisibilityFeature
@@ -46,6 +47,7 @@ object FeatureRegistry {
         DoubleTapToSleepFeature(),
         StatusBarSleepFeature(),
         HomeSearchBarFeature(),
+        IconPackFeature(),
         HiddenAppsFeature(),
         HideAppsPickerFeature(),
         AppDrawerSearchFeature(),

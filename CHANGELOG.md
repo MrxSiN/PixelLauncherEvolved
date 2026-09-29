@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.1.3
+
+### Added
+
+- Icon packs, chosen in Wallpaper & style → Home screen → Icons pack, under the system's own
+  Icons option. The page grows out of the picker's home screen card, with the real home screen on
+  top, drawn by Pixel Launcher over the wallpaper as home shows it, and every installed pack as a
+  tile in the picker's own option sheet under it. Tapping a tile previews the home screen with that
+  pack's icons without choosing it; the toolbar's Apply makes it the home screen's, as on the
+  picker's own option pages.
+- Icons are drawn from an installed icon pack (ADW, Nova, Apex, Go, Atom, Lawnchair and Teslacoil
+  conventions; `appfilter.xml` as an asset or an XML resource). Pack artwork goes through the
+  launcher's own icon pipeline, so shape, shadow, work badges, notification dots, folders, search
+  results, predictions and the taskbar all show the same icon. Apps the pack does not map keep
+  their stock icon, themed or not. Dynamic calendar icons follow the date. Per-app icons pick a
+  different drawable from the pack, or the stock icon, for one app in one profile. System leaves
+  Pixel Launcher's icon path exactly as it was.
+- Changing the pack, an override, or updating or removing the pack redraws only the affected icons
+  without a launcher restart. When home comes back after a change made in Wallpaper & style, the
+  new icons are brought in one after another, and a notice says the change is under way and when
+  it has landed.
+- Backups carry the icon source, the pack and the per-app icons, by name. Older backups import
+  with icons left to the system.
+- Wallpaper & style is now in this module's scope, for the icon pack and its previews only.
+  Existing installs need it enabled in the Xposed manager.
+
+### Fixed
+
+- With Blur wallpaper on, Wallpaper & style's home screen preview showed the wallpaper sharp. It
+  is now blurred as home is.
+- With Blur wallpaper on, opening and closing the app drawer snapped the whole home screen to a
+  heavy blur on the first frame and back to sharp on the last. The workspace now blurs in and out
+  with the drawer, as it does on a stock home screen.
+- With Focus home screens on, a Mode that changed while an app was open no longer leaves home
+  blank for most of a second after going back to it.
+
 ## 0.1.2
 
 ### Added

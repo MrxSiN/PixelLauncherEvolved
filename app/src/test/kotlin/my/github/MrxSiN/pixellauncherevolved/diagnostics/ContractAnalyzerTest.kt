@@ -20,6 +20,16 @@ class ContractAnalyzerTest {
     }
 
     @Test
+    fun `an array parameter is named the way Class getName names it`() {
+        val toArray = LauncherContract(
+            Signature(LIST, Member.Method("toArray", listOf("[Ljava.lang.Object;"))),
+            setOf(CompatibilityFeature.ICON_PACK),
+        )
+
+        assertEquals(ContractOutcome.RESOLVED, analyzer.analyze(listOf(toArray)).results.single().outcome)
+    }
+
+    @Test
     fun `a method with other parameters is missing`() {
         assertEquals(ContractOutcome.MISSING_MEMBER, check(Member.Method("add", listOf("long"))).outcome)
     }

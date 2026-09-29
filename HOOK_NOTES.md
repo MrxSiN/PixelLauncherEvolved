@@ -2442,3 +2442,220 @@ take the first of; `CP3A.260905.009` answers the one position directly.
 The device profile the handler wants comes from
 `RecentsViewContainer.containerFromContext(Context).getDeviceProfile()`, the same
 entry point the clear-all action uses to find the recents view.
+
+## Icon packs (Android 17 QPR1, launcher 907, verified September 27, 2026)
+
+Every app icon the launcher shows comes out of one method, and every icon it stores is keyed by
+another:
+
+```
+IconProvider.getIcon(PackageItemInfo, ApplicationInfo, int)      the artwork (calendar, clock, theme data)
+IconProvider.getStateForApp(ApplicationInfo)                     PersistedItemState, the freshness key
+PersistedItemState.withAdditionalValues(String[])                adds values to that key
+```
+
+`getIcon(ComponentInfo)` and the caching logics end up in the three-argument `getIcon`. Replacing
+its result after `proceed()` hands the pack drawable to `BaseIconFactory.createBadgedIconBitmap`, so
+normalisation, shape mask, shadow, work badge, colour extraction and bitmap size are the launcher's
+own, and the home screen, the drawer, search, predictions, folder previews and the taskbar all read
+the one cached bitmap.
+
+The hook runs on the launcher's icon worker, inside the cache's miss path. Binding a list reads the
+cached `BitmapInfo` and never reaches it.
+
+### Making a change reach a running launcher
+
+`getStateForApp` gets `ple<format>:<pack>:<version>:<generation>` added (plus a digest for an app with
+an override of its own, and `:d<day>` for an app the pack draws as a calendar). The launcher stores
+each icon with that key and regenerates the ones whose key changed when the model reloads
+(`LauncherAppState.INSTANCE.get(context).model.forceReload(String)`, posted to
+`Executors.MODEL_EXECUTOR`). So one override regenerates one app, a pack change regenerates every app,
+and switching back to System regenerates them again, all by the launcher's own code. The launcher's
+icon database is never edited by this module.
+
+### Gotcha: clearing the memory cache shows placeholders everywhere
+
+`BaseIconCache.cache` answers before the freshness check. Clearing it before `forceReload` makes every
+icon on screen a grey placeholder until it is regenerated, a second or more for a few hundred apps.
+Leaving it alone is correct: the loader's update pass regenerates stale entries and replaces them in
+the memory cache and on screen as it goes, so only the icons that change are redrawn.
+
+### Gotcha: themed icons theme pack artwork too
+
+With themed icons on, `createBadgedIconBitmap` asks the theme controller for a themed layer for every
+icon (`IconThemeController.createThemedBitmap(AdaptiveIconDrawable, BitmapInfo, BaseIconFactory,
+SourceHint)`), and `MonoIconThemeController` derives one even from artwork without a monochrome
+layer, so a pack icon would be drawn as a tinted silhouette. The hook on
+`MonoIconThemeController.createThemedBitmap` returns null for a component the pack draws
+(`SourceHint.key` is the `ComponentKey`; its `user` is a `UserHandle` whose `hashCode()` is the user
+id), which is the result the launcher already uses for an icon it does not theme. Apps the pack does
+not map are themed as before. Google's own icon style controller (`t8.x0` in 907, obfuscated) is not
+hooked; with that style chosen, pack icons go through it like any other icon.
+
+### Gotcha: packs ship flat artwork
+
+Almost every pack ships bitmaps, edge to edge or as a glyph on nothing. The launcher treats a
+non-adaptive drawable as a legacy icon: shrunk and put on a white plate, which hides a white glyph
+entirely. Non-adaptive pack artwork is wrapped as an `AdaptiveIconDrawable` with a transparent
+background and the artwork inset by `getExtraInsetFraction()`, so it fills the visible shape and the
+launcher's own mask applies. An adaptive drawable from the pack is passed through untouched.
+
+### The pack index
+
+`appfilter.xml` (asset first, then `res/xml/appfilter`) is parsed once per pack version on the
+feature's own worker (`ple-icons`, one daemon thread, not the model thread: a large pack takes about
+a second and the model thread loads the home screen). Component names are FNV-1a hashed into sorted
+`long[]` keys with `int[]` resource ids; a key claimed by two different drawables is dropped rather
+than guessed. A package-level fallback exists only where every component of that package agreed.
+`<calendar prefix="...">` entries resolve 31 day drawables. The index is written to
+`ple_icons/<package>.<format>.idx` and read back at launcher start in one read and bulk buffer copies
+(about 9 ms for 24,000 components). A lookup is two binary searches and allocates nothing.
+
+### Package and date changes
+
+A receiver for `PACKAGE_ADDED/REPLACED/REMOVED/CHANGED` (ignoring the `REMOVED` half of an update,
+`EXTRA_REPLACING`) and `DATE_CHANGED/TIME_CHANGED/TIMEZONE_CHANGED` hands work to the same worker.
+Only the chosen pack's own changes matter: an app update is the launcher's own business and its
+freshness key already covers it.
+
+### Not done
+
+- **Apply to Home only / drawer only:** both surfaces read the same cached bitmap. Splitting them
+  would need a second cache, so there is no such option.
+- **Dynamic clocks from packs:** the pack's static clock drawable replaces the stock animated clock
+  when the pack maps the clock app. Pixel's own animated clock stays when it does not.
+- **Themed pack artwork:** a pack's own monochrome layer is not used for themed icons.
+- **Icons from a second pack in per-app icons:** only the active pack is offered; keeping another
+  pack's index resident for one choice is not worth it.
+
+## Icon packs in Wallpaper & style (verified September 27, 2026)
+
+The choice moved out of Home settings into Wallpaper & style, beside the picker's own Icons option.
+Wallpaper & style (`com.google.android.apps.wallpaper`) is scoped for that alone.
+
+### Where the entry goes
+
+```
+CustomizationPickerFragment.initCustomizationOptionEntries(..., View root, Screen screen)   fills a list
+CustomizationPickerFragment.updateHeaderHeightConstraints(page, entry, label, listHeight, chip, inset)
+```
+
+For `HOME_SCREEN`, one entry inflated from `customization_option_entry_app_icons` goes into
+`home_customization_option_container` right after the entry holding `downloading_icon` (the
+system's Icons entry), with the middle background. Its own tag keeps it from being added twice.
+Its height is taken out of `listHeight` so the previews collapse as on a stock picker, and it is
+set `GONE` while the Home screen list is hidden (the picker hides it as `INVISIBLE`, which would
+still count toward the shared scroll view's height).
+
+Pixel Lock Screen Evolved hooks the same two methods for the Lock screen list. Each module only
+touches its own list and subtracts only its own rows, so both can be on; verified on device with
+both active.
+
+### Talking to the launcher
+
+Wallpaper & style cannot see most icon packs (its package visibility is a short `<queries>` list),
+and the setting and the icon cache are the launcher's. The launcher's `grid_control` provider
+(`LauncherCustomizationProvider`, a `ContentProviderProxy`) is already what the picker calls for its
+home preview; `ContentProviderProxy.call` is hooked and answers methods starting `ple_icons_`
+(`bridge/IconsBridge.kt`). The caller must be Wallpaper & style, the launcher or the shell.
+
+Pictures cross as PNG bytes drawn by the launcher's own factory:
+
+```
+LauncherIcons.Companion.obtain(Context)                  static in 907 (R8); an instance method elsewhere
+BaseIconFactory.createBadgedIconBitmap$default(li, d)    -> BitmapInfo
+BitmapInfo.newIcon(Context, 0, null)                     -> FastBitmapDrawable in the home shape
+```
+
+Gotcha: `BitmapInfo.icon` is a hardware bitmap, which a software `Canvas` refuses. The drawable is
+recorded into a `Picture` and rendered with `Bitmap.createBitmap(Picture, w, h, ARGB_8888)`.
+
+Tiles in one answer are capped at 512 KB, well under a Binder transaction.
+
+### The live preview
+
+The same preview the picker's main page shows: `content://…grid_control/preview`, method
+`get_preview`, extras `host_token` (the `SurfaceView`'s host token), `display_id`, `width`,
+`height`, answer `surface_package`. The workspace surface is drawn above the window
+(`setZOrderOnTop`, translucent) over the home wallpaper
+(`WallpaperManager.getDrawable(FLAG_SYSTEM)`, which the picker may read). After an apply the page
+asks for a new surface package and releases the old one, so the preview shows the launcher's new
+icons.
+
+### The tiles
+
+`icon_style_option2`, the picker's own option tile: `OptionItemBackground` (`background`), which
+morphs from a circle to a rounded square and between `colorUnselected` and `colorSelected` as its
+`progress` field goes from 0 to 1; `app_icon` for the picture, `foreground` for a glyph, `text` for
+the label. Selection animates `progress` over 350 ms on the emphasized decelerate curve (instantly
+when animations are off). Colours follow the picker's `ColorUpdateViewModel` flows through
+`ColorUpdateBinder.bind`, as Pixel Lock Screen Evolved does.
+
+### Apply timing
+
+An apply publishes the source in about 5 ms and waits for `LauncherModel.forceReload`'s
+`CompletionStage`; measured 426 and 532 ms from the request to the reloaded model on the Pixel 8
+Pro (n = 2). The launcher uses the same full reload itself when the icon theme changes
+(`reloadIfActive`). Every pack is indexed ahead of time, when it is installed or updated and when
+the picker lists the packs, so choosing a pack never waits on a compile.
+
+## Gotcha: the workspace blur follows the wallpaper's full radius (verified September 27, 2026)
+
+```
+LauncherDepthController.blurWorkspaceDepthTargets()
+    radius = BaseDepthControllerImpl.mCurrentBlur    while shouldBlurWorkspace(target state)
+    RenderEffect.createBlurEffect(radius, radius, DECAL) on every mDepthBlurTargets view
+```
+
+Stock home rests at depth 0, so `mCurrentBlur` grows from 0 as the drawer opens and the workspace
+blurs in with it. With Blur wallpaper on, home rests at a depth of its own, so on the first frame of
+opening the drawer `mCurrentBlur` is already the resting radius and the whole workspace snapped to
+it; closing, it stayed there until the last frame and snapped sharp. A screen recording showed
+the icons turning into grey blobs on the first frame.
+
+For the length of that one call `mCurrentBlur` reads as the part above the resting radius,
+stretched over the whole range (`HomeBlurDepth.workspaceBlur`), then is put back. The wallpaper is
+untouched. Re-recorded on device: the workspace now blurs in over the drawer's opening and out over
+its closing, as stock does.
+
+## Wallpaper & style's home screen previews (Android 17 QPR1, verified September 29, 2026)
+
+Every preview is a `PreviewSurfaceRenderer(Context, RunnableList, Bundle, int, boolean bitmap)`
+built on the Binder thread that asked (`get_preview` for a live surface, `get_preview_bitmap` for
+a picture), with its own `PreviewContext`, and so its own `LauncherIconProviderImpl`, icon factory
+and `IconCache`. `recreatePreviewRenderer` runs on the main thread inside the constructor (the
+constructor waits on it), before any icon loads.
+
+- **Blur.** The picker draws the wallpaper on its own `SurfaceView` under the launcher's. The
+  preview's `ViewRootImpl` surface gets `setBackgroundBlurRadius`, the launcher's home radius
+  (`max_depth_blur_radius_enhanced` × strength) × preview width / screen width, and the compositor
+  blurs the picker's wallpaper inside the card's corners. A bitmap preview has no wallpaper under
+  it; the picker blurs its own copy with a `RenderEffect`.
+- **Previewing a pack.** The request's `ple_icons_preview_pack` is remembered against the
+  renderer, then against its `mPreviewContext` in `recreatePreviewRenderer`. The icon hooks look
+  up `IconProvider.mContext` (and `BaseIconFactory.context` for the themed pass). A preview writes
+  its icons to the shared icon database with its own freshness token, so the home screen
+  regenerates them on its next load; nothing wrong is ever shown.
+- **Gotcha: `get_preview_bitmap` never releases its renderer.** Stock leaves a surface host,
+  a preview context and a `preview-<uuid>.xml` behind per call. For requests carrying the key,
+  `mLifeCycleTracker.executeAllAndDestroy()` is posted to the main thread after the picture is taken.
+- **Gotcha: a stopped launcher defers its icon rebind.** A pack applied while Wallpaper & style
+  is in front reloads at once, but the home screen's `BubbleTextView.setIcon` calls arrive about
+  0.8 s after home resumes, and while stopped the decor view is INVISIBLE, so `isShown` is false.
+
+### Not fixed: the flash before screen off
+
+Sleeping from the unlocked screen (double tap, status bar double tap, power key, from any app)
+can dim everything by about 15 to 20% for a few frames, come back to full for one frame, then
+play SystemUI's reveal. Neither SystemUI nor the launcher draws it:
+
+- `LightRevealScrim` stays at amount 1.0 through the gap, and SystemUI's `SceneWindowRootView`
+  stays INVISIBLE until about 68 ms in, after the dim has started;
+- it happens from Settings too, with no launcher on screen;
+- about 64 ms after "Going to sleep", system_server creates a `ColorFade` surface: the display
+  policy is OFF until the doze dream starts, so `DisplayPowerController` starts the screen-off
+  cool-down fade, then dismisses it when the policy becomes DOZE with the screen on for SystemUI's
+  unlocked screen off animation.
+
+A fix belongs in system_server (`DisplayPowerController`), which this module is not scoped to, or
+in an overlay setting `config_displayColorFadeDisabled`.

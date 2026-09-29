@@ -12,6 +12,8 @@ import my.github.MrxSiN.pixellauncherevolved.feature.settings.RowScope
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsKeys
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsRow
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.activityOrNull
+import my.github.MrxSiN.pixellauncherevolved.icons.IconSourceSettings
+import my.github.MrxSiN.pixellauncherevolved.icons.SharedPreferencesIconOverrideStore
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 
 /**
@@ -30,6 +32,8 @@ internal object BackupRows : SettingsRow {
             settings = scope.settings,
             hiddenApps = SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(scope.context)),
             webSearchApp = SharedPreferencesWebSearchAppStore(LauncherSettings.preferences(scope.context)),
+            icons = IconSourceSettings(LauncherSettings.preferences(scope.context)),
+            iconOverrides = SharedPreferencesIconOverrideStore(LauncherSettings.preferences(scope.context)),
         )
 
         scope.api.add(

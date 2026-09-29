@@ -38,11 +38,19 @@ internal class FocusPageReveal(
 
     /** Marks only an active-Mode transition; settings-only reloads stay instant. */
     fun request(waitForHomeTransition: Boolean) {
+        val view = workspace?.get()
+        // Out of sight, behind an app: no old page is on screen to send away, so
+        // the rebind lands unseen. Holding the page hidden until focus, then the
+        // home transition, then the enter motion is what kept home blank after
+        // swiping back to it.
+        if (view != null && view.windowVisibility != View.VISIBLE) {
+            cancel()
+            return
+        }
         generation++
         pending = true
         bound = false
         scheduled = false
-        val view = workspace?.get()
         this.waitForHomeTransition = waitForHomeTransition || view?.hasWindowFocus() != true
 
         // Played rather than cut, because the model takes long enough to bind

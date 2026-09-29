@@ -75,3 +75,19 @@ those allocations; the rest are the button's own measure and layout (see `OPTIMI
 `Invoke.noArgs` is inlined everywhere it is used and passes the static empty array, so no
 zero-argument reflective call allocates. All `getDeclaredMethod`/`getMethod`/`getDeclaredField`
 lookups in the audited methods sit on cold paths: install, first call, or a cache miss.
+
+## Icon pack hooks (icon worker and model load, not frame paths)
+
+R8 merges the intercept lambdas with unrelated ones, so the audited final methods also hold other
+features' code; the icon sources were read with `scripts/dex-audit.py` against the mapping.
+
+| Source | Sites on the normal path |
+|---|---|
+| `getIcon` hook, System | `proceed`, volatile read of `IconPackState.source`, return |
+| `getIcon` hook, pack | argument reads (already boxed by the framework), `IconOverrides`/`IconPackIndex` binary searches (`ComponentHash`: no allocation), then on a hit `Resources.getDrawableForDensity` and, for flat artwork, one `AdaptiveIconDrawable`, `ColorDrawable` and `InsetDrawable`. `Log.w` only on failure |
+| `getStateForApp` hook, System | `proceed`, volatile read, return |
+| `getStateForApp` hook, pack | the precomputed token for most apps; a `StringBuilder` only for an app with an override or a calendar icon; `String[]` and `Method.invoke` for `withAdditionalValues` (which allocates a new state itself) |
+| `createThemedBitmap` hook | volatile read; with a pack, three cached `Field.get` and the binary searches. `Log.w` only on failure |
+
+No reflection lookup, preference read, XML parse or resource enumeration is reachable from these
+hooks after install.

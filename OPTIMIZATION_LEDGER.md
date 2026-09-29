@@ -285,3 +285,52 @@ entries 1–6 together as one candidate, not one change at a time.
   returns, profiled in `PERFORMANCE.md`): no single step is over 13% of it. The largest are contract
   analysis (6.3 ms, entry 12) and Focus home screens (5.8 ms, class loading and about 10 hooks).
   Launcher starts are rare (boot, crash, module update), so this was not pursued further.
+
+## 14. Icon pack index read in bulk at launcher start — ACCEPTED
+
+- **Hypothesis:** the cached index was read one value at a time through an unbuffered
+  `DataInputStream`, on the launcher's main thread during start: about 75,000 stream calls for a
+  large pack.
+- **Path:** `icons/IconPackIndex.java` (`read`, `write`).
+- **Mechanism:** read the file into one `byte[]`, parse the header from a `ByteBuffer`, copy each
+  array with `asLongBuffer().get(long[])` / `asIntBuffer().get(int[])`. The writer is wrapped in a
+  `BufferedOutputStream`. The file format is unchanged (big-endian, `writeUTF` header), so existing
+  index files still read.
+- **Correctness:** `IconPackIndexTest` round-trips an index and refuses a stale version or another pack.
+- **Measurement:** start-path publish 98 ms to 9 ms median (n = 5 / 6, `PERFORMANCE.md`).
+- **Allocation/memory:** one extra `byte[]` of the file size (about 300 KB for 24,000 components),
+  garbage after the read.
+
+## 15. Icon pack compile off the model thread — ACCEPTED (responsiveness)
+
+- **Hypothesis:** compiling a pack on `Executors.MODEL_EXECUTOR` blocks the launcher's model
+  (installs, updates, the home screen load) for the whole parse.
+- **Path:** `feature/icons/IconPackController.kt`.
+- **Mechanism:** one daemon worker (`ple-icons`) for compiling, package-manager reads for settings
+  and broadcast handling; only `forceReload` is posted to the model thread. A source is published only
+  with its index, so an icon generated meanwhile is never stored under the pack's key.
+- **Measurement:** compile of a 24,169-component pack: 1,014 ms on the worker (n = 1). The model
+  thread no longer runs it.
+
+## 16. Reload without clearing the icon memory cache — ACCEPTED (no placeholder flash)
+
+- **Hypothesis:** clearing `BaseIconCache.cache` before `forceReload` is unnecessary, because the
+  freshness key already marks the stale entries, and it turns every visible icon into a placeholder.
+- **Path:** `feature/icons/IconReloader.kt`.
+- **Result:** on device, an override changed one icon in about 2 s with every other icon unchanged on
+  screen; before, every icon showed a grey placeholder for 1 to 3 s. Pack to System and pack updates
+  still regenerate every affected icon.
+
+## 17. Icon packs indexed ahead of being chosen — ACCEPTED (latency)
+
+- **Hypothesis:** choosing a pack for the first time waited on its index compile (about a second
+  for a large pack) before the launcher reload even started.
+- **Path:** `feature/icons/IconPackController.kt` (`prewarm`, `onPackageChanged`),
+  `feature/icons/IconPackBridge.kt` (`state`).
+- **Mechanism:** compile on the `ple-icons` worker when a pack is installed or updated, and for
+  every pack without an index when Wallpaper & style lists the packs. An index of an older format
+  is deleted when its replacement is written.
+- **Measurement:** with the index present, request to reloaded model 426 and 532 ms (n = 2,
+  `PERFORMANCE.md`); without it, the compile (1,014 ms for 24,169 components) came first.
+- **Cost:** one compile per pack per version, off every launcher thread; about 100 to 500 KB of
+  index per pack on disk.

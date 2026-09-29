@@ -21,6 +21,24 @@ class HomeBlurDepthTest {
     }
 
     @Test
+    fun theWorkspaceBlurRampsFromHomesRestingBlurToTheDeepest() {
+        val blur = HomeBlurDepth().apply { isEnabled = true }
+
+        // Resting at half of 100: home keeps a sharp workspace, the drawer a full one.
+        assertEquals(0, blur.workspaceBlur(50, 100))
+        assertEquals(50, blur.workspaceBlur(75, 100))
+        assertEquals(100, blur.workspaceBlur(100, 100))
+        // Paused blurs (0) and a resting blur at the deepest never blur the workspace.
+        assertEquals(0, blur.workspaceBlur(0, 100))
+        assertEquals(0, HomeBlurDepth().apply { isEnabled = true; strength = 100 }.workspaceBlur(100, 100))
+    }
+
+    @Test
+    fun theWorkspaceBlurIsTheLaunchersOwnWhenSwitchedOff() {
+        assertEquals(40, HomeBlurDepth().workspaceBlur(40, 100))
+    }
+
+    @Test
     fun theMiddleIsHalfOfTheLaunchersDeepestBlur() {
         assertEquals(
             HomeBlurDepth.FULL_DEPTH / 2f,

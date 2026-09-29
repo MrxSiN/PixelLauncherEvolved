@@ -7,6 +7,10 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppStore
+import my.github.MrxSiN.pixellauncherevolved.icons.FakePreferences
+import my.github.MrxSiN.pixellauncherevolved.icons.IconOverride
+import my.github.MrxSiN.pixellauncherevolved.icons.IconSourceSettings
+import my.github.MrxSiN.pixellauncherevolved.icons.SharedPreferencesIconOverrideStore
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsStore
 
 import org.junit.Assert.assertEquals
@@ -19,7 +23,10 @@ class SettingsBackupTest {
     private val settings = FakeSettings()
     private val hidden = FakeHiddenApps()
     private val web = FakeWebSearchApp()
-    private val tweaks = TweakStores(settings, hidden, web)
+    private val preferences = FakePreferences()
+    private val icons = IconSourceSettings(preferences)
+    private val overrides = SharedPreferencesIconOverrideStore(preferences)
+    private val tweaks = TweakStores(settings, hidden, web, icons, overrides)
 
     @Test
     fun `every switch in the catalogue has a name in the file`() {
@@ -36,6 +43,14 @@ class SettingsBackupTest {
         settings.put(Settings.TASKBAR_ONLY, true)
         hidden.hide(setOf("com.example.b", "com.example.a"))
         web.choose("org.mozilla.firefox")
+        settings.put(Settings.ICONS_USE_PACK, true)
+        icons.choose("com.example.pack")
+        overrides.replace(
+            listOf(
+                IconOverride("com.example.a", "com.example.a.Main", 0, "a_icon", "com.example.pack"),
+                IconOverride("com.example.a", "com.example.a.Main", 10, null),
+            ),
+        )
         val before = tweaks.snapshot()
 
         val after = SettingsBackupFormat.read(SettingsBackupFormat.write(before))
@@ -65,6 +80,20 @@ class SettingsBackupTest {
         assertEquals(20, snapshot.blurStrength)
         assertEquals(LayoutMode.DEFAULT, snapshot.layoutMode)
         assertEquals(null, snapshot.webSearchApp)
+        // A file from before icon packs leaves icons to the system.
+        assertEquals(false, snapshot.useIconPack)
+        assertEquals(null, snapshot.iconPack)
+        assertEquals(emptyList<IconOverride>(), snapshot.iconOverrides)
+    }
+
+    @Test
+    fun `restoring icons raises the generation so the launcher redraws them`() {
+        val before = icons.generation()
+
+        tweaks.restore(SettingsSnapshot.DEFAULTS.copy(useIconPack = true, iconPack = "com.example.pack"))
+
+        assertTrue(icons.generation() > before)
+        assertEquals("com.example.pack", icons.pack())
     }
 
     @Test(expected = BackupException::class)
@@ -97,6 +126,9 @@ class SettingsBackupTest {
         settings.put(Settings.HOME_BLUR_STRENGTH, 10)
         hidden.hide(setOf("com.example.a"))
         web.choose("org.mozilla.firefox")
+        settings.put(Settings.ICONS_USE_PACK, true)
+        icons.choose("com.example.pack")
+        overrides.replace(listOf(IconOverride("com.example.a", "com.example.a.Main", 0, null)))
 
         tweaks.reset()
 

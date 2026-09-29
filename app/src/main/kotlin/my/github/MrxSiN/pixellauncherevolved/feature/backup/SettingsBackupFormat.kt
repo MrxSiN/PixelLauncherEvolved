@@ -9,6 +9,7 @@ import kotlin.math.roundToInt
 import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.icons.IconOverride
 
 /**
  * A [SettingsSnapshot] as a JSON file a person can keep, read and move.
@@ -65,6 +66,14 @@ object SettingsBackupFormat {
     private const val KEY_LAYOUT_MODE = "layoutMode"
     private const val KEY_HIDDEN_APPS = "hiddenApps"
     private const val KEY_WEB_SEARCH_APP = "webSearchApp"
+    private const val KEY_USE_ICON_PACK = "useIconPack"
+    private const val KEY_ICON_PACK = "iconPack"
+    private const val KEY_ICON_OVERRIDES = "iconOverrides"
+    private const val KEY_OVERRIDE_PACKAGE = "package"
+    private const val KEY_OVERRIDE_CLASS = "class"
+    private const val KEY_OVERRIDE_USER = "user"
+    private const val KEY_OVERRIDE_DRAWABLE = "drawable"
+    private const val KEY_OVERRIDE_PACK = "pack"
     private const val PERCENT = 100.0
 
     fun write(snapshot: SettingsSnapshot): String = JSONObject().apply {
@@ -74,7 +83,58 @@ object SettingsBackupFormat {
         put(KEY_LAYOUT_MODE, LAYOUT_MODES.getValue(snapshot.layoutMode))
         put(KEY_HIDDEN_APPS, JSONArray(snapshot.hiddenApps.sorted()))
         put(KEY_WEB_SEARCH_APP, snapshot.webSearchApp ?: JSONObject.NULL)
+        put(KEY_USE_ICON_PACK, snapshot.useIconPack)
+        put(KEY_ICON_PACK, snapshot.iconPack ?: JSONObject.NULL)
+        put(KEY_ICON_OVERRIDES, writeOverrides(snapshot.iconOverrides))
     }.toString(INDENT)
+
+    /**
+     * The chosen icons, by component and profile.
+     *
+     * Symbolic throughout: a package name, a class name, a profile number and a
+     * drawable name, so a file read on another phone means what it says and
+     * anything missing there falls back rather than failing. A profile number is
+     * a device's own, so an override for a work or cloned app is written as one
+     * and simply matches nothing on a phone whose profiles are numbered
+     * differently; the personal profile is 0 everywhere.
+     */
+    private fun writeOverrides(overrides: List<IconOverride>): JSONArray =
+        JSONArray().apply {
+            for (override in overrides.sortedWith(compareBy({ it.userId }, { it.packageName }, { it.className }))) {
+                put(
+                    JSONObject().apply {
+                        put(KEY_OVERRIDE_PACKAGE, override.packageName)
+                        put(KEY_OVERRIDE_CLASS, override.className)
+                        put(KEY_OVERRIDE_USER, override.userId)
+                        put(KEY_OVERRIDE_DRAWABLE, override.drawable ?: JSONObject.NULL)
+                        put(KEY_OVERRIDE_PACK, override.pack ?: JSONObject.NULL)
+                    },
+                )
+            }
+        }
+
+    private fun readOverrides(array: JSONArray?): List<IconOverride>? {
+        if (array == null) return null
+
+        val read = ArrayList<IconOverride>(array.length())
+        for (at in 0 until array.length()) {
+            val entry = array.optJSONObject(at) ?: continue
+            val packageName = entry.optString(KEY_OVERRIDE_PACKAGE)
+            val className = entry.optString(KEY_OVERRIDE_CLASS)
+            if (packageName.isBlank() || className.isBlank()) continue
+
+            read += IconOverride(
+                packageName = packageName,
+                className = className,
+                userId = entry.optInt(KEY_OVERRIDE_USER, 0),
+                drawable = entry.optString(KEY_OVERRIDE_DRAWABLE)
+                    .takeIf { !entry.isNull(KEY_OVERRIDE_DRAWABLE) && it.isNotBlank() },
+                pack = entry.optString(KEY_OVERRIDE_PACK)
+                    .takeIf { !entry.isNull(KEY_OVERRIDE_PACK) && it.isNotBlank() },
+            )
+        }
+        return read
+    }
 
     /** @throws BackupException when [text] is not a settings file this version can read. */
     fun read(text: String): SettingsSnapshot {
@@ -103,6 +163,9 @@ object SettingsBackupFormat {
                 ?.toSet()
                 ?: defaults.hiddenApps,
             webSearchApp = json.optString(KEY_WEB_SEARCH_APP).takeIf { !json.isNull(KEY_WEB_SEARCH_APP) && it.isNotBlank() },
+            useIconPack = json.optBoolean(KEY_USE_ICON_PACK, defaults.useIconPack),
+            iconPack = json.optString(KEY_ICON_PACK).takeIf { !json.isNull(KEY_ICON_PACK) && it.isNotBlank() },
+            iconOverrides = readOverrides(json.optJSONArray(KEY_ICON_OVERRIDES)) ?: defaults.iconOverrides,
         )
     }
 

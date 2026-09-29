@@ -16,6 +16,8 @@ import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureRegistry
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherRestarter
 import my.github.MrxSiN.pixellauncherevolved.bridge.Bridge
+import my.github.MrxSiN.pixellauncherevolved.bridge.IconsBridge
+import my.github.MrxSiN.pixellauncherevolved.picker.IconPackPicker
 import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealOrigin
 import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealScrim
 import my.github.MrxSiN.pixellauncherevolved.statusbar.StatusBarSleep
@@ -32,9 +34,10 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SharedPreferencesStore
  * Its only job is to route each scoped package to its installer. Every
  * decision about what to change in the launcher lives in a feature class.
  *
- * Two packages are scoped. Every tweak is installed in the launcher; SystemUI
+ * Three packages are scoped. Every tweak is installed in the launcher; SystemUI
  * is entered for the two things the launcher cannot do — draw the screen off
- * ([SleepRevealScrim]) and see a touch on the status bar ([StatusBarSleep]).
+ * ([SleepRevealScrim]) and see a touch on the status bar ([StatusBarSleep]);
+ * Wallpaper & style for choosing the icon pack ([IconPackPicker]).
  *
  * A new build of the module is not hot reloaded into a running launcher, whose
  * views and callbacks belong to the build that made them. The launcher restarts
@@ -52,6 +55,14 @@ class PixelLauncherEvolvedModule : XposedModule() {
                 ApplicationStartup(this, param.defaultClassLoader, logger, LAUNCHER_APPLICATION)
                     .onApplicationCreated { application ->
                         installLauncher(application, param.defaultClassLoader, logger)
+                    }
+            }
+
+            IconsBridge.PICKER_PACKAGE -> {
+                logger.info("Loading in ${param.packageName}")
+                ApplicationStartup(this, param.defaultClassLoader, logger, PICKER_APPLICATION)
+                    .onApplicationCreated { application ->
+                        installPicker(application, param.defaultClassLoader, logger)
                     }
             }
 
@@ -109,6 +120,18 @@ class PixelLauncherEvolvedModule : XposedModule() {
     }
 
     /**
+     * Wallpaper & style is entered for one thing: choosing the icon pack, beside
+     * its own Icons option. What is chosen is the launcher's, and is asked of it
+     * ([IconsBridge]).
+     */
+    private fun installPicker(application: Application, classLoader: ClassLoader, logger: Logger) {
+        val text = runCatching { application.packageManager.getResourcesForApplication(moduleApplicationInfo) }
+            .onFailure { logger.warn("Picker: this module's text is unreachable; no icon pack entry", it) }
+            .getOrNull() ?: return
+        IconPackPicker(this, classLoader, text, logger).install()
+    }
+
+    /**
      * The store earlier versions wrote to, read once so those choices survive.
      *
      * Null when no framework answers, which only costs the one-time copy.
@@ -126,5 +149,6 @@ class PixelLauncherEvolvedModule : XposedModule() {
         // Android 17 QPR1's SystemUI application. An older or later name falls
         // back to Application.onCreate, which is the same moment.
         const val SYSTEM_UI_APPLICATION = "com.android.systemui.application.impl.SystemUIApplicationImpl"
+        const val PICKER_APPLICATION = "com.google.android.apps.wallpaper.picker.WallpapersApplication"
     }
 }

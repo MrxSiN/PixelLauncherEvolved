@@ -28,6 +28,8 @@ class HomeWallpaperBlurFeature : ToggleFeature(Settings.HOME_BLUR_WALLPAPER) {
     override val compatibility = CompatibilityFeature.BLUR_WALLPAPER
 
     override fun install(context: FeatureContext) {
+        PreviewWallpaperBlur(context).install()
+
         val depth = LauncherDepth.of(context) ?: run {
             context.logger.warn("Wallpaper blur is not installed")
             return
@@ -62,11 +64,49 @@ class HomeWallpaperBlurFeature : ToggleFeature(Settings.HOME_BLUR_WALLPAPER) {
             }
         }
 
+        installWorkspaceBlur(context, depth, blur)
         installPausedBlur(context, depth, blur)
         installSettled(context, depth, blur)
         installResume(context, depth, blur)
 
         context.logger.info("Wallpaper blur ready, ${onOff(blur.isEnabled)} at ${blur.strength}%")
+    }
+
+    /**
+     * Ramps the workspace blur from home's resting blur, as stock ramps it from
+     * nothing.
+     *
+     * `blurWorkspaceDepthTargets` puts the wallpaper's current radius on the
+     * workspace and hotseat while the app drawer is involved. With home resting
+     * blurred, that radius is already large on the first frame of opening the
+     * drawer and still large on the last frame of closing it, so the whole home
+     * screen snapped blurred and snapped sharp. For the length of that one call
+     * the controller's radius reads as the part above home's
+     * ([HomeBlurDepth.workspaceBlur]), then is put back; the wallpaper itself is
+     * untouched. Runs on the UI thread with each applied depth: two cached
+     * field reads and writes, nothing allocated.
+     */
+    private fun installWorkspaceBlur(context: FeatureContext, depth: LauncherDepth, blur: HomeBlurDepth) {
+        val decide = depth.workspaceBlur
+        val current = depth.currentBlur
+        val max = depth.maxBlur
+        if (decide == null || current == null || max == null) {
+            context.logger.warn("The workspace blur cannot be ramped; it may snap with the app drawer")
+            return
+        }
+
+        context.xposed.hook(decide).intercept { chain ->
+            val controller = chain.thisObject
+            if (!blur.isEnabled || controller == null) return@intercept chain.proceed()
+
+            val resting = current.getInt(controller)
+            current.setInt(controller, blur.workspaceBlur(resting, max.getInt(controller)))
+            try {
+                chain.proceed()
+            } finally {
+                current.setInt(controller, resting)
+            }
+        }
     }
 
     /**

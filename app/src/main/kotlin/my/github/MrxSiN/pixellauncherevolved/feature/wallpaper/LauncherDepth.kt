@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.wallpaper
 
 import java.lang.reflect.Constructor
+import java.lang.reflect.Field
 import java.lang.reflect.Method
 
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
@@ -30,6 +31,13 @@ class LauncherDepth private constructor(
     /** The home state, recognised by identity rather than by name. */
     val home: Any,
     /**
+     * `BaseDepthControllerImpl.mCurrentBlur` and `mMaxBlurRadius`: the
+     * wallpaper's blur radius now, and the deepest it goes. The workspace is
+     * blurred with the first.
+     */
+    val currentBlur: Field?,
+    val maxBlur: Field?,
+    /**
      * `BaseDepthControllerImpl.pauseBlursOnWindows`: the launcher switching its
      * own window blurs off for the length of an animation home.
      */
@@ -45,6 +53,9 @@ class LauncherDepth private constructor(
     val revealHome: Constructor<*>?,
     private val logger: Logger,
 ) {
+
+    /** `LauncherDepthController.blurWorkspaceDepthTargets`, for a hook of its own. */
+    val workspaceBlur: Method? get() = blurWorkspace
 
     /** Asks the launcher to apply [state] again, for an answer that has changed. */
     fun reapply(controller: Any, state: Any) {
@@ -102,8 +113,10 @@ class LauncherDepth private constructor(
                 context.logger.warn("The launcher's workspace blur cannot be settled; it may stay blurred")
             }
 
-            val pauseBlurs = context.findClass(DEPTH_CONTROLLER_BASE)
-                ?.let { Reflect.method(it, PAUSE_BLURS, Boolean::class.javaPrimitiveType!!) }
+            val base = context.findClass(DEPTH_CONTROLLER_BASE)
+            val pauseBlurs = base?.let { Reflect.method(it, PAUSE_BLURS, Boolean::class.javaPrimitiveType!!) }
+            val currentBlur = base?.let { Reflect.field(it, CURRENT_BLUR) }
+            val maxBlur = base?.let { Reflect.field(it, MAX_BLUR) }
 
             if (pauseBlurs == null) {
                 context.logger.warn("The launcher's blur pause is unreachable; the workspace may stay smeared")
@@ -122,6 +135,8 @@ class LauncherDepth private constructor(
                 applyState = applyState,
                 applyStateOverTime = animatedSetState(context, controller),
                 blurWorkspace = blurWorkspace,
+                currentBlur = currentBlur,
+                maxBlur = maxBlur,
                 pauseBlurs = pauseBlurs,
                 revealHome = revealHome,
                 home = home,
@@ -176,6 +191,8 @@ class LauncherDepth private constructor(
         private const val SET_STATE_WITH_ANIMATION = "setStateWithAnimation"
         private const val BLUR_WORKSPACE = "blurWorkspaceDepthTargets"
         private const val PAUSE_BLURS = "pauseBlursOnWindows"
+        private const val CURRENT_BLUR = "mCurrentBlur"
+        private const val MAX_BLUR = "mMaxBlurRadius"
         private const val NORMAL = "NORMAL"
     }
 }

@@ -11,6 +11,7 @@ import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.FO
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.FULL_TABLET_LAYOUT
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.HIDDEN_APPS
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.HOME_SEARCH_BAR
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.ICON_PACK
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.ORGANIZE_PAGES
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.OVERVIEW_ACTIONS
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.OVERVIEW_ONLY
@@ -26,6 +27,7 @@ enum class CompatibilityFeature(@param:StringRes val titleRes: Int) {
     DOUBLE_TAP_TO_SLEEP(R.string.feature_home_double_tap_to_sleep_title),
     HOME_SEARCH_BAR(R.string.settings_page_search_bar),
     HIDDEN_APPS(R.string.feature_hidden_apps_title),
+    ICON_PACK(R.string.settings_page_icons),
     APP_DRAWER_SEARCH(R.string.settings_group_search_results),
     OVERVIEW_ACTIONS(R.string.settings_group_overview_actions),
     BUBBLE_LAUNCHER(R.string.compatibility_bubble_launcher),
@@ -72,6 +74,13 @@ object LauncherContracts {
     private const val CONTAINER_INTERFACE = "com.android.quickstep.BaseContainerInterface"
     private const val TASKBAR_VIEW = "com.android.launcher3.taskbar.TaskbarView"
     private const val EXECUTORS = "com.android.launcher3.util.Executors"
+    private const val APP_STATE = "com.android.launcher3.LauncherAppState"
+    private const val LAUNCHER_MODEL = "com.android.launcher3.LauncherModel"
+    private const val ICON_PROVIDER = "com.android.launcher3.icons.IconProvider"
+    private const val PERSISTED_ITEM_STATE = "com.android.launcher3.icons.PersistedItemState"
+    private const val PACKAGE_ITEM_INFO = "android.content.pm.PackageItemInfo"
+    private const val APPLICATION_INFO = "android.content.pm.ApplicationInfo"
+    private const val STRING_ARRAY = "[Ljava.lang.String;"
 
     private val TASK_CARD = setOf(BUBBLE_LAUNCHER, SPLIT_SCREEN)
     private val TASKBAR = setOf(TASKBAR_ONLY, FULL_TABLET_LAYOUT)
@@ -83,6 +92,8 @@ object LauncherContracts {
         contract(QUICKSTEP_LAUNCHER, method("onStateSetEnd", BASE_STATE), BLUR_WALLPAPER, HIDDEN_APPS),
         optional("com.android.launcher3.statehandlers.LauncherDepthController", method("blurWorkspaceDepthTargets"), BLUR_WALLPAPER),
         optional("com.android.quickstep.util.BaseDepthControllerImpl", method("pauseBlursOnWindows", BOOLEAN), BLUR_WALLPAPER),
+        optional("com.android.quickstep.util.BaseDepthControllerImpl", Member.Field("mCurrentBlur"), BLUR_WALLPAPER),
+        optional("com.android.quickstep.util.BaseDepthControllerImpl", Member.Field("mMaxBlurRadius"), BLUR_WALLPAPER),
 
         // Focus home screens
         LauncherContract(
@@ -120,6 +131,40 @@ object LauncherContracts {
         contract("$ALL_APPS_VIEW\$AdapterHolder", method("setup", VIEW, "java.util.function.Predicate"), HIDDEN_APPS),
         contract(ITEM_INFO, method("getTargetPackage"), HIDDEN_APPS),
         contract("com.android.launcher3.BubbleTextView", method("onDraw", "android.graphics.Canvas"), HIDDEN_APPS),
+
+        // Icon packs
+        contract(ICON_PROVIDER, method("getIcon", PACKAGE_ITEM_INFO, APPLICATION_INFO, INT), ICON_PACK),
+        contract(ICON_PROVIDER, method("getStateForApp", APPLICATION_INFO), ICON_PACK),
+        contract(PERSISTED_ITEM_STATE, method("withAdditionalValues", STRING_ARRAY), ICON_PACK),
+        // A live change needs these; without them a chosen pack still applies,
+        // on the next launcher start.
+        optional(APP_STATE, Member.Field("model"), ICON_PACK),
+        optional(LAUNCHER_MODEL, method("forceReload", "java.lang.String"), ICON_PACK),
+        // Keeps themed icons off pack artwork; without it pack icons are themed too.
+        optional(
+            "com.android.launcher3.icons.mono.MonoIconThemeController",
+            method(
+                "createThemedBitmap",
+                "android.graphics.drawable.AdaptiveIconDrawable",
+                "com.android.launcher3.icons.BitmapInfo",
+                "com.android.launcher3.icons.BaseIconFactory",
+                "com.android.launcher3.icons.SourceHint",
+            ),
+            ICON_PACK,
+        ),
+        optional("com.android.launcher3.icons.SourceHint", Member.Field("key"), ICON_PACK),
+        // Wallpaper & style asks over grid_control, and its pictures are drawn by the launcher's own factory.
+        optional(
+            "com.android.launcher3.util.ContentProviderProxy",
+            method("call", "java.lang.String", "java.lang.String", "android.os.Bundle"),
+            ICON_PACK,
+        ),
+        optional("com.android.launcher3.icons.LauncherIcons\$Companion", method("obtain", CONTEXT), ICON_PACK),
+        optional(
+            "com.android.launcher3.icons.BitmapInfo",
+            method("newIcon", CONTEXT, INT, "com.android.launcher3.icons.IconShape"),
+            ICON_PACK,
+        ),
 
         // App drawer search results
         contract(ALL_APPS_VIEW, method("setSearchResults", "java.util.ArrayList", BOOLEAN), APP_DRAWER_SEARCH),

@@ -337,3 +337,49 @@ B = A + ledger entry 13, release builds.
 | gc_ms | 1449 1648 1450 1512 | 1409 1455 1434 1465 | −2.5% |
 
 Every metric's ranges overlap. Rejected.
+
+## Run 2026-09-27: icon pack index at launcher start
+
+Pixel 8 Pro, launcher 907, release build, Simply Minimal Icons (24,169 components, 326 calendars)
+chosen, cached index present. Measured with `SystemClock.elapsedRealtime()` around the start-path
+read and publish (the log line `Icons: <pack> published from its index in N ms`, launcher main
+thread). Each sample is a fresh launcher process (`am force-stop`, then HOME).
+
+| Variant | Samples (ms) | Median |
+|---|---|---|
+| `DataInputStream` over `FileInputStream`, one `readLong`/`readInt` per value | 97, 98, 100, 101, 98 | 98 |
+| one `read` into a `byte[]`, `ByteBuffer.asLongBuffer().get(long[])` | 10, 9, 8, 7, 9, 9 | 9 |
+
+n = 5 and 6, run one variant after the other rather than interleaved; the difference (about 10x) is
+far outside the spread. The rest of the 9 ms is the package manager calls for the pack's version and
+resources.
+
+Compiling the index (first use of a pack, or after it updates) took 1,014 ms on the `ple-icons`
+worker for the same pack (n = 1).
+
+With the source set to System, the three icon hooks are the launcher's own call, one volatile read
+and a return. Their cost was not measured separately; `getStateForApp` and `getIcon` run once per app
+per model load or icon miss, not per frame.
+
+## Run 2026-09-27: icon pack apply, end to end
+
+Pixel 8 Pro, launcher 907. Logged by the module: the request, the published source, and the
+completion of `LauncherModel.forceReload`'s `CompletionStage`.
+
+| Path | Published after | Reloaded after |
+|---|---|---|
+| Home settings dialog, Simply Minimal (index cached) | 7 ms | 426 ms |
+| Wallpaper & style tile, Monoic (index cached) | 4 ms | 532 ms |
+
+A screen recording of the first case shows the home screen appearing (after the settings activity
+closes) already with the new icons. The case the report measured over a second was a pack chosen
+for the first time: its index compile (1,014 ms for 24,169 components) ran before the reload. Packs
+are now indexed when installed or updated and when the picker lists them.
+
+## Run 2026-09-27: app drawer open/close with Blur wallpaper
+
+`adb shell screenrecord`, one swipe up and one swipe down, frames read with OpenCV. With the tweak
+on, before the fix, the workspace was fully blurred on the first frame of the swipe (Laplacian
+variance of the top region 59 to 0.2 in one frame) and snapped sharp on the last frame of closing.
+With the tweak off, and with it on after the fix, the workspace blur ramps over the first 5 to 8
+frames of opening and the last 5 to 8 of closing.

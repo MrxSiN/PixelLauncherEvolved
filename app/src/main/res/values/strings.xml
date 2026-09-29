@@ -173,6 +173,45 @@
     <string name="diagnostics_copy_report">Copy compatibility report</string>
     <string name="diagnostics_copy_report_summary">For a bug report after a launcher update</string>
 
+    <string name="settings_page_icons">Icons pack</string>
+
+    <!-- Wallpaper &amp; style, Home screen: the icon pack entry and its pages. -->
+    <string name="feature_icon_pack_title">Icons pack</string>
+    <string name="feature_icon_pack_system">System</string>
+    <string name="feature_icon_pack_none">No icon packs are installed. Install one from the Play Store, then pick it here.</string>
+    <string name="feature_icon_pack_unavailable">Unavailable. Turn on Pixel Launcher Evolved for Pixel Launcher, then restart it.</string>
+    <string name="feature_icon_pack_system_description">No pack. Pixel Launcher decides, including themed icons</string>
+
+    <string name="feature_icon_notice_changing">Changing icons pack</string>
+    <string name="feature_icon_notice_system">System icons</string>
+    <string name="feature_icon_notice_changed">Icons pack changed</string>
+    <string name="feature_icon_notice_changed_pack">Your home screen uses %1$s</string>
+    <string name="feature_icon_notice_changed_system">Your home screen uses system icons</string>
+
+    <string name="feature_icon_per_app_title">Per-app icons</string>
+    <string name="feature_icon_per_app_summary_none">Every app follows the pack</string>
+    <string name="feature_icon_per_app_system_only">Choose an icon pack first</string>
+    <string name="feature_icon_per_app_search">Search apps</string>
+    <string name="feature_icon_per_app_loading">Reading the installed apps…</string>
+    <string name="feature_icon_per_app_no_match">No app matches that</string>
+    <string name="feature_icon_per_app_chosen">Icon: %1$s</string>
+
+    <string name="feature_icon_choice_pack">Pack default</string>
+    <string name="feature_icon_choice_system">System icon</string>
+    <string name="feature_icon_choice_search">Search this pack</string>
+    <string name="feature_icon_choice_more">Show more</string>
+
+    <string name="feature_icon_reset_title">Reset icon overrides</string>
+    <string name="feature_icon_reset_summary">Give every app back to the pack</string>
+    <string name="feature_icon_reset_confirm_title">Reset icon overrides?</string>
+    <string name="feature_icon_reset_confirm_message">Every app you gave an icon of its own goes back to the pack’s. The pack itself is kept.</string>
+    <string name="feature_icon_reset_confirm">Reset</string>
+
+    <plurals name="feature_icon_per_app_summary">
+        <item quantity="one">%1$d app has an icon of its own</item>
+        <item quantity="other">%1$d apps have an icon of their own</item>
+    </plurals>
+
     <plurals name="feature_hidden_apps_summary">
         <item quantity="one">%1$d app hidden. Tap to pick apps in the drawer.</item>
         <item quantity="other">%1$d apps hidden. Tap to pick apps in the drawer.</item>

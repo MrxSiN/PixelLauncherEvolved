@@ -20,7 +20,8 @@ HOST = re.compile(r'(?:com\.android|com\.google|androidx)\.[A-Za-z0-9_.$]+')
 IDENT = re.compile(r'[A-Za-z_][A-Za-z0-9_]{1,63}')
 
 classes, names = set(), set()
-for path in sorted(list(SRC.rglob('*.kt')) + list(SRC.rglob('*.java'))):
+# Wallpaper & style (picker/) is not a host DexKit fingerprints; its names stay out.
+for path in sorted(p for p in list(SRC.rglob('*.kt')) + list(SRC.rglob('*.java')) if 'picker' not in p.relative_to(SRC).parts):
     for raw in LITERAL.findall(path.read_text(encoding='utf-8')):
         s = raw.replace('\\$', '$')
         if HOST.fullmatch(s):

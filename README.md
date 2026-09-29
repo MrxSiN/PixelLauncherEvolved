@@ -88,6 +88,28 @@ running launcher on the next frame.
 </details>
 
 <details open>
+<summary><b>🎨 Wallpaper &amp; style</b></summary>
+<br>
+
+| Where | Option | What it does |
+|---|---|---|
+| Home screen | **Icon pack** | Right under the system's own Icons option. Opens a page with your real home screen on top, drawn by Pixel Launcher itself, and the choices under it: **System** (Pixel Launcher's own icons, themed and Google-made ones included) and every installed icon pack, each with its own icon. Tapping one applies it at once, and the preview shows the result. **Per-app icons** gives one app a different drawable from the pack, or its stock icon; **Reset icon overrides** gives every app back to the pack. |
+
+Pack artwork goes through Pixel Launcher's own icon pipeline, so the shape, shadow, work badge,
+notification dots, folders, search results, predictions and the taskbar all show the same icon.
+Apps the pack does not cover keep their stock icon, themed or not; a pack's own artwork keeps its
+colours when themed icons are on. Dynamic calendar icons follow the date. Wallpaper &amp; style must
+be in this module's scope in your Xposed manager.
+
+<table>
+<tr>
+<td align="center"><img src="docs/screenshots/icon-pack.png" width="250"><br><sub>Wallpaper &amp; style → Icon pack</sub></td>
+</tr>
+</table>
+
+</details>
+
+<details open>
 <summary><b>🔍 App drawer</b></summary>
 <br>
 
@@ -181,11 +203,19 @@ A backup is a portable, readable configuration:
   "overviewClearAll": true,
   "layoutMode": "taskbarOnly",
   "hiddenApps": ["org.telegram.messenger"],
-  "webSearchApp": "com.android.chrome"
+  "webSearchApp": "com.android.chrome",
+  "useIconPack": true,
+  "iconPack": "com.example.iconpack",
+  "iconOverrides": [
+    {"package": "com.android.chrome", "class": "com.google.android.apps.chrome.Main", "user": 0, "drawable": "chrome_alt", "pack": "com.example.iconpack"}
+  ]
 }
 ```
 
 A name the file leaves out takes its default, and a name this version does not know is ignored.
+Icon choices are stored by name (pack package, component, profile number, drawable name), so a
+file read on another phone falls back to stock icons for any pack or app that is not there. No
+bitmap and no compiled pack index is exported.
 Modes pages and the page order are not in it: both are tied to this phone's launcher database and
 Modes, and import and reset leave them as they are.
 

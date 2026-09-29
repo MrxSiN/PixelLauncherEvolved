@@ -51,6 +51,26 @@ class HomeBlurDepth {
     fun depthForHome(asked: Float): Float =
         if (isEnabled) maxOf(asked, depthFor(strength)) else asked
 
+    /**
+     * The blur radius the workspace gets while the wallpaper's is [current],
+     * out of a deepest [max].
+     *
+     * The launcher blurs its workspace with the wallpaper's own radius while the
+     * app drawer is involved, and stock home rests at zero, so that radius grows
+     * from nothing as the drawer opens. Home resting deeper would hand the
+     * workspace the resting radius on the first frame: a snap to half a blur,
+     * and a snap back to sharp at the end of closing. Only what lies above the
+     * resting radius is the drawer's, so that part is stretched back over the
+     * whole range: nothing at home, the launcher's full radius at the drawer,
+     * and continuous between.
+     */
+    fun workspaceBlur(current: Int, max: Int): Int {
+        if (!isEnabled) return current
+        val resting = restingRadius(max, strength)
+        if (current <= resting || max <= resting) return 0
+        return (max * (current - resting) / (max - resting)).toInt().coerceAtMost(max)
+    }
+
     fun remember(controller: Any, state: Any) {
         applied[controller] = state
     }
@@ -78,6 +98,9 @@ class HomeBlurDepth {
          * icons rather than as the app drawer's frost.
          */
         const val DEFAULT_STRENGTH: Int = 50
+
+        /** The radius home rests blurred at, out of the launcher's deepest [max], at [strength]. */
+        fun restingRadius(max: Int, strength: Int): Float = max * strength.coerceIn(0, 100) / 100f
 
         /** [strength] as a share of [FULL_DEPTH]. */
         fun depthFor(strength: Int): Float =

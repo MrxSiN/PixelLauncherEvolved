@@ -32,6 +32,19 @@ object Settings {
     val HOME_DOUBLE_TAP_TO_SLEEP = BoolSetting("home_double_tap_to_sleep", default = false)
 
     /**
+     * Whether app icons come from an installed icon pack rather than from
+     * Google's own icon pipeline.
+     *
+     * Stored as a switch because there are two answers and one of them is the
+     * stock behaviour, the same way the layout modes are stored. Which pack, and
+     * which apps carry an icon of their own, are not switches and live in
+     * [my.github.MrxSiN.pixellauncherevolved.icons.IconSourceSettings] and
+     * [my.github.MrxSiN.pixellauncherevolved.icons.IconOverrideStore], in this
+     * same preference file.
+     */
+    val ICONS_USE_PACK = BoolSetting("home_icons_use_pack", default = false)
+
+    /**
      * Two taps on the status bar, which is SystemUI's surface rather than the
      * launcher's. The switch is here with the home screen one because that is
      * where a person looks for it; the gesture is watched in SystemUI.

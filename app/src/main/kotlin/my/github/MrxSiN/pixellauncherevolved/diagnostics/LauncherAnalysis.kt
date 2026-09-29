@@ -46,6 +46,8 @@ class LauncherAnalysis(
             "int" to Int::class.javaPrimitiveType!!,
             "float" to Float::class.javaPrimitiveType!!,
             "long" to Long::class.javaPrimitiveType!!,
+            // A String[] parameter, named as Class.getName names it.
+            "[Ljava.lang.String;" to Array<String>::class.java,
         )
 
         /** The launcher's `versionCode`, which is what changes with each monthly update. */
