@@ -19,15 +19,15 @@
     <string name="action_restart_launcher_confirm">Restart</string>
 
     <string name="settings_page_home_screen">Home screen</string>
-    <string name="settings_page_home_screen_summary">Blur, pages, gestures and search bar</string>
-    <string name="settings_page_search_bar">Home screen search bar</string>
+    <string name="settings_page_home_screen_summary">Blur, dock, pages, gestures and search bar</string>
+    <string name="settings_page_search_bar">Search bar</string>
     <string name="settings_page_search_bar_summary">What tapping the search bar opens</string>
     <string name="settings_page_app_drawer">App drawer</string>
     <string name="settings_page_app_drawer_summary">Hidden apps and search results</string>
     <string name="settings_page_overview">Overview</string>
     <string name="settings_page_overview_summary">Buttons on and under each Recents card</string>
     <string name="settings_page_layout">Layout &amp; taskbar</string>
-    <string name="settings_page_layout_summary">Tablet layout and taskbar. Applies after a restart.</string>
+    <string name="settings_page_layout_summary">Tablet layout and taskbar</string>
     <string name="settings_page_advanced">Advanced</string>
     <string name="settings_page_advanced_summary">Restart, diagnostics, backup and restore</string>
     <string name="settings_page_diagnostics">Compatibility &amp; diagnostics</string>
@@ -36,7 +36,7 @@
     <string name="settings_group_appearance">Appearance</string>
     <string name="settings_group_pages">Pages &amp; layout</string>
     <string name="settings_group_gestures">Gestures</string>
-    <string name="settings_group_search">Search</string>
+    <string name="settings_group_dock">Dock</string>
     <string name="settings_group_apps">Apps</string>
     <string name="settings_group_search_results">Search results</string>
     <string name="settings_group_overview_actions">Actions</string>
@@ -44,6 +44,7 @@
     <string name="settings_group_taskbar">Taskbar</string>
     <string name="settings_group_backup">Backup &amp; restore</string>
     <string name="settings_group_launcher">Launcher</string>
+    <string name="settings_group_diagnostics">Diagnostics</string>
 
     <string name="backup_export_title">Export settings</string>
     <string name="backup_export_summary">Save every tweak to a file</string>
@@ -215,5 +216,56 @@
     <plurals name="feature_hidden_apps_summary">
         <item quantity="one">%1$d app hidden. Tap to pick apps in the drawer.</item>
         <item quantity="other">%1$d apps hidden. Tap to pick apps in the drawer.</item>
+    </plurals>
+    <string name="settings_page_dock">Dock</string>
+    <string name="settings_page_dock_summary">Show or hide the dock and choose how many icons it holds</string>
+    <string name="feature_dock_show_title">Show dock</string>
+    <string name="feature_dock_show_summary">The row of apps at the bottom of the Home screen. When hidden, its space becomes one more row of apps.</string>
+    <string name="feature_dock_taskbar">Not available while the taskbar is on</string>
+    <string name="feature_dock_icons_title">Icons in dock</string>
+    <string name="feature_dock_icons_default">Default</string>
+    <string name="feature_dock_move_title">Move to Home screen</string>
+    <string name="feature_dock_move_summary">Apps that no longer fit in the dock move to the first free space on your Home screen. When off, they stay pinned but out of sight until the dock has room.</string>
+    <string name="feature_dock_removal_title">Before you remove this module</string>
+    <string name="feature_dock_removal_summary">Turn Show dock on and set Icons in dock to Default first. Otherwise Pixel Launcher removes the apps in the extra Home screen row and in dock slots past %1$d.</string>
+    <string name="feature_dock_removal_summary_plain">Turn Show dock on and set Icons in dock to Default first. Otherwise Pixel Launcher removes the apps in the extra Home screen row and in the extra dock slots.</string>
+    <string name="feature_dock_icons_unknown">Open the Home screen once, then come back to choose a count.</string>
+    <plurals name="feature_dock_icons_count">
+        <item quantity="one">%1$d icon</item>
+        <item quantity="other">%1$d icons</item>
+    </plurals>
+    <string name="settings_page_grid">Grid &amp; size</string>
+    <string name="compatibility_grid">Grid columns and rows</string>
+    <string name="compatibility_grid_spacing">Grid spacing</string>
+    <string name="compatibility_app_drawer_columns">All apps columns</string>
+    <string name="feature_grid_columns_title">Columns</string>
+    <string name="feature_grid_rows_title">Rows</string>
+    <string name="feature_grid_icon_size_title">Icon size</string>
+    <string name="feature_grid_spacing_x_title">Horizontal spacing</string>
+    <string name="feature_grid_spacing_y_title">Vertical spacing</string>
+    <string name="feature_grid_apps_columns_title">Columns</string>
+    <string name="feature_grid_default">%1$s · Default</string>
+    <string name="feature_grid_icon_small">Small</string>
+    <string name="feature_grid_icon_default">Default</string>
+    <string name="feature_grid_icon_large">Large</string>
+    <string name="feature_grid_icon_extra_large">Extra large</string>
+    <string name="feature_grid_spacing_compact">Compact</string>
+    <string name="feature_grid_spacing_default">Default</string>
+    <string name="feature_grid_spacing_relaxed">Relaxed</string>
+    <string name="feature_grid_unknown">Open the Home screen once, then come back to change the grid.</string>
+    <string name="feature_grid_misfit_title">This grid is too small</string>
+    <string name="feature_grid_misfit_message">%1$s can’t fit in %2$d × %3$d. Resize or remove it, then try again.</string>
+    <string name="feature_grid_misfit_unknown">Your Home screen hasn’t loaded yet. Try again in a moment.</string>
+    <string name="feature_grid_failed_message">Pixel Launcher couldn’t move everything to the new grid, so your previous layout was kept.</string>
+    <string name="feature_grid_custom">Custom</string>
+    <string name="feature_grid_size_tab">Size</string>
+    <string name="feature_grid_custom_note">Before you remove this module, choose one of Pixel Launcher’s grids. Without it, Pixel Launcher can’t move a custom grid back and removes what lies outside its own.</string>
+    <plurals name="feature_grid_columns_count">
+        <item quantity="one">%1$d column</item>
+        <item quantity="other">%1$d columns</item>
+    </plurals>
+    <plurals name="feature_grid_rows_count">
+        <item quantity="one">%1$d row</item>
+        <item quantity="other">%1$d rows</item>
     </plurals>
 </resources>

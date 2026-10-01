@@ -68,7 +68,7 @@ class FocusProvider : ContentProvider() {
         MatrixCursor(MODE_COLUMNS + FocusContract.COLUMN_GRANTED).apply {
             val granted = if (snapshot.isReadable) 1 else 0
             if (snapshot.modes.isEmpty()) {
-                addRow(arrayOf(null, null, 0, null, 0, granted))
+                addRow(arrayOf(null, null, 0, null, 0, 0L, granted))
             } else {
                 for (mode in snapshot.modes) addRow(modeRow(mode) + granted)
             }
@@ -76,7 +76,7 @@ class FocusProvider : ContentProvider() {
 
     /** One Mode, in the order of [MODE_COLUMNS]. */
     private fun modeRow(mode: FocusMode): Array<Any?> =
-        arrayOf(mode.id, mode.name, if (mode.isActive) 1 else 0, mode.icon, if (mode.isEnabled) 1 else 0)
+        arrayOf(mode.id, mode.name, if (mode.isActive) 1 else 0, mode.icon, if (mode.isEnabled) 1 else 0, mode.activatedAt)
 
     private companion object {
         const val LAUNCHER_PACKAGE = "com.google.android.apps.nexuslauncher"
@@ -92,6 +92,7 @@ class FocusProvider : ContentProvider() {
             FocusContract.COLUMN_ACTIVE,
             FocusContract.COLUMN_ICON,
             FocusContract.COLUMN_ENABLED,
+            FocusContract.COLUMN_ACTIVATED,
         )
     }
 }

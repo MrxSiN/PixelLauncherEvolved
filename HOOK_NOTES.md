@@ -2659,3 +2659,155 @@ play SystemUI's reveal. Neither SystemUI nor the launcher draws it:
 
 A fix belongs in system_server (`DisplayPowerController`), which this module is not scoped to, or
 in an overlay setting `config_displayColorFadeDisabled`.
+
+## Dock (Android 17 QPR1, launcher 907, verified September 30, 2026)
+
+Hooks, both cold:
+
+```
+com.android.launcher3.Hotseat
+  public void setInsets(Rect)          // on attach and every profile change; the dock is remembered weakly and shown or hidden
+com.android.launcher3.deviceprofile.parser.DisplayOptionSpec
+  public DisplayOptionSpec mapTypeIndex(boolean, boolean)   // only while a count is chosen
+```
+
+- **Hiding.** `CellLayout.mShortcutsAndWidgets` of the hotseat is set INVISIBLE. The search bar
+  (`search_container_hotseat`) is a sibling and stays. The launcher's own
+  `Hotseat.isValidDropTarget` already returns false when that container is not VISIBLE, so drops
+  are refused with no extra hook. Device: a drag of a workspace icon onto the hidden dock went back
+  to its cell; a tap there launched nothing; the four hotseat rows were unchanged in
+  `launcher_4_by_6.db`. Live change: the preference listener posts to the remembered hotseat.
+- **Taskbar.** Nothing is hidden when `DeviceProfile.deviceProperties.taskbarConfiguration.isTaskbarPresent`,
+  because the taskbar mirrors the hotseat and its morph home would land on invisible icons.
+  Verified with Taskbar only on: the container stayed VISIBLE with the setting on.
+- **Count.** `InvariantDeviceProfile.initGrid` sets `numDatabaseHotseatIcons` from the grid's own
+  `DisplayOptionSpec.numShownHotseatIcons`. `DeviceProfileBuilder.build()` takes a copy from
+  `mapTypeIndex` (which always returns `copy$default`), and the count is written into that copy
+  only, so the database capacity never moves. This is required: a smaller capacity deletes every hotseat row
+  whose `screenId` does not fit (`LoaderCursor` at load, verified below; `GridSizeMigrationLogic.migrateHotseat`
+  does the same during a grid migration), so raising the capacity would lose apps when the module is removed. Only counts below the grid's are offered.
+  Shown below capacity is a stock state (a foldable's outer dock); rows at hidden ranks are not
+  bound and are kept. Device: 4 → 3 reflowed the dock to three evenly spaced icons, Camera (rank 3)
+  kept its row, and System brought it back.
+- **More icons than the grid's (shipped with a move-to-Home guard, verified September 30, 2026).**
+  `InvariantDeviceProfile.initGrid` is hooked while a count is chosen: the grid's own capacity is
+  recorded and raised to the count. Any lowering (slider, Reset all tweaks, import) goes through the
+  `home_dock_icons` preference listener, which takes the bound `ItemInfo`s at slots past the new
+  count and writes each to the first free Home cell (`Workspace.getScreenIdForPageIndex`,
+  `CellLayout.isOccupied`, `mCountX`/`mCountY`) with `ModelWriter.modifyItemInDatabase(item, -100,
+  screen, x, y, 1, 1)`, then `LauncherModel.forceReload`. Device: 5 icons applied; Journal pinned at
+  slot 5; the slider back to 4 named Journal, Cancel left the count at 5, Move put Journal at
+  page 0 cell (0, 1) and it survived the restart; Reset all tweaks did the same. The favorites
+  count stayed 43 throughout. The first experiment, below, is why the guard exists.
+- **Live, 1 to 7 icons (verified October 1, 2026).** `InvariantDeviceProfile.onConfigChanged()` is
+  the launcher's own path for a grid picked in Wallpaper & style: it re-runs `initGrid`, compares
+  `toModelState()` (which holds `numDatabaseHotseatIcons`) and calls every `onIdpChanged(modelChanged)`,
+  so a new count rebuilds the profiles and rebinds with no process restart. The capacity and count
+  hooks read the setting on every call (cold: once per grid or profile build). Past what fits,
+  `DeviceProfileBuilder.build` answers a negative `HotseatProfile.borderSpace` (-7/-39/-62 px at 6/7/8
+  icons on the 1149px dock) and the cells overlap; it is held at 8dp, so
+  `CellLayout` cells tile at `(width - gap*(n-1))/n`, and each dock `BubbleTextView.mIconSize` is set
+  to its cell (then `setIcon` again) at `CellLayout.addViewToCellLayout`. Suggested apps are kept and
+  re-bound in place (`PredictedAppIcon.applyFromWorkspaceItemWithAnimation`), so the whole dock is
+  refitted after each rebuild, and a `PredictedAppIcon`'s ring size (`mNormalizedIconSize`,
+  `updateRingPath`/`updateShapePath`) is scaled with it. Device, launcher pid unchanged throughout:
+  7 icons at 143px cells with three suggestions ringed; 6 at 171px; 5 at 198px; 1 centred; Journal
+  pinned at slot 6 moved to Home on 6 → 5; 4 → 1 named WhatsApp, Chrome and Camera and moved them to
+  page 0 row 1; back to 4 restored the stock 198px icons at 317px steps.
+- **Hidden dock row and Move to Home screen (verified October 1, 2026).** `initGrid` sets
+  `numRows` from the grid option and then builds every profile itself (`newDPBuilder`, then
+  `build`), so the extra row is added at the first `newDPBuilder` of each `initGrid`; adding it after
+  `initGrid` left 7 rows squeezed into 6 rows' height. `DeviceGridState(InvariantDeviceProfile)`'s
+  `mGridSizeString` is rewritten to the grid's own rows, or the launcher's "strictly taller grid"
+  migration moves every item down a row (logged "Migration is not needed" throughout). Each profile
+  built with the dock hidden and no taskbar loses the hotseat `cellHeightPx` from
+  `HotseatProfile.barSizePx` (567 → 344px) and `workspacePadding.bottom` (582 → 359px); the search
+  bar is placed from the bottom and stays. A grid rebuild re-shows the icon container through
+  `Hotseat.resetLayout`, so hiding is re-applied after it. Showing the dock reads every Home screen
+  item from `LauncherModel.mBgDataModel.itemsIdMap` (under its lock, so Mode-hidden pages count) and
+  moves those reaching the extra row. Device: Journal dropped in row 7 (`cellY=6`) moved to (0, 1) on
+  Show dock, live, same pid; Move to Home screen off at 3 icons kept Camera pinned at slot 3 with
+  `home_dock_kept=4` through a restart, and 4 showed it again; on, 4 → 3 moved Camera with no prompt.
+- **First experiment, without the guard.** An experimental build raised
+  `numDatabaseHotseatIcons` to 5 after `InvariantDeviceProfile.initGrid` and the shown count to 5.
+  The launcher logged "Migration is not needed" (a hotseat-only change does not trigger
+  `GridSizeMigrationLogic`); the dock laid out five icons with `borderSpace=39` in a 1149px bar,
+  the fifth slot took a Google prediction, and an app dropped there was stored at `screen=4` and
+  survived a restart. Going back to a capacity of 4 then deleted that row at the next load:
+  `LoaderCursor: Error loading shortcut ItemInfo(id=46 …)` (position out of bounds). Removing,
+  disabling or resetting the module is the same capacity drop, so a pinned fifth app is lost with no
+  chance to move it. Not shipped for that reason. Device data was restored from a full backup.
+- **Not done, and why.** Two rows: hotseat rank is `screenId` with `cellY = 0` across the model,
+  migration and prediction code, so it is not offered. Icon size, spacing, a dynamic background and
+  "use freed space" would need hotseat metrics recomputed inside `DeviceProfileBuilder.build()`
+  (workspace padding and the search bar offset are derived there); not attempted. Suggested apps
+  are the stock Home settings switch and are not duplicated.
+
+## Grid & size (Android 17 QPR1, launcher 907, verified October 1, 2026)
+
+Hooks, all cold:
+
+```
+com.android.launcher3.deviceprofile.parser.DisplayOption
+  public static DisplayOption parseWeightedPredefinedDisplayOption(LauncherDisplayInfo, String, boolean, int)
+      // initGrid's grid pick; parses device_profiles afresh each call, so its GridOption can be written
+com.android.launcher3.responsive.ResponsiveCellSpecsProvider$Companion
+  public static ResponsiveCellSpecsProvider create(ResourceHelper)        // icon size
+com.android.launcher3.responsive.ResponsiveSpecsProvider$Companion
+  public static ResponsiveSpecsProvider create(ResourceHelper, ResponsiveSpecType)   // gutters, type Workspace
+com.android.launcher3.deviceprofile.parser.DisplayOptionSpec
+  public DisplayOptionSpec mapTypeIndex(boolean, boolean)                 // All apps columns, per profile copy
+com.android.launcher3.InvariantDeviceProfile
+  void initGrid(String)                                                   // numDatabaseAllAppsColumns
+com.android.launcher3.model.GridMigrationOption$Companion
+  public static GridMigrationOption from(int, int)                        // null for any non-Google size
+com.android.launcher3.model.GridMigrationOption
+  public boolean canMigrate(GridMigrationOption, boolean)
+com.android.launcher3.model.GridSizeMigrationLogic
+  void migrateGrid(DeviceGridState src, DeviceGridState dest, DatabaseHelper, SQLiteDatabase srcDb, QuickstepModelDelegate)
+```
+
+- **Where the grid comes from.** `initGrid` copies `numRows`, `numColumns`, `dbFile`,
+  `numSearchContainerColumns` and the `DisplayOptionSpec` from the picked `GridOption`, then builds
+  every profile. The phone profile is responsive (`isScalableGrid=true`, `spec_handheld_workspace_4_col`):
+  start/end padding and gutter are shares of the available space and the cell is the remainder, so
+  any column/row count tiles without overlap; the icon comes from `spec_handheld_workspace_cell_4_col`
+  (`iconSize` fixed dp) and `DeviceProfileBuilder.build` shrinks it to the cell
+  (`IconSizeSteps.getIconSmallerThan(cellWidth)`, `CellContentDimensions.resizeToFitCellHeight`).
+  All apps' cell spec is `spec_all_apps_cell_match_workspace` (`matchWorkspace`), so it follows.
+  `DisplayOption.iconSizes` sets `iconBitmapSize` (icon bitmap resolution); it is scaled with the
+  icon size so larger icons stay sharp.
+- **Grid option only for initGrid.** `createDeviceProfileForSecondaryDisplay` calls the same parse
+  with a null grid name; it is left alone. A grid is changed only when the display's device type is
+  phone (0), not `isFixedLandscape` and not `mIsDualGrid`.
+- **Database and migration.** `ModelDbController.getOpenHelper` opens the database named in
+  `LauncherPrefs.DB_FILE` (`migration_src_db_file`); `attemptMigrateDb` compares that state with
+  `DeviceGridState(idp)` and, when `GridMigrationOption.from(src)` and `from(dest)` are non-null and
+  `canMigrate`, opens the destination and runs `migrateGrid`, which copies the source `favorites` into
+  the destination (as `favorites_tmp`, or `favorites` with a `cellY` shift for a strictly taller grid)
+  and places items with `solveGridPlacement`. The source database is only read. `from` knows only
+  2x2, 3x3, 4x4, 4x5, 4x6, 5x5, 5x6, 6x5, 8x3 and 7x3; for anything else `attemptMigrateDb` logs
+  "Cannot migrate" and **keeps the old database open under the new grid**, so `LoaderCursor` deletes
+  what lies outside it. The module answers `GridMigrationOption$FourByFour` for its own sizes (sizes it
+  applied this process, plus the size in `migration_src_workspace_size` when `migration_src_db_file` is
+  one of its databases) and makes the following `canMigrate` on that thread true.
+- **What migration drops.** `solveGridPlacement` resizes each item to `minSpanX`/`minSpanY` and drops
+  one whose smallest span exceeds the grid; settings refuses such a grid by name first. Items that
+  do not fit a page go to new pages after the last. Items present in the destination already keep
+  their cells (diff by entry), which is why returning to `launcher_4_by_6.db` restored the original
+  layout exactly.
+- **Check and rollback.** After `migrateGrid`, distinct (itemType, intent/provider, desktop/dock/
+  folder) keys of the source must all be in the destination. If not, `DeviceGridState.writeToPrefs`
+  writes the source state back, the columns/rows settings go back to the source's size, and the
+  rebuild finds "Migration is not needed" and reopens the untouched source database.
+- **Preview.** `LauncherCustomizationProvider.getProxy` requires `BIND_WALLPAPER`, the launcher's
+  `GRID_CONTROL` permission or a signature in its allowlist, even for an in-process `ContentResolver`
+  call. The page asks `LauncherComponentProvider.get(context).getGridCustomizationsProxy().call(
+  "get_preview_bitmap", null, extras)` directly, the object the provider hands permitted calls to.
+- **Live.** Every change posts one `InvariantDeviceProfile.onConfigChanged` per main-loop turn (a
+  Restore defaults writing six keys rebuilds once). A new `dbFile` changes `toModelState`, so the
+  model reloads and migrates; icon size and spacing rebuild the profiles.
+- **Measured on Pixel 8 Pro (1344x2992, 480 dpi, 4x6):** `cellLayoutWidthSpecification` 1287,
+  `cellLayoutHeightSpecification` 2181, `cellLayoutPaddingPx` 32, gaps 49 x 37 px, `iconTextSizePx` 42;
+  with Relaxed gaps (x1.25), 48dp cells and one label line this offers 3–6 columns and 3–8 rows; All
+  apps 3–6 columns.

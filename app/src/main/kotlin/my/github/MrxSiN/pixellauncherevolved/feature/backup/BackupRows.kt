@@ -7,13 +7,15 @@ import android.net.Uri
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.search.SharedPreferencesWebSearchAppStore
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.DockIconsRow
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.GridRows
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.RowScope
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsKeys
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsRow
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.activityOrNull
 import my.github.MrxSiN.pixellauncherevolved.icons.IconSourceSettings
-import my.github.MrxSiN.pixellauncherevolved.icons.SharedPreferencesIconOverrideStore
+import my.github.MrxSiN.pixellauncherevolved.icons.IconOverrideStore
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 
 /**
@@ -33,7 +35,7 @@ internal object BackupRows : SettingsRow {
             hiddenApps = SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(scope.context)),
             webSearchApp = SharedPreferencesWebSearchAppStore(LauncherSettings.preferences(scope.context)),
             icons = IconSourceSettings(LauncherSettings.preferences(scope.context)),
-            iconOverrides = SharedPreferencesIconOverrideStore(LauncherSettings.preferences(scope.context)),
+            iconOverrides = IconOverrideStore(LauncherSettings.preferences(scope.context)),
         )
 
         scope.api.add(
@@ -97,7 +99,7 @@ internal object BackupRows : SettingsRow {
             }
 
             confirm(scope, activity, R.string.backup_import_confirm_title, R.string.backup_import_confirm_message, R.string.backup_import_confirm) {
-                tweaks.restore(snapshot)
+                tweaks.restore(snapshot.copy(dockIcons = DockIconsRow.fitted(snapshot.dockIcons), grid = GridRows.fitted(snapshot.grid, scope)))
                 offerRestart(scope, activity, R.string.backup_imported)
             }
         }

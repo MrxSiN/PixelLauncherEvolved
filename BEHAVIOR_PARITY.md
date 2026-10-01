@@ -83,3 +83,62 @@ v0.1.2 APK with icon state present (there is no earlier release with icon state)
 Not yet covered by an automated differential test: the Overview action-row walk (entry 3) and the
 task-card button lookups (entry 5). The JVM unit tests run against stub `View`s that throw, so these
 need an instrumented test or a Robolectric setup.
+
+## Dock (device, Pixel 8 Pro, launcher 907, 2026-09-30)
+
+New feature, `home_dock`, stock by default (Show dock on, System count): the `setInsets` hook
+leaves the container VISIBLE and no count hook is installed. Verified on device:
+
+- Home screen → Dock page drawn with the module's own rows; Show dock toggled off hid the four dock
+  icons live and kept the search bar; the hidden area refused a drop and launched nothing on a tap;
+  the hotseat rows in `launcher_4_by_6.db` were unchanged; hidden survived a launcher restart;
+- 3 icons: the dialog named Camera; after the restart the dock showed three icons, Camera kept its
+  row; System brought four back;
+- Re-run 2026-09-30 in the default phone layout (no taskbar): hide live, tap-through, drop refused, drawer swipe, hidden across restart, 3 icons with the singular dialog, System back; hotseat rows unchanged throughout.
+- Taskbar only on: Show dock greyed out with "Not available while the taskbar is on", and the dock
+  stayed visible with the stored setting on.
+
+- Slider (2026-09-30, phone mode): steps 3–5 on the 4x6 grid, summary "4 icons, Pixel Launcher's
+  own"; 5 applied after restart with five icons; Journal pinned at slot 5; back to 4 showed "Journal
+  doesn't fit in a dock of 4 and will move to your Home screen", Cancel kept 5, Move put Journal on
+  page 0 and it survived the restart; Reset all tweaks at 5 moved it the same way. Launcher data and
+  module settings were restored from a backup afterwards.
+
+- Live (2026-10-01, phone mode): 7, 6, 5, 4 and 1 icons applied from the slider without the launcher
+  restarting (same pid); shrunk cells and icons at 6 and 7, suggestions included; moves on 6 → 5 and
+  4 → 1; Show dock toggled live. Launcher data and module settings restored from a backup afterwards.
+
+- Hidden dock row, Default label and Move to Home screen (2026-10-01): as in HOOK_NOTES; launcher
+  data and module settings restored from a backup afterwards.
+
+Not verified: a widget reaching into the extra row, tapping and launching from a shrunk dock icon (cells were checked for no overlap, not
+tapped), a folder in a dock of 6 or 7 (scaled, not seen), the "no room on Home screen" path, a hotseat folder at a moved slot, landscape/vertical dock, foldable/tablet, RTL, TalkBack, 3-button navigation, work
+profile, import of a backup onto a different grid. Tests: `DockIconsTest`, `SettingsBackupTest`,
+`LauncherContractsTest`, `FeatureRegistryCompatibilityTest`.
+
+## Grid & size (device, Pixel 8 Pro, launcher 907, 2026-10-01)
+
+New feature, `home_grid`, stock by default: at defaults the launcher logs the same `initGrid`
+(`launcher_4_by_6.db`) and "Migration is not needed" as before. Verified on device, launcher data
+backed up first:
+
+- Page: Home screen → Grid & size, the launcher's preview card, Columns 3–6 and Rows 3–8 measured
+  for this screen, the launcher's own counts labelled "Default".
+- 4 → 5 columns live: `launcher_4_by_6.db` → `launcher_ple_5_by_6.db`, "every item arrived"; Home and
+  preview showed 5 columns; widgets took their smallest spans (the launcher's own migration rule).
+- Large icons and 7 rows live (5 × 7; the launcher's taller-grid rule moved items down one row);
+  3 columns accepted (every widget's smallest span fits) and verified.
+- All apps 6 columns live, suggestions row with 6; Compact/Relaxed spacing applied.
+- 5 columns survived a cold launcher restart (no migration).
+- Restore defaults: back to `launcher_4_by_6.db`, module databases deleted; the 43 rows of the
+  original database matched cell for cell and span for span, and all four widget ids stayed bound.
+- Cold-start way back (setting changed while the launcher was stopped): migrated back through the
+  remembered source size, again identical to the original.
+
+Not verified: the refusal dialog (no widget on this device is too wide for 3 columns), the
+rollback after a lossy migration (not reproducible on purpose), Safe Mode with a custom grid,
+landscape/fixed Landscape mode, Full tablet layout, foldable, RTL, TalkBack, font/display size
+extremes, 3-button navigation, work profile, a hidden dock combined with a custom grid, Wallpaper &
+style previews of other grids while a custom grid is set, import onto another device. Tests:
+`GridSpecTest`, `SettingsBackupTest`, `CrashGuardTest`, `LauncherContractsTest`,
+`FeatureRegistryCompatibilityTest`.

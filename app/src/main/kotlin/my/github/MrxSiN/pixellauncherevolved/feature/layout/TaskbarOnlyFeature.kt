@@ -18,10 +18,8 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 class TaskbarOnlyFeature : ToggleFeature(Settings.TASKBAR_ONLY) {
 
     override val compatibility = CompatibilityFeature.TASKBAR_ONLY
-    // Device profiles are built once at startup. Both transitions need a restart.
-    override val isLive: Boolean = false
-
     override fun install(context: FeatureContext) {
+        LiveLayout.install(context)
         TaskbarPresence(context).install()
         HotseatHandoff(context).install()
         TaskbarIconCount(context).install()
@@ -86,7 +84,7 @@ private class TaskbarPresence(private val context: FeatureContext) {
 
         context.xposed.hook(create).intercept { chain ->
             chain.proceed()?.also { built ->
-                runCatching { presentOf.setBoolean(configurationOf.get(built), true) }
+                if (LiveLayout.taskbarOnly) runCatching { presentOf.setBoolean(configurationOf.get(built), true) }
                     .onFailure { context.logger.warn("Unable to report a taskbar on this profile", it) }
             }
         }
@@ -147,7 +145,7 @@ private class HotseatHandoff(private val context: FeatureContext) {
             val known = launcherProfile?.get()
             // Re-entrant by design: asking the launcher's profile lands back
             // here, where it is the receiver and the original runs.
-            if (known == null || known === chain.thisObject) {
+            if (!LiveLayout.taskbarOnly || known == null || known === chain.thisObject) {
                 chain.proceed()
             } else {
                 runCatching { offsetY.invoke(known) }.getOrElse {
@@ -195,6 +193,7 @@ private class TaskbarIconCount(private val context: FeatureContext) {
 
         context.xposed.hook(maxNumIcons).intercept { chain ->
             val stock = chain.proceed() as Int
+            if (!LiveLayout.taskbarOnly) return@intercept stock
             runCatching {
                 val hotseat = hotseatOf.get(profileOf.get(contextOf.get(chain.thisObject)))
                 val shown = requireNotNull(Reflect.field(hotseat.javaClass, "numShownIcons")).getInt(hotseat)
@@ -269,7 +268,7 @@ private class TaskbarRevealShape(private val context: FeatureContext) {
 
         context.xposed.hook(reveal).intercept { chain ->
             val owner = chain.thisObject
-            val stored = runCatching { bandHeightOf.getInt(owner) }.getOrNull()
+            val stored = if (LiveLayout.taskbarOnly) runCatching { bandHeightOf.getInt(owner) }.getOrNull() else null
             if (stored == null) {
                 chain.proceed()
             } else {

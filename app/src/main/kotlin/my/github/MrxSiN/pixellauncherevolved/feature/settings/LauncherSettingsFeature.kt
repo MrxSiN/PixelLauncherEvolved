@@ -119,7 +119,12 @@ class LauncherSettingsFeature : LauncherFeature {
             chain.proceed().also {
                 val row = chain.thisObject
                 if (row != null && api.keyOf(row)?.startsWith(SettingsKeys.PREFIX) == true) {
-                    runCatching { api.sliderViewOf(row)?.let(ExpressiveSlider::applyTo) }
+                    runCatching {
+                        api.sliderViewOf(row)?.let { bar ->
+                            ExpressiveSlider.applyTo(bar)
+                            SteppedSliders.bind(api.keyOf(row), bar)
+                        }
+                    }
                         .onFailure { context.logger.warn("Unable to draw the slider", it) }
                 }
             }

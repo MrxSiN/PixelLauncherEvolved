@@ -80,6 +80,7 @@ private class ModeReader(private val cursor: android.database.Cursor) {
     private val active = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ACTIVE)
     private val icon = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ICON)
     private val enabled = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_ENABLED)
+    private val activated = cursor.getColumnIndex(FocusContract.COLUMN_ACTIVATED)
 
     fun read(): FocusMode? {
         val modeId = cursor.getString(id) ?: return null
@@ -89,6 +90,7 @@ private class ModeReader(private val cursor: android.database.Cursor) {
             isActive = cursor.getInt(active) != 0,
             icon = cursor.getString(icon),
             isEnabled = cursor.getInt(enabled) != 0,
+            activatedAt = if (activated < 0) 0L else cursor.getLong(activated),
         )
     }
 }

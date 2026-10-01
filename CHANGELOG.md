@@ -1,5 +1,116 @@
 # Changelog
 
+## 0.1.4
+
+### Added
+
+- **Grid & size**, in Wallpaper & style. Layout gets a **Custom** tile after Google's grids, with
+  sliders for **Columns** and **Rows** (3 up to what keeps a 48dp touch target and a label line on
+  this screen: 6 columns and 8 rows on a Pixel 8 Pro) and **Horizontal** and **Vertical spacing**
+  (Compact, Default, Relaxed). Icons gets a **Size** tab (Small, Default, Large, Extra large), and
+  Home settings → App drawer gets **Columns** for All apps. Values go in where the launcher reads its
+  own (grid option, responsive cell and workspace specs, the profile's grid spec), so cells, icons,
+  labels, dots, folders, drag outlines, dock and widgets all come from the launcher's math; nothing is
+  scaled after layout. A custom grid gets a database of its own (`launcher_ple_<c>_by_<r>.db`) and
+  the launcher's own migration copies the layout over, leaving the previous database untouched; going
+  back to the launcher's grid restores the original arrangement exactly and deletes the module's
+  databases. A grid a Home screen widget cannot fit in at its smallest size is refused by name, and
+  every migration into or out of a module database is checked item by item and undone if anything is
+  missing. Backed up as logical values under `grid` and re-fitted on import; Safe Mode puts Grid &
+  size back to default on a crash loop and offers it back.
+- Layout & taskbar: choosing Default, Overview only, Taskbar only or Full tablet layout applies
+  live through the launcher's own grid change path (`InvariantDeviceProfile.onConfigChanged`),
+  with no launcher restart. Each layout hook is always installed and reads the current mode from a
+  volatile flag. A change into or out of Overview only also recreates the launcher activity, so
+  Recents re-inflates its pooled task cards with the right app chip width.
+
+### Fixed
+
+- Taskbar only / Full tablet layout: swiping from an app into Overview, the taskbar appeared whole a
+  frame after the card settled. It is kept out of the app's transition (the window manager moves it
+  with the app card), and is now faded back in over 250 ms (emphasized decelerate) instead of being
+  set straight back; the way home still hands its icons to the dock unfaded.
+- Wallpaper & style → Icons: a tab could stop responding after Names (or any tab) was picked while
+  the Size tab had been open. The tab list only rebinds a tab whose label or selection changes, so a
+  tab kept the click it had when it was selected, which is none; each tab now runs the action the
+  picker lists for it at the moment it is tapped.
+- Wallpaper & style → Icons → Size: each size tile now draws the icon against the Extra large
+  outline, and the tab uses a resize glyph instead of a text-size one.
+- Grid changes keep every item on its page. The launcher's migration packed every item into the first
+  free cell of the first page with room, so a bigger grid pulled icons from later pages onto earlier
+  ones. Now an item keeps its page, cell and span (as much of it as fits); what a smaller grid has no
+  room for takes a free cell on the same page, else a new page after the last, and is never dropped
+  (only a widget whose smallest size exceeds the grid is, as before, and Settings refuses such
+  grids). A grid still remembers the Home screen it had when last used, but only for items that are
+  on the same page now: going to a smaller grid and back restores every such item to its cell and
+  span, and an item moved to another page since is placed from the current layout.
+- Wallpaper & style → Layout: with Custom already selected, the preview did not follow Columns,
+  Rows or spacing (a preview reads its grid once); each preview's own profile is now rebuilt.
+- Wallpaper & style → Icons: leaving Size for another tab showed the previous tab's pane for a
+  moment and skipped the animation. Size now enters and leaves with the sheet's own 200 ms
+  height ease and fade, and the pane the picker brings back is kept unseen while Size fades out.
+- Wallpaper & style → Layout: previews read and wrote the launcher's real grid databases, the Home
+  screen's included, migrating from whichever grid was previewed last. A preview could differ from
+  what Apply gives (6 × 6 showed 2 of 8 icons) and could rewrite a grid's remembered layout. Each
+  preview now works on copies in a folder of its own (the launcher's `PreviewContext.mDbDir`, deleted
+  when the preview closes), always migrated from a fresh copy of the Home screen's database, with the
+  same rules as Apply. A preview's grid no longer overwrites what the module records of the
+  launcher's own grid and dock (a preview's profile holds `ProxyPrefs`).
+- Wallpaper & style → Layout: changing Columns or Rows showed the old grid's layout in the preview
+  first (icons missing, the search bar gone, items on the wrong cells) before the new one. The
+  preview is now drawn once, after its model has loaded the new grid.
+- Wallpaper & style → Layout: after previewing another tile, Custom borrowed that grid's icon sizes
+  and spacing (Large's icons on a 4 × 6 grid, zoomed and cropped) and could show its size. Custom is
+  now always built from the launcher's own grid.
+- Wallpaper & style → Layout: the Custom tile's grid icon kept its old size until the picker
+  restarted; it now redraws as Columns and Rows change, and stays in view while the list refreshes.
+- Changing Columns or Rows no longer rebuilds the running launcher while it is on one of Google's
+  grids; only the previews use those values then.
+- Home settings → Home screen: the summary no longer lists Spacing, which moved to Wallpaper & style.
+- Modes: with two Modes on that both have pages, the one turned on last now wins (it read the
+  `lastActivation`/`lastManualActivation` of each rule); the Modes order breaks ties.
+- Spacing had no visible effect: it scaled the gaps between cells, and the cells shrank to absorb
+  them, so icons moved by a few pixels. Spacing now moves the change into the grid's outer padding, so
+  cells keep their size and icons spread out (Relaxed, keeping 30% of the padding) or draw together
+  (Compact, a quarter of the gap).
+
+### Changed
+
+- Wallpaper & style → Layout: Columns and Rows are sliders, and Horizontal and Vertical spacing moved
+  there from Home settings → Home screen, as sliders that apply as they are picked. They are
+  Wallpaper & style's own Material 3 Expressive slider, with its track, handle and colours; a
+  platform slider stands in if that one cannot be built. The panel only shows while the Custom tile is
+  selected, opening and closing with the sheet's own 200 ms ease.
+- Home settings: slider rows sat their title 8dp from the card's top and their handle well over
+  16dp from its bottom; both are now 16dp, as in every switch row.
+
+- Full tablet layout deleted Home screen items in the bottom row. A large screen made the launcher
+  pick its `tablet_normal` grid (6x5), which it cannot migrate a phone grid to, so it kept the phone
+  database and its loader removed every item below the fifth row. The grid option is now picked with
+  the stock screen classification, so Full tablet keeps the phone grid and database (4x6 on a Pixel
+  8 Pro) and changes only the tablet surfaces: taskbar, Recents and the dock's taskbar handoff.
+
+- Home screen → Dock. **Show dock** hides the dock's icons live, keeping the search bar, and
+  gives their space to the Home screen as one more row of apps (no grid migration: the launcher's
+  recorded grid stays on its own rows). Showing the dock again first moves anything in that row, on
+  every page, including pages a Mode hides, to the rows above or to a new page. Pinned
+  apps stay in the launcher's database and come back when the dock is shown again; the hidden dock
+  accepts no drops and is left out of TalkBack. Greyed out, with the reason, while a taskbar is on,
+  because the taskbar mirrors the dock.
+- **Icons in dock**: a stepped slider from 1 icon to as many as keep a 48dp touch target each with
+  8dp between them (7 on a Pixel 8 Pro 4x6 grid), applied live through the launcher's own grid
+  change path, with no restart. Past what fits at the Home screen's icon size the dock's icons,
+  suggested apps included, shrink to their cells; an icon dragged out of the dock gets its size back. A count above the grid's own raises the dock's
+  database capacity with it. The grid's own count reads "Default"; other counts have no summary.
+- **Move to Home screen** (on by default): a lower count, from the slider, Reset all tweaks or an
+  import, moves the pinned apps it leaves out to the first free Home screen space, or a new page,
+  with no prompt. Off, they stay pinned in dock slots the dock no longer shows, and those slots are
+  kept in the launcher's capacity so they are never deleted; a bigger count shows them again.
+- The Dock page ends with **Before you remove this module**: turn Show dock on and set
+  Icons in dock to Default first, because without the module Pixel Launcher deletes whatever lies in
+  the extra Home screen row and in dock slots past the grid's own count.
+- Backups carry `hideDock` and `dockIcons`. Older backups import with the stock dock.
+
 ## 0.1.3
 
 ### Added

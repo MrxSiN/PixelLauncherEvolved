@@ -21,7 +21,6 @@ import my.github.MrxSiN.pixellauncherevolved.icons.IconPacks
 import my.github.MrxSiN.pixellauncherevolved.icons.IconSource
 import my.github.MrxSiN.pixellauncherevolved.icons.IconSourceFactory
 import my.github.MrxSiN.pixellauncherevolved.icons.IconSourceSettings
-import my.github.MrxSiN.pixellauncherevolved.icons.SharedPreferencesIconOverrideStore
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 
 /**
@@ -153,14 +152,6 @@ internal class IconPackController private constructor(
     /** [pack]'s icons for a home screen preview, without choosing it. */
     fun preview(pack: String): IconSource? = factory.preview(pack)
 
-    /**
-     * Runs [work] on this feature's worker, for the settings screens: asking
-     * the package manager for every launchable app, reading a pack's drawables.
-     */
-    fun onWorker(work: () -> Unit) = worker.execute {
-        runCatching(work).onFailure { logger.warn("Icons: settings work failed", it) }
-    }
-
     private fun watch() {
         register(
             IntentFilter().apply {
@@ -259,7 +250,7 @@ internal class IconPackController private constructor(
 
             val preferences = LauncherSettings.preferences(context.appContext)
             val settings = IconSourceSettings(preferences)
-            val overrides = SharedPreferencesIconOverrideStore(preferences)
+            val overrides = IconOverrideStore(preferences)
             val indexer = IconPackIndexer(context.appContext, context.logger)
             val built = IconPackController(
                 context = context.appContext,

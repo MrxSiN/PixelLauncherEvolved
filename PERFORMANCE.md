@@ -383,3 +383,10 @@ on, before the fix, the workspace was fully blurred on the first frame of the sw
 variance of the top region 59 to 0.2 in one frame) and snapped sharp on the last frame of closing.
 With the tweak off, and with it on after the fix, the workspace blur ramps over the first 5 to 8
 frames of opening and the last 5 to 8 of closing.
+
+## Run 2026-10-01: Grid & size, single samples
+
+No hook on a frame, layout, touch, draw or scroll path (see `DEX_AUDIT.md`), so no frame benchmark
+was run. From launcher log timestamps, one sample each: `migrateGrid` start to the module's item
+check done 40 ms (4x6 → 5x6, 43 rows); the preview redraw is scheduled 1.2 s after a change. Not a
+statistical result.

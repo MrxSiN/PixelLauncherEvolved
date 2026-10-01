@@ -56,7 +56,6 @@ object IconsBridge {
     const val TILE_PREFIX = "tile:"
     const val OVERRIDES = "overrides"
     const val AVAILABLE = "available"
-    const val UNAVAILABLE_REASON = "unavailable_reason"
 
     const val KEYS = "keys"
     const val KEY = "key"
@@ -80,6 +79,13 @@ object IconsBridge {
 
     /** How many pictures one answer carries. */
     const val PAGE = 24
+
+    /** Whether the caller of a `grid_control` call is Wallpaper & style, the launcher itself or the shell. */
+    fun callerAllowed(context: android.content.Context): Boolean {
+        val uid = android.os.Binder.getCallingUid()
+        if (uid == android.os.Process.myUid() || uid == android.os.Process.SHELL_UID || uid == android.os.Process.ROOT_UID) return true
+        return context.packageManager.getPackagesForUid(uid)?.contains(PICKER_PACKAGE) == true
+    }
 
     /** One app in one profile, as the picker names it: `user|package/class`. */
     fun keyOf(packageName: String, className: String, userId: Int): String = "$userId|$packageName/$className"

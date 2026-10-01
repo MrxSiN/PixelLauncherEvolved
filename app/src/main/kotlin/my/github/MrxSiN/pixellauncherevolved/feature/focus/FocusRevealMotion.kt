@@ -10,30 +10,6 @@ import android.view.View
 import my.github.MrxSiN.pixellauncherevolved.core.ExpressiveMotion
 
 /**
- * How a Focus page leaves the screen and how the next one arrives.
- *
- * Kept apart from [FocusPageReveal] because the two answer different questions.
- * The reveal decides when a page may be swapped — the model has finished
- * binding, the window has focus, the home transition is over. This decides only
- * what that swap looks like, so the look can be changed, or replaced for a
- * test, without touching the sequencing that has to stay right.
- */
-internal interface FocusRevealMotion {
-
-    /** Puts the workspace into the hidden state at once, with no animation. */
-    fun hide(view: View)
-
-    /** Takes the outgoing page away, ending where [hide] would have left it. */
-    fun exit(view: View): Animator
-
-    /** Brings the newly-bound page in, ending where [settle] would leave it. */
-    fun enter(view: View): Animator
-
-    /** Restores the workspace's resting state, whatever it was left at. */
-    fun settle(view: View)
-}
-
-/**
  * Material 3 Expressive motion for the page swap.
  *
  * The reveal this replaces was a circular wipe: the workspace was cut to
@@ -60,15 +36,15 @@ internal interface FocusRevealMotion {
  * a copy of the workspace, which costs a snapshot of every page to avoid a
  * collision measured in a few hundred milliseconds.
  */
-internal class MaterialExpressiveMotion : FocusRevealMotion {
+internal object FocusRevealMotion {
 
-    override fun hide(view: View) {
+    fun hide(view: View) {
         view.visibility = View.INVISIBLE
         view.alpha = 0f
         view.setScale(HIDDEN_SCALE)
     }
 
-    override fun settle(view: View) {
+    fun settle(view: View) {
         view.visibility = View.VISIBLE
         view.alpha = 1f
         view.setScale(1f)
@@ -81,7 +57,7 @@ internal class MaterialExpressiveMotion : FocusRevealMotion {
      * with the next one, and reading the live value is what keeps the second
      * start from jumping back to full opacity first.
      */
-    override fun exit(view: View): Animator = AnimatorSet().apply {
+    fun exit(view: View): Animator = AnimatorSet().apply {
         playTogether(
             ObjectAnimator.ofFloat(view, View.ALPHA, view.alpha, 0f),
             view.scaleTo(HIDDEN_SCALE),
@@ -91,7 +67,7 @@ internal class MaterialExpressiveMotion : FocusRevealMotion {
         onCompleted { hide(view) }
     }
 
-    override fun enter(view: View): Animator {
+    fun enter(view: View): Animator {
         view.visibility = View.VISIBLE
 
         val fade = ObjectAnimator.ofFloat(view, View.ALPHA, view.alpha, 1f).apply {
@@ -141,19 +117,16 @@ internal class MaterialExpressiveMotion : FocusRevealMotion {
         })
     }
 
-    private companion object {
+    /**
+     * How small the workspace goes while it is away.
+     *
+     * Far enough for the return to be a movement rather than a fade, near
+     * enough that a frame the launcher's own state transition happens to
+     * catch mid-swap does not look wrong.
+     */
+    private const val HIDDEN_SCALE = 0.94f
 
-        /**
-         * How small the workspace goes while it is away.
-         *
-         * Far enough for the return to be a movement rather than a fade, near
-         * enough that a frame the launcher's own state transition happens to
-         * catch mid-swap does not look wrong.
-         */
-        const val HIDDEN_SCALE = 0.94f
-
-        const val EXIT_DURATION_MS = 150L
-        const val ENTER_FADE_DURATION_MS = 250L
-        const val ENTER_SCALE_DURATION_MS = 400L
-    }
+    private const val EXIT_DURATION_MS = 150L
+    private const val ENTER_FADE_DURATION_MS = 250L
+    private const val ENTER_SCALE_DURATION_MS = 400L
 }

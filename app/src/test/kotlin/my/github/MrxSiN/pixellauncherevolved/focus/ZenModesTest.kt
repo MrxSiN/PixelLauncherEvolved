@@ -49,4 +49,22 @@ class ZenModesTest {
         assertEquals("android:drawable/ic_zen_mode_type_driving", modes.getValue("typed").icon)
         assertEquals("android:drawable/ic_zen_mode_type_special_dnd", modes.getValue("MANUAL_RULE").icon)
     }
+
+    @Test
+    fun theModeThatCameOnLastWins() {
+        val dump = """
+            ZenRule[id=work,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android,lastActivation=2026-10-01T08:00:00Z,lastManualActivation=null],
+            ZenRule[id=driving,state=STATE_FALSE,enabled=TRUE,conditionOverride=OVERRIDE_ACTIVATE,name=Driving,zenMode=ZEN_MODE_OFF,pkg=android,lastActivation=2026-09-30T08:00:00Z,lastManualActivation=2026-10-01T09:30:00.123Z],
+            mUser=0
+        """.trimIndent()
+
+        val active = ZenModes(CommandRunner { dump }).modes().filter { it.isActive }.associate { it.id to it.activatedAt }
+        val pages = mapOf("work" to setOf(2), "driving" to setOf(1))
+
+        assertEquals(1790847000123L, active.getValue("driving"))
+        // Driving came on last, so it wins whatever the order says.
+        assertEquals("driving", FocusPlan.winner(pages, priority = listOf("work", "driving"), active = active))
+        // Unknown times fall back on the order.
+        assertEquals("work", FocusPlan.winner(pages, priority = listOf("work", "driving"), active = mapOf("work" to 0L, "driving" to 0L)))
+    }
 }

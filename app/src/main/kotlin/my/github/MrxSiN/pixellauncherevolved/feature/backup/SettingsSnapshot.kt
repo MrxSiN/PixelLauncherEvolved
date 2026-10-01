@@ -2,6 +2,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.backup
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
+import my.github.MrxSiN.pixellauncherevolved.catalog.IntSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsStore
@@ -22,6 +23,8 @@ data class SettingsSnapshot(
     /** The catalogue's switches, by stored value — a hide setting stored as hidden. */
     val switches: Map<BoolSetting, Boolean>,
     val blurStrength: Int,
+    /** 0 is the launcher's own count. */
+    val dockIcons: Int,
     val layoutMode: LayoutMode,
     val hiddenApps: Set<String>,
     /** Null leaves tapped web results to the launcher's own choice. */
@@ -37,12 +40,18 @@ data class SettingsSnapshot(
     val useIconPack: Boolean,
     val iconPack: String?,
     val iconOverrides: List<IconOverride>,
+    /**
+     * Grid & size, as logical values (counts, a size step, spacing steps), by
+     * setting. Portable: an import re-fits each to the phone it lands on.
+     */
+    val grid: Map<IntSetting, Int> = Settings.GRID.associateWith { it.default },
 ) {
     companion object {
         /** What a fresh install has. */
         val DEFAULTS = SettingsSnapshot(
             switches = FeatureCatalog.entries.associate { it.setting to it.setting.default },
             blurStrength = Settings.HOME_BLUR_STRENGTH.default,
+            dockIcons = Settings.DOCK_ICONS.default,
             layoutMode = LayoutMode.DEFAULT,
             hiddenApps = emptySet(),
             webSearchApp = null,
@@ -65,24 +74,28 @@ class TweakStores(
     fun snapshot(): SettingsSnapshot = SettingsSnapshot(
         switches = FeatureCatalog.entries.associate { it.setting to settings[it.setting] },
         blurStrength = settings[Settings.HOME_BLUR_STRENGTH],
+        dockIcons = settings[Settings.DOCK_ICONS],
         layoutMode = LayoutMode.current(settings::get),
         hiddenApps = hiddenApps.hidden(),
         webSearchApp = webSearchApp.chosen(),
         useIconPack = settings[Settings.ICONS_USE_PACK],
         iconPack = icons.pack(),
         iconOverrides = iconOverrides.overrides(),
+        grid = Settings.GRID.associateWith { settings[it] },
     )
 
     /** Replaces every tweak with [snapshot]'s. */
     fun restore(snapshot: SettingsSnapshot) {
         snapshot.switches.forEach { (setting, value) -> settings.put(setting, value) }
         settings.put(Settings.HOME_BLUR_STRENGTH, snapshot.blurStrength)
+        settings.put(Settings.DOCK_ICONS, snapshot.dockIcons)
         snapshot.layoutMode.switches().forEach { (setting, on) -> settings.put(setting, on) }
         hiddenApps.hide(snapshot.hiddenApps)
         webSearchApp.choose(snapshot.webSearchApp)
         settings.put(Settings.ICONS_USE_PACK, snapshot.useIconPack)
         icons.choose(snapshot.iconPack)
         iconOverrides.replace(snapshot.iconOverrides)
+        for (setting in Settings.GRID) settings.put(setting, snapshot.grid[setting] ?: setting.default)
         // The generation is not part of a snapshot: it is how the launcher's own
         // stored icons are keyed, and it only ever goes up.
         icons.bump()

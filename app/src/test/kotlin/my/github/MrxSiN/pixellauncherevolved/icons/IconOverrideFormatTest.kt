@@ -71,7 +71,7 @@ class IconOverrideFormatTest {
 
     @Test
     fun `the store keeps what it is given and forgets on clear`() {
-        val store = SharedPreferencesIconOverrideStore(FakePreferences())
+        val store = IconOverrideStore(FakePreferences())
         store.replace(listOf(main, work))
 
         assertEquals(setOf(main, work), store.overrides().toSet())

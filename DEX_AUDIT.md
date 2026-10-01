@@ -70,6 +70,31 @@ those allocations; the rest are the button's own measure and layout (see `OPTIMI
 | `DoubleTap.isSecond` | `DoubleTap.a` | none |
 | Workspace `onTouch` hook body | `DoubleTapToSleepFeature$$ExternalSyntheticLambda0.c` | `Field.getInt` (cached `Field`); `Intent` and runnable only on a completed double tap; `Log.w` only on failure |
 
+## Dock hooks (cold paths)
+
+`Hotseat.setInsets` runs on attach and profile changes; `DisplayOptionSpec.mapTypeIndex` runs once
+per device profile built and is only hooked while a count is chosen. Neither is a frame, layout,
+touch or draw path. They use uncached `Reflect.field` lookups and one preference read each, which
+is fine at that frequency. With the defaults the only feature work at runtime is the `setInsets`
+body: one preference read and one `setVisibility(VISIBLE)` that is a no-op.
+
+## Grid & size hooks (cold paths)
+
+`DisplayOption.parseWeightedPredefinedDisplayOption` runs once per `initGrid`;
+`ResponsiveCellSpecsProvider.Companion.create`, `ResponsiveSpecsProvider.Companion.create` and
+`DisplayOptionSpec.mapTypeIndex` once per device profile built; `GridMigrationOption.Companion.from`,
+`canMigrate` and `GridSizeMigrationLogic.migrateGrid` once per model load. None is a frame, layout,
+touch, draw, icon bind or All apps scroll path; nothing is hooked on `BubbleTextView`, `CellLayout`
+or the All apps adapter, so icon layout and draw consult no grid setting. At defaults each body is
+one preference read and a compare (`from` receives its two ints boxed, as every libxposed hook
+does). R8 merges these lambdas into shared `$$ExternalSyntheticLambda` dispatchers with the dock's,
+so `scripts/dex-audit.py ... GridFeature` lists the dispatcher's other branches too. Reproduce:
+
+```sh
+dexdump -d classes.dex > dex.txt
+python scripts/dex-audit.py dex.txt app/build/outputs/mapping/release/mapping.txt GridFeature Grid.room Grid.homeItems GridRows
+```
+
 ## Reflection
 
 `Invoke.noArgs` is inlined everywhere it is used and passes the static empty array, so no

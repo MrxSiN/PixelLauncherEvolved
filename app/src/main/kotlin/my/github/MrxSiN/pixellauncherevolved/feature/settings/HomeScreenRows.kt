@@ -5,7 +5,7 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagesDialog
-import my.github.MrxSiN.pixellauncherevolved.feature.focus.LauncherPagePreviewSource
+import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagePreviewSource
 import my.github.MrxSiN.pixellauncherevolved.feature.pages.ReorganizePagesScreen
 import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.SharedPreferencesFocusStore
@@ -75,7 +75,7 @@ internal object OrganizePagesRow : SettingsRow {
                 emptyList()
             }
             ReorganizePagesScreen(context, scope.resources, store, scope.environment.logger)
-                .show(LauncherPagePreviewSource(context), modes)
+                .show(FocusPagePreviewSource(context), modes)
         }
         scope.api.add(group, row)
         scope.requires(CompatibilityFeature.ORGANIZE_PAGES, row)
@@ -101,7 +101,7 @@ internal object FocusPagesRow : SettingsRow {
             title = R.string.feature_focus_pages_title,
             summary = scope.string(R.string.feature_focus_pages_summary),
         ) {
-            FocusPagesDialog.show(context, scope.resources, store, source, LauncherPagePreviewSource(context))
+            FocusPagesDialog.show(context, scope.resources, store, source, FocusPagePreviewSource(context))
         }
         scope.api.add(group, row)
         scope.dependOn(FeatureCatalog.FOCUS_HOME_SCREENS, row)

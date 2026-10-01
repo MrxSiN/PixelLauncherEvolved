@@ -10,6 +10,8 @@ import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
+import android.view.HapticFeedbackConstants
+import android.view.View
 import android.widget.SeekBar
 
 /**
@@ -64,7 +66,14 @@ object ExpressiveSlider {
         seekBar.minHeight = track
         seekBar.maxHeight = track
         seekBar.minimumHeight = handleHeight
-        seekBar.setPadding(handleWidth, seekBar.paddingTop, handleWidth, seekBar.paddingBottom)
+
+        // The row pads its card by half of what a switch row puts above its
+        // title, and the platform's bar pads itself by far more than that. Both
+        // are set so the title sits as far from the card's top as in every
+        // other row, and the handle as far from its bottom.
+        val inset = context.dp(EDGE_INSET_DP)
+        seekBar.setPadding(handleWidth, inset, handleWidth, inset)
+        (seekBar.parent?.parent as? View)?.let { it.setPadding(it.paddingLeft, inset, it.paddingRight, it.paddingBottom) }
     }
 
     /** Where the bar stands now, in the 0..10000 a drawable reads as its level. */
@@ -114,6 +123,9 @@ object ExpressiveSlider {
     private const val HANDLE_WIDTH_DP = 4f
     private const val HANDLE_HEIGHT_DP = 44f
     private const val GAP_DP = 6f
+
+    /** Added above the title and below the handle, on top of the row's own 8dp. */
+    private const val EDGE_INSET_DP = 8f
 
     private const val INACTIVE_ALPHA = 0x3D
     private const val MAX_LEVEL = 10_000
@@ -187,5 +199,60 @@ private class ExpressiveTrack(
 
         /** Below this a bar is a dot rather than a track, so it is left out. */
         const val MIN_BAR = 1f
+    }
+}
+
+/**
+ * Sliders that choose one of a few steps rather than a percentage.
+ *
+ * The launcher's slider row only takes 0..100 (see [PreferenceApi.createSlider]),
+ * so a stepped row gives its bar a small maximum once it is bound: the bar then
+ * snaps to the steps itself, keyboards and TalkBack move one step at a time, and
+ * the row's own 0..100 value is never read. A step is taken when the finger
+ * lifts, or at once when it moves without a finger.
+ */
+internal object SteppedSliders {
+
+    class Stepped(
+        val steps: Int,
+        val index: () -> Int,
+        val label: (Int) -> CharSequence,
+        val onMove: (Int) -> Unit,
+        val onPick: (Int) -> Unit,
+    )
+
+    private val sliders = HashMap<String, Stepped>()
+
+    fun register(key: String, stepped: Stepped) {
+        sliders[key] = stepped
+    }
+
+    fun bind(key: String?, bar: SeekBar) {
+        val stepped = sliders[key ?: return] ?: return
+        bar.setOnSeekBarChangeListener(null)
+        bar.min = 0
+        bar.max = stepped.steps
+        bar.progress = stepped.index()
+        bar.stateDescription = stepped.label(bar.progress)
+        bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            private var tracking = false
+
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                seekBar.stateDescription = stepped.label(progress)
+                if (!fromUser) return
+                seekBar.performHapticFeedback(HapticFeedbackConstants.SEGMENT_TICK)
+                stepped.onMove(progress)
+                if (!tracking) stepped.onPick(progress)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+                tracking = true
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                tracking = false
+                stepped.onPick(seekBar.progress)
+            }
+        })
     }
 }

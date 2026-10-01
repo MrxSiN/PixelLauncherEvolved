@@ -36,10 +36,8 @@ import kotlin.math.roundToInt
 class OverviewOnlyFeature : ToggleFeature(Settings.OVERVIEW_ONLY) {
 
     override val compatibility = CompatibilityFeature.OVERVIEW_ONLY
-    // Device profiles are built once at startup. Both transitions need a restart.
-    override val isLive: Boolean = false
-
     override fun install(context: FeatureContext) {
+        LiveLayout.install(context)
         val classification = LargeScreenClassification(context)
 
         GridOverviewProfiles(context, classification, OverviewGridMetrics(context)).install()
@@ -160,7 +158,7 @@ private class GridOverviewProfiles(
 
         context.xposed.hook(Reflect.declaredMethod(builder, DeviceProfiles.BUILD)).intercept { chain ->
             chain.proceed()?.also { built ->
-                runCatching {
+                if (LiveLayout.overviewOnly) runCatching {
                     metrics.applyTo(overviewOf.get(built))
                     classification.enableOn(propertiesOf.get(built))
                 }.onFailure { context.logger.warn("Unable to lay Recents out as a grid", it) }
@@ -212,7 +210,7 @@ private class GridAtRest(private val context: FeatureContext) {
     fun install() {
         val recents = requireNotNull(context.findClass("com.android.quickstep.views.RecentsView"))
 
-        context.xposed.hook(requireNotNull(Reflect.method(recents, "showAsGrid"))).intercept { true }
+        context.xposed.hook(requireNotNull(Reflect.method(recents, "showAsGrid"))).intercept { chain -> if (LiveLayout.overviewOnly) true else chain.proceed() }
 
         context.logger.info("Overview only: Recents laid out as a grid whether or not a gesture is running")
     }
@@ -342,6 +340,7 @@ private class PhoneSurfaces(
             }
 
             context.xposed.hook(method).intercept { chain ->
+                if (!LiveLayout.overviewOnly) return@intercept chain.proceed()
                 var result: Any? = null
                 classification.asPhone { result = chain.proceed() }
                 result
@@ -547,7 +546,7 @@ private class GridCardAppChip(private val context: FeatureContext) {
 
         context.xposed.hook(onFinishInflate).intercept { chain ->
             chain.proceed().also {
-                runCatching {
+                if (LiveLayout.overviewOnly) runCatching {
                     val chip = chain.thisObject as View
                     val known = ratio.takeIf { it > 1f } ?: profiles.ratioFor(chip).also { ratio = it }
                     val wanted = widths.wantedOn(chip, known)
@@ -761,7 +760,7 @@ private class PhoneActionRow(private val context: FeatureContext) {
         )
 
         context.xposed.hook(updateHiddenFlags).intercept { chain ->
-            if (chain.args.getOrNull(0) == HIDDEN_LARGE_SCREEN) {
+            if (LiveLayout.overviewOnly && chain.args.getOrNull(0) == HIDDEN_LARGE_SCREEN) {
                 chain.proceed(arrayOf<Any?>(HIDDEN_LARGE_SCREEN, false))
             } else {
                 chain.proceed()
@@ -788,6 +787,7 @@ private class PhoneActionRow(private val context: FeatureContext) {
         val metrics = OverviewMetrics(context, profile)
 
         context.xposed.hook(getBottomMargin).intercept { chain ->
+            if (!LiveLayout.overviewOnly) return@intercept chain.proceed()
             runCatching {
                 val deviceProfile = requireNotNull(profileOf.get(chain.thisObject))
                 val taskSize = taskSizeOf.get(chain.thisObject) as Rect
@@ -829,7 +829,7 @@ private class PhoneActionRow(private val context: FeatureContext) {
 
         context.xposed.hook(calculateGridSize).intercept { chain ->
             chain.proceed().also {
-                runCatching {
+                if (LiveLayout.overviewOnly) runCatching {
                     val deviceProfile = requireNotNull(chain.args.getOrNull(0))
                     val out = chain.args.getOrNull(1) as Rect
                     val below = Invoke.noArgs(claimedBelow, deviceProfile) as Int

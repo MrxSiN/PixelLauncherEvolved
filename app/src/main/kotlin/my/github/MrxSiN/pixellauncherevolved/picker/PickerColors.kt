@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.res.Configuration
 
 import java.lang.reflect.Method
-import java.lang.reflect.Proxy
 import java.util.Collections
 import java.util.WeakHashMap
 
@@ -24,17 +23,25 @@ import my.github.MrxSiN.pixellauncherevolved.core.Logger
 internal class PickerColors(
     private val context: Context,
     classLoader: ClassLoader,
-    fragment: Any,
+    /** The picker's `ColorUpdateViewModel`, or null to use the system palette. */
+    private val viewModel: Any?,
+    /** The lifecycle the colours are followed for. */
+    private val lifecycleOwner: Any,
     private val logger: Logger,
 ) {
+
+    /** For one of the picker's fragments, which holds both. */
+    constructor(context: Context, classLoader: ClassLoader, fragment: Any, logger: Logger) : this(
+        context,
+        classLoader,
+        kotlin.runCatching { field(fragment, "colorUpdateViewModel") }.getOrNull(),
+        kotlin.runCatching { fragment.javaClass.getMethod("getViewLifecycleOwner").invoke(fragment) }.getOrNull() ?: fragment,
+        logger,
+    )
 
     private val binder: Method? = runCatching {
         Class.forName(COLOR_BINDER, false, classLoader).declaredMethods.first { it.name == "bind" && it.parameterCount == 4 }
     }.getOrNull()
-    private val viewModel: Any? = runCatching { field(fragment, "colorUpdateViewModel") }.getOrNull()
-    private val lifecycleOwner: Any = runCatching {
-        fragment.javaClass.getMethod("getViewLifecycleOwner").invoke(fragment)
-    }.getOrNull() ?: fragment
 
     private class Tone(var color: Int? = null) {
         val painters: MutableMap<Any, (Int) -> Unit> = Collections.synchronizedMap(WeakHashMap())
@@ -88,23 +95,19 @@ internal class PickerColors(
 
     /** A Kotlin function of [type] that runs [body]. */
     private fun function(type: Class<*>, body: (Array<Any?>) -> Unit): Any =
-        Proxy.newProxyInstance(type.classLoader, arrayOf(type)) { _, method, args ->
-            if (method.name == "invoke") body(args ?: emptyArray())
-            null
-        }
+        pickerProxy(type) { name, args -> if (name == "invoke") body(args); null }
 
     /** A Kotlin `() -> Boolean` that asks the binder to animate. */
-    private fun animate(type: Class<*>): Any =
-        Proxy.newProxyInstance(type.classLoader, arrayOf(type)) { _, method, _ -> if (method.name == "invoke") true else null }
-
-    private fun field(owner: Any, name: String): Any =
-        generateSequence(owner.javaClass as Class<*>?) { it.superclass }
-            .firstNotNullOfOrNull { type -> runCatching { type.getDeclaredField(name) }.getOrNull() }
-            ?.apply { isAccessible = true }
-            ?.get(owner)
-            ?: throw NoSuchFieldException(name)
+    private fun animate(type: Class<*>): Any = pickerProxy(type) { name, _ -> if (name == "invoke") true else null }
 
     private companion object {
+        fun field(owner: Any, name: String): Any =
+            generateSequence(owner.javaClass as Class<*>?) { it.superclass }
+                .firstNotNullOfOrNull { type -> runCatching { type.getDeclaredField(name) }.getOrNull() }
+                ?.apply { isAccessible = true }
+                ?.get(owner)
+                ?: throw NoSuchFieldException(name)
+
         const val COLOR_BINDER = "com.android.wallpaper.picker.customization.ui.binder.ColorUpdateBinder"
     }
 }

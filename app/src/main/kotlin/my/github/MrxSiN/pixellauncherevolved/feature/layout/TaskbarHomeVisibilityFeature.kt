@@ -75,9 +75,6 @@ class TaskbarHomeVisibilityFeature : LauncherFeature {
 
     override val id: String = "taskbar_home_visibility"
 
-    /** The hooks are placed once, and only where a taskbar exists at all. */
-    override val isLive: Boolean = false
-
     override fun isEnabled(settings: SettingsSource): Boolean =
         settings[Tweaks.TABLET_MODE] || settings[Tweaks.TASKBAR_ONLY]
 
@@ -90,6 +87,7 @@ class TaskbarHomeVisibilityFeature : LauncherFeature {
             return
         }
 
+        LiveLayout.install(context)
         StaleVisibilityReport(context, taskbar).install()
         LauncherLifecycle(context, taskbar, launcher, TaskbarThread.handler(context)).install()
     }
@@ -304,7 +302,8 @@ private class StaleVisibilityReport(
         }
 
         context.xposed.hook(taskbar.visibilityChanged).intercept { chain ->
-            val stale = chain.args.getOrNull(0) == false &&
+            val stale = LiveLayout.taskbar &&
+                chain.args.getOrNull(0) == false &&
                 justBuilt() &&
                 taskbar.launcherIsResumed(chain.thisObject)
 
@@ -376,6 +375,7 @@ private class LauncherLifecycle(
     }
 
     private fun state(repair: Runnable) {
+        if (!LiveLayout.taskbar) return
         handler.removeCallbacks(repair)
 
         // On the next message, because the taskbar starts drawing itself out of

@@ -334,3 +334,97 @@ entries 1–6 together as one candidate, not one change at a time.
   `PERFORMANCE.md`); without it, the compile (1,014 ms for 24,169 components) came first.
 - **Cost:** one compile per pack per version, off every launcher thread; about 100 to 500 KB of
   index per pack on disk.
+
+## 18. Grid & size values at parse time, not after layout — ACCEPTED (design)
+
+- **Hypothesis:** writing grid, icon and gap values into what the launcher parses (grid option,
+  responsive specs, the profile's grid spec) costs nothing per frame, whereas resizing views after
+  layout would add work to every bind and leave hit targets, drag outlines and dots mismatched.
+- **Path:** `feature/grid/GridFeature.kt`.
+- **Mechanism:** cold hooks only; at defaults each reads one preference and returns.
+- **Measurement:** none on frame paths (nothing added there); migration 40 ms, single sample
+  (`PERFORMANCE.md`).
+
+## 19. Preview drawn once, after its model has the new grid — ACCEPTED (bug fix, latency)
+
+- **Hypothesis:** a Custom column or row change drew every preview twice. The preview profile's
+  change listener rebuilt the renderer at once, and a new renderer first binds the layout its model
+  still holds. With the old grid's cells that showed missing icons, a missing search bar and items
+  that jumped from wrong cells to their final ones.
+- **Path:** `feature/grid/GridPickerBridge.kt` (`Renderers.redraw`).
+- **Mechanism:** the renderer's IDP listener is removed for `onConfigChanged`. The current renderer
+  is unbound, so the reload cannot rebind it. `recreatePreviewRenderer` then runs once, when
+  `LauncherModel.mLoadCompleteFuture` completes, with a 2 s fallback. A change that does not reload
+  the model (spacing only) is drawn at once, as before.
+- **Measurement:** 80 fps screen recordings, n = 6 changes. Before: a stale frame, then the final
+  frame 340 to 560 ms later. After: one swap to the final layout. The smartspace and search bar
+  still bind 1 to 2 frames after the icons, which is stock behaviour.
+
+## 20. No launcher rebuild for counts of a grid it is not on — ACCEPTED (CPU, UI thread)
+
+- **Hypothesis:** each Columns or Rows release ran `onConfigChanged` on the launcher's own profile
+  even while the launcher was on a Google grid. That meant `reapplyUi`, a taskbar recreate and a
+  model check on the main thread, all for a value only previews read.
+- **Path:** `feature/grid/GridFeature.kt` (`onSharedPreferenceChanged`, `Grid.custom`).
+- **Measurement:** logcat per release, before: launcher `initGrid(medium)` + taskbar recreate.
+  After: preview `initGrid` only. Icon size, spacing and All apps columns still rebuild, because
+  every grid reads them.
+
+## 21. Custom grid parsed under the launcher's own grid — ACCEPTED (bug fix)
+
+- **Hypothesis:** for the unknown name `ple_custom` the launcher picks the grid closest to the one
+  shown before. In a preview that is the last tile previewed. Custom then inherited that grid's
+  specs (after Large: Large's icons on a 4 × 6 grid, a zoomed and cropped preview), and System
+  counts resolved to that grid's size (Custom showed 3 × 3).
+- **Path:** `feature/grid/GridFeature.kt` (parse hook), `feature/grid/Grid.kt` (`stockName`).
+- **Mechanism:** the parse runs under the name of the last Google grid the launcher read itself.
+  System resolves against that grid's counts.
+  Started on Custom (no Google grid read yet), it falls back to the launcher's pick, as before.
+- **Result:** Large then Custom (4 × 6) previews at the right scale, verified on device.
+
+## 22. Per-frame Custom tile lookup without allocation — ACCEPTED (allocation)
+
+- **Path:** `picker/GridPicker.kt` (`custom`, `findText`), in Wallpaper & style's pre-draw listener.
+- **Mechanism:** caches the Custom tile and checks its parent and text again each frame. The
+  `(0 until n).any {}` walk, an `IntRange` and iterator per view per frame, is now an index loop.
+
+## 23. Previews skipping migrations into the live database — REJECTED (data loss)
+
+- **Hypothesis:** returning from `migrateGrid` without proceeding would keep previews from writing
+  into the launcher's live database.
+- **Result:** `attemptMigrateDb` empties the destination before it calls `migrateGrid`. The skip left
+  `launcher_4_by_6.db` empty, the launcher loaded default favorites and released 4 widget IDs. The
+  owner's layout was restored from a preview copy; the widgets must be re-added. Reverted;
+  superseded by 24.
+
+## 24. Previews in a database sandbox, migrated from the live layout — ACCEPTED (bug fix, safety)
+
+- **Hypothesis:** previews opened the launcher's real database files. Each migrated into the
+  previewed grid's file, the live one included, starting from whichever grid was previewed before,
+  and with the stock memory rule. A preview could therefore differ from Apply: 6 × 6 showed 2 of
+  8 icons. It could also rewrite remembered layouts, or the live one.
+- **Path:** `feature/grid/PreviewSandbox.kt`, `feature/grid/GridFeature.kt` (migration hook).
+- **Mechanism:** sets the launcher's own `PreviewContext.mDbDir`, which stock uses only for
+  layout-file previews, to `cache/ple_previews/<preview>` on first `getDatabasePath`. Each database
+  is copied in on first use with `VACUUM INTO`, a consistent snapshot even while the launcher
+  writes. A preview `migrateGrid` gets `DeviceGridState(appContext)` as its source state and a
+  read-only fresh snapshot of the live database (`ple_preview_source.db`) as its source database.
+  The page-keeping memory rule now applies to previews too. `cleanUpObjects` deletes the folder
+  when the preview ends; whatever is left over is deleted at install.
+- **Result:** md5 of all 23 real `launcher*.db` files is identical before and after 6 preview
+  migrations. Every preview migration logs `src = ple_preview_source.db (4,6)`. 6 × 6 shows all
+  8 page-0 items. The folder is gone after W&S closes.
+- **Cost:** one ~0.5 MB snapshot per database a preview opens, and one per preview migration
+  (a few ms each, on the model thread of the preview, never the launcher's).
+
+## 25. Custom tile redrawn as its counts change — ACCEPTED (bug fix)
+
+- **Hypothesis:** the Custom tile's grid icon kept the old size until Wallpaper & style restarted.
+  `DefaultShapeGridManager.gridOptions` re-reads `list_options` only from a content observer on
+  `default_grid`, and the module notified `list_options`, which nothing observes.
+- **Path:** `feature/grid/GridPickerBridge.kt` (`put`), `picker/GridPicker.kt` (`reveal`).
+- **Mechanism:** notify `content://…grid_control/default_grid`. The picker then lists its tiles
+  again and its list starts over from the first tile. For 1.5 s after a pick, the Layout panel's
+  pre-draw scrolls the Custom tile back into view; outside that window it costs one field read per frame.
+- **Result:** on device, Columns 4 → 5 and Rows 6 → 5 redraw the tile at once (5 × 6, 5 × 5) with
+  Custom fully in view, one preview `initGrid` per change, real databases unchanged (md5).

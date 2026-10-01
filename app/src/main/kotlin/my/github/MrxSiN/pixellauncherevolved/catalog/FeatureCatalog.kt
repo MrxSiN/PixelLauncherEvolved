@@ -50,6 +50,17 @@ object FeatureCatalog {
         titleRes = R.string.feature_home_search_opens_drawer_title,
         summaryRes = R.string.feature_home_search_opens_drawer_summary,
     )
+    val SHOW_DOCK = CatalogEntry(
+        setting = Settings.DOCK_HIDDEN,
+        titleRes = R.string.feature_dock_show_title,
+        summaryRes = R.string.feature_dock_show_summary,
+        isInverted = true,
+    )
+    val DOCK_MOVE_TO_HOME = CatalogEntry(
+        setting = Settings.DOCK_MOVE_TO_HOME,
+        titleRes = R.string.feature_dock_move_title,
+        summaryRes = R.string.feature_dock_move_summary,
+    )
     val WEB_SEARCH = CatalogEntry(
         setting = Settings.APP_DRAWER_SEARCH_HIDE_WEB,
         titleRes = R.string.feature_app_drawer_search_web_title,
@@ -108,6 +119,8 @@ object FeatureCatalog {
         DOUBLE_TAP_TO_SLEEP,
         STATUS_BAR_DOUBLE_TAP_TO_SLEEP,
         SEARCH_OPENS_DRAWER,
+        SHOW_DOCK,
+        DOCK_MOVE_TO_HOME,
         WEB_SEARCH,
         PLAY_STORE,
         SEARCH_IN_APPS,

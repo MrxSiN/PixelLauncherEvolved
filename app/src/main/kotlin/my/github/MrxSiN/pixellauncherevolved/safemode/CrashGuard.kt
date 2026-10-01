@@ -1,6 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.safemode
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
+import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsStore
 
@@ -45,14 +46,24 @@ class CrashGuard(
         store.clearCrashes()
 
         val enabled = LayoutMode.entries.filter { mode -> mode.setting?.let(settings::get) == true }
-        if (enabled.isEmpty()) {
+        // Grid & size changes how every profile is measured too; it goes back to
+        // the launcher's own, remembered as key=value so it can be put back.
+        val grid = Settings.GRID.filter { settings[it] != it.default }
+        if (enabled.isEmpty() && grid.isEmpty()) {
             logger.warn("Pixel Launcher is crash looping with no experimental tweak on; nothing to switch off")
             return emptyList()
         }
 
         enabled.forEach { mode -> mode.setting?.let { settings.put(it, false) } }
-        store.setDisabled(enabled.mapNotNull { it.setting?.key })
-        logger.warn("Safe Mode: Pixel Launcher crashed ${CrashLoop.CRASHES} times within a minute; switched off $enabled")
+        val gridEntries = grid.map { "${it.key}$GRID_VALUE${settings[it]}" }
+        grid.forEach { settings.put(it, it.default) }
+        store.setDisabled(enabled.mapNotNull { it.setting?.key } + gridEntries)
+        logger.warn("Safe Mode: Pixel Launcher crashed ${CrashLoop.CRASHES} times within a minute; switched off $enabled $gridEntries")
         return enabled
+    }
+
+    companion object {
+        /** Separates a Grid & size key from the value Safe Mode put back to default, in [SafeModeStore.disabled]. */
+        const val GRID_VALUE = "="
     }
 }

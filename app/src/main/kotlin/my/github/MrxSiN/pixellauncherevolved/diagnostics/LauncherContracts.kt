@@ -3,12 +3,18 @@ package my.github.MrxSiN.pixellauncherevolved.diagnostics
 import androidx.annotation.StringRes
 
 import my.github.MrxSiN.pixellauncherevolved.R
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.APP_DRAWER_COLUMNS
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.APP_DRAWER_SEARCH
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.BLUR_WALLPAPER
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.BUBBLE_LAUNCHER
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.DOCK
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.DOCK_ICONS
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.DOUBLE_TAP_TO_SLEEP
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.FOCUS_HOME_SCREENS
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.FULL_TABLET_LAYOUT
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.GRID
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.GRID_ICON_SIZE
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.GRID_SPACING
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.HIDDEN_APPS
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.HOME_SEARCH_BAR
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.ICON_PACK
@@ -26,6 +32,12 @@ enum class CompatibilityFeature(@param:StringRes val titleRes: Int) {
     ORGANIZE_PAGES(R.string.pages_reorganize_title),
     DOUBLE_TAP_TO_SLEEP(R.string.feature_home_double_tap_to_sleep_title),
     HOME_SEARCH_BAR(R.string.settings_page_search_bar),
+    DOCK(R.string.feature_dock_show_title),
+    DOCK_ICONS(R.string.feature_dock_icons_title),
+    GRID(R.string.compatibility_grid),
+    GRID_ICON_SIZE(R.string.feature_grid_icon_size_title),
+    GRID_SPACING(R.string.compatibility_grid_spacing),
+    APP_DRAWER_COLUMNS(R.string.compatibility_app_drawer_columns),
     HIDDEN_APPS(R.string.feature_hidden_apps_title),
     ICON_PACK(R.string.settings_page_icons),
     APP_DRAWER_SEARCH(R.string.settings_group_search_results),
@@ -70,6 +82,18 @@ object LauncherContracts {
     private const val ACTIONS_VIEW = "com.android.quickstep.views.OverviewActionsView"
     private const val SYSTEM_UI_PROXY = "com.android.quickstep.SystemUiProxy"
     private const val DEVICE_PROFILE = "com.android.launcher3.DeviceProfile"
+    private const val HOTSEAT = "com.android.launcher3.Hotseat"
+    private const val CELL_LAYOUT = "com.android.launcher3.CellLayout"
+    private const val DISPLAY_OPTION_SPEC = "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec"
+    private const val DISPLAY_OPTION = "com.android.launcher3.deviceprofile.parser.DisplayOption"
+    private const val GRID_OPTION = "com.android.launcher3.deviceprofile.parser.GridOption"
+    private const val MIGRATION_OPTION = "com.android.launcher3.model.GridMigrationOption"
+    private const val GRID_STATE = "com.android.launcher3.model.DeviceGridState"
+    private const val WORKSPACE_PROFILE = "com.android.launcher3.deviceprofile.WorkspaceProfile"
+    private const val CELL_SPECS_PROVIDER = "com.android.launcher3.responsive.ResponsiveCellSpecsProvider"
+    private const val SPECS_PROVIDER = "com.android.launcher3.responsive.ResponsiveSpecsProvider"
+    private const val SPEC_GROUP = "com.android.launcher3.responsive.ResponsiveSpecGroup"
+    private const val SIZE_SPEC = "com.android.launcher3.responsive.SizeSpec"
     private const val DEVICE_PROPERTIES = "com.android.launcher3.deviceprofile.DeviceProperties"
     private const val CONTAINER_INTERFACE = "com.android.quickstep.BaseContainerInterface"
     private const val TASKBAR_VIEW = "com.android.launcher3.taskbar.TaskbarView"
@@ -166,6 +190,150 @@ object LauncherContracts {
             ICON_PACK,
         ),
 
+        // Dock: the hidden dock's row given to the Home screen, without a grid migration.
+        contract("com.android.launcher3.InvariantDeviceProfile", Member.Field("numRows"), DOCK),
+        contract("com.android.launcher3.InvariantDeviceProfile", Member.Field("numColumns"), DOCK),
+        contract("com.android.launcher3.InvariantDeviceProfile", method("initGrid", "java.lang.String"), DOCK),
+        contract("com.android.launcher3.model.DeviceGridState", Member.Field("mGridSizeString"), DOCK),
+        contract("com.android.launcher3.InvariantDeviceProfile", Member.Method("newDPBuilder"), DOCK),
+        contract(HOTSEAT, method("resetLayout", BOOLEAN), DOCK),
+        contract(DEVICE_PROPERTIES, method("isVerticalBarLayout"), DOCK),
+        contract("com.android.launcher3.util.MultiValueAlpha", method("apply", FLOAT), DOCK),
+        contract("com.android.launcher3.util.MultiPropertyFactory", Member.Field("mTarget"), DOCK),
+        contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("isQsbInline"), DOCK),
+        optional("com.android.launcher3.InvariantDeviceProfile", Member.Field("isFixedLandscape"), DOCK),
+        contract("com.android.launcher3.deviceprofile.DeviceProfileBuilder", method("build"), DOCK),
+        contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("barSizePx"), DOCK),
+        contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("cellHeightPx"), DOCK),
+        contract("com.android.launcher3.deviceprofile.WorkspaceProfile", Member.Field("workspacePadding"), DOCK),
+        optional("com.android.launcher3.deviceprofile.WorkspaceProfile", Member.Field("cellLayoutHeightSpecification"), DOCK),
+        contract("com.android.launcher3.LauncherModel", Member.Field("mBgDataModel"), DOCK),
+        contract("com.android.launcher3.model.BgDataModel", Member.Field("itemsIdMap"), DOCK),
+        contract(ITEM_INFO, Member.Field("cellY"), DOCK),
+        contract(ITEM_INFO, Member.Field("spanX"), DOCK),
+        contract(ITEM_INFO, Member.Field("spanY"), DOCK),
+        optional("com.android.launcher3.InvariantDeviceProfile", method("onConfigChanged"), DOCK),
+        contract(HOTSEAT, method("setInsets", "android.graphics.Rect"), DOCK),
+        contract(CELL_LAYOUT, Member.Field("mShortcutsAndWidgets"), DOCK),
+        contract(CELL_LAYOUT, Member.Field("mActivity"), DOCK),
+        contract("com.android.launcher3.deviceprofile.TaskbarConfiguration", Member.Field("isTaskbarPresent"), DOCK),
+        contract(DISPLAY_OPTION_SPEC, method("mapTypeIndex", BOOLEAN, BOOLEAN), DOCK_ICONS),
+        contract(DISPLAY_OPTION_SPEC, Member.Field("numShownHotseatIcons"), DOCK_ICONS),
+        // The dock's database capacity, raised for a count above the grid's.
+        contract("com.android.launcher3.InvariantDeviceProfile", method("initGrid", "java.lang.String"), DOCK_ICONS),
+        // Applies a new count live, as a grid change from Wallpaper & style is.
+        optional("com.android.launcher3.InvariantDeviceProfile", method("onConfigChanged"), DOCK_ICONS),
+        contract("com.android.launcher3.InvariantDeviceProfile", Member.Field("numDatabaseHotseatIcons"), DOCK_ICONS),
+        contract(DEVICE_PROFILE, Member.Field("inv"), DOCK_ICONS),
+        // What fits across the dock.
+        contract(DEVICE_PROFILE, Member.Field("hotseatProfile"), DOCK_ICONS),
+        contract(DEVICE_PROFILE, Member.Field("workspaceProfile"), DOCK_ICONS),
+        contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("widthPx"), DOCK_ICONS),
+        contract("com.android.launcher3.deviceprofile.WorkspaceProfile", Member.Field("iconSizePx"), DOCK_ICONS),
+        // Moving the apps a smaller count leaves out onto the Home screen, so the launcher never deletes them.
+        contract(ITEM_INFO, Member.Field("container"), DOCK_ICONS),
+        contract(ITEM_INFO, Member.Field("screenId"), DOCK_ICONS),
+        optional(ITEM_INFO, Member.Field("title"), DOCK_ICONS),
+        contract(HOTSEAT, Member.Field("mWorkspace"), DOCK_ICONS),
+        contract(WORKSPACE, method("getScreenIdForPageIndex", INT), DOCK_ICONS),
+        contract(CELL_LAYOUT, method("isOccupied", INT, INT), DOCK_ICONS),
+        contract(CELL_LAYOUT, Member.Field("mCountX"), DOCK_ICONS),
+        contract(CELL_LAYOUT, Member.Field("mCountY"), DOCK_ICONS),
+        contract(LAUNCHER, method("getModelWriter"), DOCK_ICONS),
+        contract("com.android.launcher3.model.ModelWriter", Member.Method("modifyItemInDatabase"), DOCK_ICONS),
+        contract(LAUNCHER, Member.Field("mModel"), DOCK_ICONS),
+        optional(LAUNCHER_MODEL, method("forceReload", "java.lang.String"), DOCK_ICONS),
+        // More icons than fit at the Home screen's icon size: whole cells, smaller icons.
+        contract("com.android.launcher3.deviceprofile.DeviceProfileBuilder", method("build"), DOCK_ICONS),
+        contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("borderSpace"), DOCK_ICONS),
+        contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("numShownIcons"), DOCK_ICONS),
+        contract(CELL_LAYOUT, Member.Method("addViewToCellLayout"), DOCK_ICONS),
+        contract("com.android.launcher3.BubbleTextView", Member.Field("mIconSize"), DOCK_ICONS),
+        contract("com.android.launcher3.BubbleTextView", Member.Field("mIcon"), DOCK_ICONS),
+        contract("com.android.launcher3.BubbleTextView", Member.Method("setIcon"), DOCK_ICONS),
+        LauncherContract(Signature("com.android.launcher3.folder.FolderIcon"), setOf(DOCK_ICONS), isRequired = false),
+        optional(DEVICE_PROFILE, Member.Field("folderProfile"), DOCK_ICONS),
+        optional("com.android.launcher3.deviceprofile.FolderProfile", Member.Field("folderIconOffsetYPx"), DOCK_ICONS),
+        optional("com.android.launcher3.views.PredictedAppIcon", Member.Field("mNormalizedIconSize"), DOCK_ICONS),
+        optional("com.android.launcher3.views.PredictedAppIcon", method("updateRingPath"), DOCK_ICONS),
+
+        // Grid & size: columns and rows, through the launcher's own grid option and migration
+        contract(DISPLAY_OPTION, Member.Method("parseWeightedPredefinedDisplayOption"), GRID, GRID_ICON_SIZE),
+        contract(DISPLAY_OPTION, Member.Field("grid"), GRID),
+        contract(GRID_OPTION, Member.Field("numColumns"), GRID),
+        contract(GRID_OPTION, Member.Field("numRows"), GRID),
+        contract(GRID_OPTION, Member.Field("numSearchContainerColumns"), GRID),
+        contract(GRID_OPTION, Member.Field("dbFile"), GRID),
+        contract(GRID_OPTION, Member.Field("name"), GRID),
+        // The Custom tile in Wallpaper & style → Layout, and the icon Size tab, over grid_control
+        contract("com.android.launcher3.util.ContentProviderProxy", Member.Method("query"), GRID),
+        contract("com.android.launcher3.dagger.LauncherBaseAppComponent", method("getGridCustomizationsProxy"), GRID),
+        contract("com.android.launcher3.util.ContentProviderProxy", method("call", "java.lang.String", "java.lang.String", "android.os.Bundle"), GRID, GRID_ICON_SIZE),
+        contract("com.android.launcher3.InvariantDeviceProfile", method("setCurrentGrid", "java.lang.String"), GRID),
+        optional("com.android.launcher3.preview.PreviewSurfaceRenderer", method("recreatePreviewRenderer"), GRID, GRID_ICON_SIZE),
+        optional("com.android.launcher3.preview.PreviewSurfaceRenderer", Member.Field("mPreviewContext"), GRID, GRID_ICON_SIZE),
+        contract(GRID_OPTION, Member.Field("isFixedLandscape"), GRID),
+        optional(GRID_OPTION, Member.Field("mIsDualGrid"), GRID),
+        contract(GRID_OPTION, Member.Field("displayOptionSpec"), GRID),
+        contract("com.android.launcher3.display.LauncherDisplayInfo", method("getDeviceType"), GRID),
+        contract("$MIGRATION_OPTION\$Companion", method("from", INT, INT), GRID),
+        contract(MIGRATION_OPTION, Member.Method("canMigrate"), GRID),
+        contract("$MIGRATION_OPTION\$FourByFour", Member.Field("INSTANCE"), GRID),
+        contract("com.android.launcher3.model.GridSizeMigrationLogic", Member.Method("migrateGrid"), GRID),
+        contract("com.android.launcher3.model.GridSizeMigrationLogic", Member.Field("context"), GRID),
+        contract(GRID_STATE, Member.Field("mDbFile"), GRID),
+        contract(GRID_STATE, method("writeToPrefs", CONTEXT), GRID),
+        contract("com.android.launcher3.InvariantDeviceProfile", Member.Field("supportedProfiles"), GRID),
+        contract("com.android.launcher3.InvariantDeviceProfile", method("onConfigChanged"), GRID, GRID_ICON_SIZE, GRID_SPACING, APP_DRAWER_COLUMNS),
+        contract(DEVICE_PROPERTIES, Member.Field("isLandscape"), GRID),
+        contract(WORKSPACE_PROFILE, Member.Field("cellLayoutWidthSpecification"), GRID),
+        contract(WORKSPACE_PROFILE, Member.Field("cellLayoutHeightSpecification"), GRID),
+        contract(WORKSPACE_PROFILE, Member.Field("cellLayoutPaddingPx"), GRID),
+        contract(WORKSPACE_PROFILE, Member.Field("cellLayoutBorderSpacePx"), GRID),
+        contract(WORKSPACE_PROFILE, Member.Field("iconTextSizePx"), GRID),
+        contract(APP_STATE, Member.Field("model"), GRID),
+        contract(ITEM_INFO, Member.Field("minSpanX"), GRID),
+        contract(ITEM_INFO, Member.Field("minSpanY"), GRID),
+        contract("com.android.launcher3.model.GridSizeMigrationLogic", Member.Method("solveGridPlacement"), GRID),
+        contract("com.android.launcher3.model.GridSizeMigrationLogic", Member.Field("extraItemsProvider"), GRID),
+        contract("com.android.launcher3.model.GridSizeMigrationLogic", Member.Method("getItemsToBeAdded"), GRID),
+        optional("com.android.launcher3.InvariantDeviceProfile", Member.Field("mPrefs"), GRID),
+        contract("com.android.launcher3.model.GridSizeMigrationLogic", Member.Method("getItemsToBeRemoved"), GRID),
+        contract("com.android.launcher3.model.DbEntry", Member.Field("mFolderItems"), GRID),
+        contract(ITEM_INFO, Member.Field("id"), GRID),
+        contract(ITEM_INFO, Member.Field("itemType"), GRID),
+        contract(ITEM_INFO, Member.Field("screenId"), GRID),
+        contract(ITEM_INFO, Member.Field("container"), GRID),
+        contract(ITEM_INFO, Member.Field("cellX"), GRID),
+        contract(ITEM_INFO, Member.Field("cellY"), GRID),
+        contract(ITEM_INFO, Member.Field("spanX"), GRID),
+        contract(ITEM_INFO, Member.Field("spanY"), GRID),
+        // Icon size
+        contract("$CELL_SPECS_PROVIDER\$Companion", Member.Method("create"), GRID_ICON_SIZE),
+        contract(CELL_SPECS_PROVIDER, Member.Field("groupOfSpecs"), GRID_ICON_SIZE),
+        contract(SPEC_GROUP, Member.Field("heightSpecs"), GRID_ICON_SIZE, GRID_SPACING),
+        contract(SPEC_GROUP, Member.Field("widthSpecs"), GRID_ICON_SIZE, GRID_SPACING),
+        contract("com.android.launcher3.responsive.CellSpec", Member.Field("iconSize"), GRID_ICON_SIZE),
+        contract(DISPLAY_OPTION, Member.Field("iconSizes"), GRID_ICON_SIZE),
+        contract(SIZE_SPEC, Member.Field("fixedSize"), GRID_ICON_SIZE, GRID_SPACING),
+        contract(SIZE_SPEC, Member.Field("ofAvailableSpace"), GRID_ICON_SIZE, GRID_SPACING),
+        contract(SIZE_SPEC, Member.Field("matchWorkspace"), GRID_ICON_SIZE, GRID_SPACING),
+        contract(SIZE_SPEC, Member.Field("maxSize"), GRID_ICON_SIZE, GRID_SPACING),
+        // Spacing
+        contract("$SPECS_PROVIDER\$Companion", Member.Method("create"), GRID_SPACING),
+        contract(SPECS_PROVIDER, Member.Field("groupOfSpecs"), GRID_SPACING),
+        contract("com.android.launcher3.responsive.ResponsiveSpec", Member.Field("gutter"), GRID_SPACING),
+        contract("com.android.launcher3.responsive.ResponsiveSpec", Member.Field("startPadding"), GRID_SPACING),
+        contract("com.android.launcher3.responsive.ResponsiveSpec", Member.Field("endPadding"), GRID_SPACING),
+        // All apps columns
+        contract(DISPLAY_OPTION_SPEC, method("mapTypeIndex", BOOLEAN, BOOLEAN), APP_DRAWER_COLUMNS),
+        contract(DISPLAY_OPTION_SPEC, Member.Field("numAllAppsColumns"), APP_DRAWER_COLUMNS),
+        contract("com.android.launcher3.InvariantDeviceProfile", method("initGrid", "java.lang.String"), APP_DRAWER_COLUMNS),
+        contract("com.android.launcher3.InvariantDeviceProfile", Member.Field("numDatabaseAllAppsColumns"), APP_DRAWER_COLUMNS),
+        contract("com.android.launcher3.deviceprofile.AllAppsProfile", Member.Field("numShownAllAppsColumns"), APP_DRAWER_COLUMNS),
+        contract("com.android.launcher3.deviceprofile.AllAppsProfile", Member.Field("cellWidthPx"), APP_DRAWER_COLUMNS),
+        contract("com.android.launcher3.deviceprofile.AllAppsProfile", Member.Field("borderSpacePx"), APP_DRAWER_COLUMNS),
+
         // App drawer search results
         contract(ALL_APPS_VIEW, method("setSearchResults", "java.util.ArrayList", BOOLEAN), APP_DRAWER_SEARCH),
         contract(QUICKSTEP_LAUNCHER, method("startActivitySafely", VIEW, "android.content.Intent", ITEM_INFO), APP_DRAWER_SEARCH),
@@ -199,7 +367,7 @@ object LauncherContracts {
 
         // Overview only
         contract(RECENTS_VIEW, method("showAsGrid"), OVERVIEW_ONLY),
-        contract(DEVICE_PROFILE, Member.Field("deviceProperties"), OVERVIEW_ONLY, TASKBAR_ONLY),
+        contract(DEVICE_PROFILE, Member.Field("deviceProperties"), OVERVIEW_ONLY, TASKBAR_ONLY, DOCK),
         contract(DEVICE_PROFILE, Member.Field("overviewProfile"), OVERVIEW_ONLY),
         contract(DEVICE_PROPERTIES, Member.Field("isLargeScreen"), OVERVIEW_ONLY),
         contract(CONTAINER_INTERFACE, Member.Method("calculateGridSize"), OVERVIEW_ONLY),
@@ -213,7 +381,7 @@ object LauncherContracts {
 
         // Taskbar only and full tablet layout
         contract("$DEVICE_PROPERTIES\$Factory", Member.Method("createDeviceProperties"), TASKBAR_ONLY),
-        contract(DEVICE_PROPERTIES, Member.Field("taskbarConfiguration"), TASKBAR_ONLY),
+        contract(DEVICE_PROPERTIES, Member.Field("taskbarConfiguration"), TASKBAR_ONLY, DOCK),
         contract(DEVICE_PROFILE, Member.Field("hotseatProfile"), TASKBAR_ONLY),
         contract(TASKBAR_VIEW, method("calculateMaxNumIcons"), TASKBAR_ONLY),
         contract("com.android.launcher3.taskbar.LauncherTaskbarUIController", Member.Method("onLauncherVisibilityChanged"), TASKBAR),

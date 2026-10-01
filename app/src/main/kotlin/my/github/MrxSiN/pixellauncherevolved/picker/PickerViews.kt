@@ -14,6 +14,7 @@ import android.widget.RadioButton
 import android.widget.TextView
 
 import java.lang.reflect.Field
+import java.lang.reflect.Proxy
 
 /**
  * Wallpaper & style's own views, inflated from its own layouts, for what this
@@ -187,3 +188,17 @@ internal class PickerViews(private val colors: PickerColors) {
         val EMPHASIZED_DECELERATE = PathInterpolator(0.05f, 0.7f, 0.1f, 1f)
     }
 }
+
+/**
+ * An implementation of one of the picker's own interfaces, [type], that
+ * hands every call but `equals`, `hashCode` and `toString` to [body].
+ */
+internal fun pickerProxy(type: Class<*>, body: (name: String, args: Array<Any?>) -> Any?): Any =
+    Proxy.newProxyInstance(type.classLoader, arrayOf(type)) { proxy, method, args ->
+        when (method.name) {
+            "equals" -> proxy === args?.getOrNull(0)
+            "hashCode" -> System.identityHashCode(proxy)
+            "toString" -> type.name
+            else -> body(method.name, args ?: emptyArray())
+        }
+    }

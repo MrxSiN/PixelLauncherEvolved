@@ -37,6 +37,19 @@ internal object SettingsPages {
         groups = listOf(SettingsGroup(null, listOf(ToggleRow(FeatureCatalog.SEARCH_OPENS_DRAWER, CompatibilityFeature.HOME_SEARCH_BAR)))),
     )
 
+    private val DOCK = SettingsPage(
+        key = "dock",
+        titleRes = R.string.settings_page_dock,
+        summaryRes = R.string.settings_page_dock_summary,
+        groups = listOf(
+            SettingsGroup(
+                null,
+                listOf(ShowDockRow, DockIconsRow, ToggleRow(FeatureCatalog.DOCK_MOVE_TO_HOME, CompatibilityFeature.DOCK_ICONS)),
+            ),
+            SettingsGroup(null, listOf(DockRemovalNoteRow)),
+        ),
+    )
+
     private val DIAGNOSTICS = SettingsPage(
         key = "diagnostics",
         titleRes = R.string.settings_page_diagnostics,
@@ -53,6 +66,7 @@ internal object SettingsPages {
                 R.string.settings_group_appearance,
                 listOf(ToggleRow(FeatureCatalog.HOME_BLUR_WALLPAPER, CompatibilityFeature.BLUR_WALLPAPER), BlurStrengthRow),
             ),
+            SettingsGroup(R.string.settings_group_dock, listOf(PageLinkRow(DOCK), PageLinkRow(SEARCH_BAR))),
             SettingsGroup(
                 R.string.settings_group_pages,
                 listOf(OrganizePagesRow, ToggleRow(FeatureCatalog.FOCUS_HOME_SCREENS, CompatibilityFeature.FOCUS_HOME_SCREENS), FocusPagesRow),
@@ -65,7 +79,6 @@ internal object SettingsPages {
                     ToggleRow(FeatureCatalog.STATUS_BAR_DOUBLE_TAP_TO_SLEEP),
                 ),
             ),
-            SettingsGroup(R.string.settings_group_search, listOf(PageLinkRow(SEARCH_BAR))),
         ),
     )
 
@@ -74,7 +87,7 @@ internal object SettingsPages {
         titleRes = R.string.settings_page_app_drawer,
         summaryRes = R.string.settings_page_app_drawer_summary,
         groups = listOf(
-            SettingsGroup(R.string.settings_group_apps, listOf(HiddenAppsRow)),
+            SettingsGroup(R.string.settings_group_apps, listOf(GridRows.appsColumns, HiddenAppsRow)),
             SettingsGroup(
                 R.string.settings_group_search_results,
                 listOf(
@@ -121,14 +134,15 @@ internal object SettingsPages {
         summaryRes = R.string.settings_page_advanced_summary,
         groups = listOf(
             SettingsGroup(R.string.settings_group_backup, listOf(BackupRows)),
-            SettingsGroup(R.string.settings_group_launcher, listOf(RestartRow, PageLinkRow(DIAGNOSTICS))),
+            SettingsGroup(R.string.settings_group_launcher, listOf(RestartRow)),
+            SettingsGroup(R.string.settings_group_diagnostics, listOf(PageLinkRow(DIAGNOSTICS))),
         ),
     )
 
     /** The pages listed under this module's heading in Home settings. */
     val topLevel: List<SettingsPage> = listOf(HOME_SCREEN, APP_DRAWER, OVERVIEW, LAYOUT_AND_TASKBAR, ADVANCED)
 
-    private val all: List<SettingsPage> = topLevel + SEARCH_BAR + DIAGNOSTICS
+    private val all: List<SettingsPage> = topLevel + SEARCH_BAR + DOCK + DIAGNOSTICS
 
     /** The page the launcher is opening under [rootKey], or null for one of its own. */
     fun byRootKey(rootKey: String?): SettingsPage? = all.firstOrNull { SettingsKeys.page(it) == rootKey }

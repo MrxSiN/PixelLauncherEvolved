@@ -10,7 +10,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppStore
 import my.github.MrxSiN.pixellauncherevolved.icons.FakePreferences
 import my.github.MrxSiN.pixellauncherevolved.icons.IconOverride
 import my.github.MrxSiN.pixellauncherevolved.icons.IconSourceSettings
-import my.github.MrxSiN.pixellauncherevolved.icons.SharedPreferencesIconOverrideStore
+import my.github.MrxSiN.pixellauncherevolved.icons.IconOverrideStore
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsStore
 
 import org.junit.Assert.assertEquals
@@ -25,7 +25,7 @@ class SettingsBackupTest {
     private val web = FakeWebSearchApp()
     private val preferences = FakePreferences()
     private val icons = IconSourceSettings(preferences)
-    private val overrides = SharedPreferencesIconOverrideStore(preferences)
+    private val overrides = IconOverrideStore(preferences)
     private val tweaks = TweakStores(settings, hidden, web, icons, overrides)
 
     @Test
@@ -41,6 +41,13 @@ class SettingsBackupTest {
         settings.put(Settings.HOME_BLUR_STRENGTH, 73)
         settings.put(Settings.APP_DRAWER_SEARCH_HIDE_WEB, true)
         settings.put(Settings.TASKBAR_ONLY, true)
+        settings.put(Settings.DOCK_HIDDEN, true)
+        settings.put(Settings.DOCK_ICONS, 3)
+        settings.put(Settings.GRID_COLUMNS, 5)
+        settings.put(Settings.GRID_ROWS, 7)
+        settings.put(Settings.GRID_ICON_SIZE, 115)
+        settings.put(Settings.GRID_SPACING_Y, -1)
+        settings.put(Settings.APP_DRAWER_COLUMNS, 5)
         hidden.hide(setOf("com.example.b", "com.example.a"))
         web.choose("org.mozilla.firefox")
         settings.put(Settings.ICONS_USE_PACK, true)
@@ -78,12 +85,25 @@ class SettingsBackupTest {
         assertEquals(true, snapshot.switches[Settings.APP_DRAWER_SEARCH_HIDE_WEB])
         assertEquals(Settings.OVERVIEW_BUBBLE_BUTTON.default, snapshot.switches[Settings.OVERVIEW_BUBBLE_BUTTON])
         assertEquals(20, snapshot.blurStrength)
+        assertEquals(0, snapshot.dockIcons)
         assertEquals(LayoutMode.DEFAULT, snapshot.layoutMode)
         assertEquals(null, snapshot.webSearchApp)
         // A file from before icon packs leaves icons to the system.
         assertEquals(false, snapshot.useIconPack)
         assertEquals(null, snapshot.iconPack)
         assertEquals(emptyList<IconOverride>(), snapshot.iconOverrides)
+        // A file from before Grid & size leaves the grid to the launcher.
+        assertEquals(Settings.GRID.associateWith { it.default }, snapshot.grid)
+    }
+
+    @Test
+    fun `grid values out of range are held to the setting's range`() {
+        val snapshot = SettingsBackupFormat.read("""{"version": 1, "grid": {"columns": 99, "spacingX": -7, "iconSize": 115}}""")
+
+        assertEquals(Settings.GRID_COLUMNS.range.last, snapshot.grid[Settings.GRID_COLUMNS])
+        assertEquals(-1, snapshot.grid[Settings.GRID_SPACING_X])
+        assertEquals(115, snapshot.grid[Settings.GRID_ICON_SIZE])
+        assertEquals(0, snapshot.grid[Settings.GRID_ROWS])
     }
 
     @Test
@@ -129,6 +149,8 @@ class SettingsBackupTest {
         settings.put(Settings.ICONS_USE_PACK, true)
         icons.choose("com.example.pack")
         overrides.replace(listOf(IconOverride("com.example.a", "com.example.a.Main", 0, null)))
+        settings.put(Settings.GRID_ROWS, 7)
+        settings.put(Settings.GRID_ICON_SIZE, 85)
 
         tweaks.reset()
 

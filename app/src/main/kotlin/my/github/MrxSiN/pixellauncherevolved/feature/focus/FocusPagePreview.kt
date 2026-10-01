@@ -31,10 +31,6 @@ import kotlin.math.roundToInt
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
 
-internal interface FocusPagePreviewSource {
-    fun pages(screenIds: List<Int>): Map<Int, FocusPagePreview>
-}
-
 internal data class FocusPagePreview(
     val columns: Int,
     val rows: Int,
@@ -741,11 +737,11 @@ private object FocusPageSnapshotter {
  * @param context the screen the previews are shown on, whose configuration a
  * widget preview is drawn in.
  */
-internal class LauncherPagePreviewSource(context: Context) : FocusPagePreviewSource {
+internal class FocusPagePreviewSource(context: Context) {
 
     private val widgets = WidgetPreviewRenderer(context)
 
-    override fun pages(screenIds: List<Int>): Map<Int, FocusPagePreview> {
+    fun pages(screenIds: List<Int>): Map<Int, FocusPagePreview> {
         val records = FocusPreviewModel.records
         val children = records.groupBy(PreviewRecord::container)
         val desktop = records.filter { it.container == CONTAINER_DESKTOP }

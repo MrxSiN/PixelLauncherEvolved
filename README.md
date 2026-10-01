@@ -13,7 +13,7 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 [![Release](https://img.shields.io/github/v/release/MrxSiN/PixelLauncherEvolved?include_prereleases&color=5B3DF5&label=release&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Downloads](https://img.shields.io/github/downloads/MrxSiN/PixelLauncherEvolved/total?color=3DDC84&logo=android&logoColor=fff&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Android](https://img.shields.io/badge/Android-17%20QPR1-3DDC84?logo=android&logoColor=fff&style=for-the-badge)](https://developer.android.com)
-[![Compatibility](https://img.shields.io/badge/hooks-57%2F57%20resolved-3DDC84?style=for-the-badge)](#compatibility)
+[![Compatibility](https://img.shields.io/badge/hooks-200%2F200%20resolved-3DDC84?style=for-the-badge)](#compatibility)
 [![Licence](https://img.shields.io/github/license/MrxSiN/PixelLauncherEvolved?color=5B3DF5&style=for-the-badge)](LICENSE)
 
 </div>
@@ -23,15 +23,15 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 > [!NOTE]
 > **Fully compatible with the latest Android release — Android 17 QPR1 (September 2026),
 > build `CP3A.260905.009`, Pixel Launcher `907`.** Every launcher member the module stands on
-> resolves (57 of 57, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
+> resolves (200 of 200, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
 > Vector v2.2. The module checks this itself on every launcher start: see
 > [Compatibility](#compatibility).
 
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/home-settings.png" width="250"><br><sub>A section of the launcher's own Home settings</sub></td>
-<td align="center"><img src="docs/screenshots/home-screen.png" width="250"><br><sub>Pages drawn the way Android 17 Settings draws them</sub></td>
-<td align="center"><img src="docs/screenshots/diagnostics.png" width="250"><br><sub>Compatibility &amp; diagnostics</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/home-settings.png" width="250"><br><sub>The launcher's own Home settings, with this module's section at the end</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/home-screen.png" width="250"><br><sub>Pages drawn the way Android 17 Settings draws them</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/diagnostics.png" width="250"><br><sub>Compatibility &amp; diagnostics</sub></td>
 </tr>
 </table>
 
@@ -65,12 +65,13 @@ running launcher on the next frame.
 |---|---|---|:---:|
 | Appearance | **Blur wallpaper** | Keeps the wallpaper blurred and pushed back while the home screen is showing, with the launcher's own blur. A deeper state deepens the blur rather than stacking a second one. | — |
 | Appearance | **Blur strength** | From nothing to the deepest the launcher's own blur goes. Greyed out while Blur wallpaper is off. | — |
+| Dock | **Dock** | A page of its own; every change applies live. **Show dock** hides the dock's icons and keeps the search bar; its space becomes one more row of Home screen apps. Showing the dock again first moves anything in that row, on every page, to the rows above or a new page. The pinned apps stay pinned. Not available while a taskbar is on. **Icons in dock** is a slider from 1 icon to as many as keep a 48dp touch target each (7 on a Pixel 8 Pro 4x6 grid), applied live without a launcher restart. Past what fits at the Home screen's icon size, the dock's icons shrink to their cells. The grid's own count reads "Default". **Move to Home screen** (on by default) moves pinned apps a smaller count leaves out to the first free space on your Home screen, or a new page; off, they stay pinned but out of sight until the dock has room. Before turning off or removing the module, show the dock and set the count back to Default: without the module, Pixel Launcher deletes Home screen items in the extra row and dock apps past its own count. | — |
+| Dock | **Search bar** | A page of its own. **Search bar opens app search** makes the home search bar open the app drawer with its search box focused, instead of the Google app. The bar's own buttons keep their actions. | — |
 | Pages & layout | **Organize home screens** | Reorder and manage your Home screen pages. Every page on one screen, including pages a Mode hides, marked with that Mode. Touch and hold a page, then drag it into place; the order is saved when you leave. The first page keeps At a Glance, so it stays first. | — |
 | Pages & layout | **Modes home screens** | Gives home screen pages to one of the device's Modes — Bedtime, Driving, Sleeping, whatever you have. While that Mode is on, only its pages show; when it ends, the ordinary pages come back. | ✅ |
 | Pages & layout | **Modes pages** | Choose which pages each Mode shows, from live previews of each page. | ✅ |
 | Gestures | **Double tap to sleep** | Two taps on an empty spot turn the screen off, closing the screen around the spot you tapped. | ✅ |
 | Gestures | **Double tap status bar to sleep** | The same, from two taps on the status bar. Watched in SystemUI, so it needs no root. | ✅ |
-| Search | **Home screen search bar** | A page of its own. **Search bar opens app search** makes the home search bar open the app drawer with its search box focused, instead of the Google app. The bar's own buttons keep their actions. | — |
 
 <table>
 <tr>
@@ -93,6 +94,8 @@ running launcher on the next frame.
 
 | Where | Option | What it does |
 |---|---|---|
+| Layout | **Custom grid** | One more tile after Google's grids. Picking it shows sliders under the tiles: **Columns** and **Rows** (from 3 up to what fits this screen with a 48dp touch target and a line of label), and **Horizontal** and **Vertical spacing** (Compact, Default, Relaxed; spacing moves icons apart or together and keeps their cells). The preview redraws with every change and shows what **Apply** gives, pages kept as they are. Apply makes it your grid like any tile. A grid that a Home screen widget cannot fit in, even at its smallest size, is refused with the widget's name. Phone layout only: not offered in Landscape mode or Full tablet layout. Before removing the module, pick one of Pixel Launcher's own grids: without the module, Pixel Launcher cannot move a custom grid back and removes what lies outside its own. |
+| Icons | **Size** | A tab beside Style and Shape: Small, Default, Large, Extra large. Applies at once, to every grid. All apps, the dock and folders follow it, and an icon never outgrows its cell. |
 | Home screen | **Icon pack** | Right under the system's own Icons option. Opens a page with your real home screen on top, drawn by Pixel Launcher itself, and the choices under it: **System** (Pixel Launcher's own icons, themed and Google-made ones included) and every installed icon pack, each with its own icon. Tapping one applies it at once, and the preview shows the result. **Per-app icons** gives one app a different drawable from the pack, or its stock icon; **Reset icon overrides** gives every app back to the pack. |
 
 Pack artwork goes through Pixel Launcher's own icon pipeline, so the shape, shadow, work badge,
@@ -103,7 +106,9 @@ be in this module's scope in your Xposed manager.
 
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/icon-pack.png" width="250"><br><sub>Wallpaper &amp; style → Icon pack</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/grid-custom.png" width="250"><br><sub>Wallpaper &amp; style → Layout → Custom</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/icon-size.png" width="250"><br><sub>Wallpaper &amp; style → Icons → Size</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/icon-pack.png" width="250"><br><sub>Wallpaper &amp; style → Icon pack</sub></td>
 </tr>
 </table>
 
@@ -115,6 +120,7 @@ be in this module's scope in your Xposed manager.
 
 | Group | Tweak | What it does |
 |---|---|---|
+| Apps | **Columns** | Columns in All apps, from 3 up to what keeps a 48dp touch target; the launcher's own count reads "Default". Applies live. |
 | Apps | **Hidden apps** | Leaves the apps you pick out of the drawer and out of its search. Tapping it opens the drawer with a tick on every icon: tap the apps to hide, then the button in the corner. |
 | Search results | **Web Search** | Google's suggestions for what you typed. Switch off to take the whole group out. |
 | Search results | **Play Store** | Apps you could install. |
@@ -247,7 +253,7 @@ does not assume they stayed put.
 
   ```
   Pixel Launcher versionCode: 907
-  Resolved 57 / 57, fallback signatures 0, failed 0
+  Resolved 200 / 200, fallback signatures 0, failed 0
 
   Contracts
   ✓ TaskView.onFinishInflate()

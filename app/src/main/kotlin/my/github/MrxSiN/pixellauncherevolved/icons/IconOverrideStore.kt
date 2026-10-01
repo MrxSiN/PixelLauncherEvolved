@@ -137,30 +137,16 @@ object IconOverrideFormat {
  * preference file, in the launcher's own data directory, because the launcher is
  * the only process that reads or writes it.
  */
-interface IconOverrideStore {
-
-    fun overrides(): List<IconOverride>
-
-    /** The stored text itself, which is what a runtime snapshot is rebuilt from. */
-    fun raw(): String
-
-    fun replace(overrides: Collection<IconOverride>)
-
-    /** Removes every override, returning this feature to the pack's own answers. */
-    fun clear() = replace(emptyList())
-}
-
-/** [IconOverrideStore] over the launcher's own preference file. */
-class SharedPreferencesIconOverrideStore(
+class IconOverrideStore(
     private val preferences: SharedPreferences,
-) : IconOverrideStore {
+) {
 
-    override fun raw(): String =
+    fun raw(): String =
         runCatching { preferences.getString(KEY, "") }.getOrNull().orEmpty()
 
-    override fun overrides(): List<IconOverride> = IconOverrideFormat.read(raw())
+    fun overrides(): List<IconOverride> = IconOverrideFormat.read(raw())
 
-    override fun replace(overrides: Collection<IconOverride>) {
+    fun replace(overrides: Collection<IconOverride>) {
         val editor = preferences.edit()
         if (overrides.isEmpty()) {
             editor.remove(KEY)
@@ -169,6 +155,9 @@ class SharedPreferencesIconOverrideStore(
         }
         editor.apply()
     }
+
+    /** Removes every override, returning this feature to the pack's own answers. */
+    fun clear() = replace(emptyList())
 
     private companion object {
         const val KEY = "home_icons_overrides"

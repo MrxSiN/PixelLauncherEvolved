@@ -41,6 +41,19 @@ class CrashGuardTest {
     }
 
     @Test
+    fun `a crash loop puts Grid and size back to the launcher's own and remembers the values`() {
+        settings.put(Settings.GRID_COLUMNS, 6)
+        settings.put(Settings.GRID_ICON_SIZE, 130)
+        store.crashes += listOf(60_000L, 80_000L, 95_000L)
+
+        guard.recover()
+
+        assertEquals(0, settings[Settings.GRID_COLUMNS])
+        assertEquals(100, settings[Settings.GRID_ICON_SIZE])
+        assertEquals(listOf("home_grid_columns=6", "home_grid_icon_size=130"), store.disabled())
+    }
+
+    @Test
     fun `a crash loop with nothing experimental on changes no setting`() {
         settings.put(Settings.HOME_BLUR_WALLPAPER, true)
         store.crashes += listOf(60_000L, 80_000L, 95_000L)

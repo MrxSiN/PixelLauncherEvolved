@@ -17,6 +17,9 @@ package my.github.MrxSiN.pixellauncherevolved.focus
  * `package:drawable/name` resource name. Null when there is nothing to show.
  * @property isEnabled false for a Mode switched off in Settings. It still exists
  * and keeps its pages, but cannot come on, so it is not offered pages.
+ * @property activatedAt when the mode last came on, by its schedule or by hand,
+ * in milliseconds since the epoch; 0 when unknown. When two modes with pages
+ * are on, the one that came on last wins.
  */
 data class FocusMode(
     val id: String,
@@ -24,4 +27,5 @@ data class FocusMode(
     val isActive: Boolean,
     val icon: String? = null,
     val isEnabled: Boolean = true,
+    val activatedAt: Long = 0L,
 )

@@ -43,6 +43,8 @@ object SettingsBackupFormat {
         "doubleTapToSleep" to Settings.HOME_DOUBLE_TAP_TO_SLEEP,
         "statusBarDoubleTapToSleep" to Settings.STATUS_BAR_DOUBLE_TAP_TO_SLEEP,
         "searchBarOpensAppSearch" to Settings.HOME_SEARCH_OPENS_DRAWER,
+        "hideDock" to Settings.DOCK_HIDDEN,
+        "dockMovesToHome" to Settings.DOCK_MOVE_TO_HOME,
         "hideWebSearch" to Settings.APP_DRAWER_SEARCH_HIDE_WEB,
         "hidePlayStore" to Settings.APP_DRAWER_SEARCH_HIDE_PLAY_STORE,
         "hideSearchInApps" to Settings.APP_DRAWER_SEARCH_HIDE_SEARCH_IN_APPS,
@@ -63,12 +65,24 @@ object SettingsBackupFormat {
 
     private const val KEY_VERSION = "version"
     private const val KEY_BLUR_STRENGTH = "blurStrength"
+    private const val KEY_DOCK_ICONS = "dockIcons"
     private const val KEY_LAYOUT_MODE = "layoutMode"
     private const val KEY_HIDDEN_APPS = "hiddenApps"
     private const val KEY_WEB_SEARCH_APP = "webSearchApp"
     private const val KEY_USE_ICON_PACK = "useIconPack"
     private const val KEY_ICON_PACK = "iconPack"
     private const val KEY_ICON_OVERRIDES = "iconOverrides"
+    private const val KEY_GRID = "grid"
+
+    /** Grid & size's values under `grid`, by this file's own names. */
+    private val GRID = linkedMapOf(
+        "columns" to Settings.GRID_COLUMNS,
+        "rows" to Settings.GRID_ROWS,
+        "iconSize" to Settings.GRID_ICON_SIZE,
+        "spacingX" to Settings.GRID_SPACING_X,
+        "spacingY" to Settings.GRID_SPACING_Y,
+        "appDrawerColumns" to Settings.APP_DRAWER_COLUMNS,
+    )
     private const val KEY_OVERRIDE_PACKAGE = "package"
     private const val KEY_OVERRIDE_CLASS = "class"
     private const val KEY_OVERRIDE_USER = "user"
@@ -80,12 +94,14 @@ object SettingsBackupFormat {
         put(KEY_VERSION, VERSION)
         for ((name, setting) in SWITCHES) put(name, snapshot.switches[setting] ?: setting.default)
         put(KEY_BLUR_STRENGTH, snapshot.blurStrength / PERCENT)
+        put(KEY_DOCK_ICONS, snapshot.dockIcons)
         put(KEY_LAYOUT_MODE, LAYOUT_MODES.getValue(snapshot.layoutMode))
         put(KEY_HIDDEN_APPS, JSONArray(snapshot.hiddenApps.sorted()))
         put(KEY_WEB_SEARCH_APP, snapshot.webSearchApp ?: JSONObject.NULL)
         put(KEY_USE_ICON_PACK, snapshot.useIconPack)
         put(KEY_ICON_PACK, snapshot.iconPack ?: JSONObject.NULL)
         put(KEY_ICON_OVERRIDES, writeOverrides(snapshot.iconOverrides))
+        put(KEY_GRID, JSONObject().apply { for ((name, setting) in GRID) put(name, snapshot.grid[setting] ?: setting.default) })
     }.toString(INDENT)
 
     /**
@@ -156,6 +172,9 @@ object SettingsBackupFormat {
             } else {
                 defaults.blurStrength
             },
+            // Kept as written: the launcher applies a count only where the grid it
+            // meets has room for more, so an impossible one reads as System.
+            dockIcons = json.optInt(KEY_DOCK_ICONS, defaults.dockIcons).coerceIn(Settings.DOCK_ICONS.range),
             layoutMode = LAYOUT_MODES.entries.firstOrNull { it.value == json.optString(KEY_LAYOUT_MODE) }?.key
                 ?: defaults.layoutMode,
             hiddenApps = json.optJSONArray(KEY_HIDDEN_APPS)
@@ -166,6 +185,10 @@ object SettingsBackupFormat {
             useIconPack = json.optBoolean(KEY_USE_ICON_PACK, defaults.useIconPack),
             iconPack = json.optString(KEY_ICON_PACK).takeIf { !json.isNull(KEY_ICON_PACK) && it.isNotBlank() },
             iconOverrides = readOverrides(json.optJSONArray(KEY_ICON_OVERRIDES)) ?: defaults.iconOverrides,
+            // Kept as written, within each setting's range; the import re-fits them to this phone.
+            grid = json.optJSONObject(KEY_GRID).let { grid ->
+                GRID.entries.associate { (name, setting) -> setting to (grid?.optInt(name, setting.default) ?: setting.default).coerceIn(setting.range) }
+            },
         )
     }
 

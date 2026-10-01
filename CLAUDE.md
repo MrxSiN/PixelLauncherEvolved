@@ -22,17 +22,17 @@ This repository is optimized for measured Android device execution. Human readab
 
 Launcher/SystemUI-facing runtime implementation is locked to:
 
-**Java / machine-generated Java / equivalent reproducible generated DEX → DEX → ART**
+**Kotlin / Java / machine-generated Java → R8 → DEX → ART**
 
 Allowed runtime representations:
 
-- Java;
+- Kotlin (the existing implementation language; the owner chose to stay in Kotlin);
+- Java, including small helpers where Kotlin's output measurably costs more (`core/Invoke.java`);
 - machine-generated specialized Java;
 - reproducible generated Smali/direct DEX only when measurements beat generated Java + R8/D8.
 
 Forbidden runtime implementation:
 
-- Kotlin;
 - C/C++;
 - Rust;
 - Zig;
@@ -42,7 +42,10 @@ Forbidden runtime implementation:
 - scripting runtimes;
 - any other runtime language.
 
-Do not add native code.
+Do not add native code. The one authorized exception is DexKit's `libdexkit.so`, loaded only
+on a host-symbol miss or while recording fingerprints (`core/HostDex.java`), never on a hot path.
+
+Porting the runtime between Kotlin and Java needs explicit owner authorization and a measured reason.
 
 Build-time Gradle Kotlin DSL, shell, Python and generator tooling may remain.
 

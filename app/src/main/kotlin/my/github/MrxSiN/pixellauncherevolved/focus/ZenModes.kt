@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.focus
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 /**
@@ -73,12 +74,22 @@ class ZenModes(private val shell: CommandRunner = RootShell()) {
 
         // The manual rule is Do Not Disturb turned on by hand. It carries no
         // name or icon of its own, so it is given the ones Settings shows for it.
+        val activatedAt = activatedAt(block)
         return if (id == MANUAL_ID) {
-            FocusMode(id = id, name = MANUAL_NAME, isActive = isActive, icon = MANUAL_ICON, isEnabled = isEnabled)
+            FocusMode(id = id, name = MANUAL_NAME, isActive = isActive, icon = MANUAL_ICON, isEnabled = isEnabled, activatedAt = activatedAt)
         } else {
-            FocusMode(id = id, name = name, isActive = isActive, icon = icon(block), isEnabled = isEnabled)
+            FocusMode(id = id, name = name, isActive = isActive, icon = icon(block), isEnabled = isEnabled, activatedAt = activatedAt)
         }
     }
+
+    /**
+     * When the rule last came on, by its own schedule (`lastActivation`) or by
+     * hand (`lastManualActivation`), whichever is later; 0 when it never has
+     * or the dump has neither.
+     */
+    private fun activatedAt(block: String): Long = ACTIVATION.findAll(block)
+        .mapNotNull { runCatching { Instant.parse(it.groupValues[1]).toEpochMilli() }.getOrNull() }
+        .maxOrNull() ?: 0L
 
     /**
      * The icon Settings draws beside a Mode.
@@ -140,6 +151,9 @@ class ZenModes(private val shell: CommandRunner = RootShell()) {
         val ICON = Regex("""iconResName=([^,\]]+)""")
         val TYPE = Regex("""[,\[]type=(-?\d+)""")
         val ACTIVE_STATES = setOf("STATE_TRUE", "STATE_UNKNOWN")
+
+        /** `lastActivation=` and `lastManualActivation=`, each an `Instant` or `null`. */
+        val ACTIVATION = Regex("""last(?:Manual)?Activation=(\d{4}-[^,\]]+)""")
 
         /**
          * The name, up to the field the dump always writes after it.

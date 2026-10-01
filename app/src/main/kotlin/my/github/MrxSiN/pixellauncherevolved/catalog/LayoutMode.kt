@@ -11,8 +11,9 @@ import my.github.MrxSiN.pixellauncherevolved.R
  * that is how earlier versions stored them and a renamed key resets the choice.
  * At most one of those switches is on, and none being on is [DEFAULT].
  *
- * Every mode but the default rebuilds the launcher's layout at startup, which
- * is what makes them the experimental tweaks Safe Mode turns off after a crash
+ * Every mode but the default rebuilds the launcher's device profiles, at
+ * startup and live when chosen (see `feature.layout.LiveLayout`), which is what
+ * makes them the experimental tweaks Safe Mode turns off after a crash
  * loop.
  */
 enum class LayoutMode(

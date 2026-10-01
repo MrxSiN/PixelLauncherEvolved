@@ -54,6 +54,56 @@ object Settings {
     val HOME_SEARCH_OPENS_DRAWER = BoolSetting("home_search_opens_drawer", default = false)
 
     /**
+     * Hides the dock's icons on the home screen. The pinned apps stay in the
+     * launcher's database, so showing the dock again brings them back.
+     */
+    val DOCK_HIDDEN = BoolSetting("home_dock_hidden", default = false)
+
+    /**
+     * How many icons the dock shows; 0 is the launcher's own count. Only a
+     * count below the launcher's is applied, so the dock's database capacity
+     * never changes and no pinned app can be dropped by a grid migration. See
+     * [my.github.MrxSiN.pixellauncherevolved.feature.dock.DockIcons].
+     */
+    val DOCK_ICONS = IntSetting("home_dock_icons", default = 0, range = 0..16)
+
+    /**
+     * Whether a lower dock count moves the pinned apps it leaves out to the Home
+     * screen. Off, they stay pinned in dock slots the dock no longer shows, and
+     * [DOCK_KEPT] keeps those slots from being dropped.
+     */
+    val DOCK_MOVE_TO_HOME = BoolSetting("home_dock_move_to_home", default = true)
+
+    /**
+     * Dock slots still holding apps a lower count hid, so the dock's database
+     * capacity is not lowered below them. This device's own dock state: not
+     * backed up and not reset.
+     */
+    val DOCK_KEPT = IntSetting("home_dock_kept", default = 0, range = 0..16)
+
+    /**
+     * Grid & size. Each is a logical value, never pixels, and 0 (or 100 for
+     * the icon size) is the launcher's own, so a phone that cannot take a
+     * value falls back to stock rather than to a broken grid. See
+     * [my.github.MrxSiN.pixellauncherevolved.feature.grid.GridSpec].
+     */
+    val GRID_COLUMNS = IntSetting("home_grid_columns", default = 0, range = 0..10)
+    val GRID_ROWS = IntSetting("home_grid_rows", default = 0, range = 0..10)
+
+    /** The Home screen icon size as a percentage of the launcher's own; All apps, the dock and folders follow it. */
+    val GRID_ICON_SIZE = IntSetting("home_grid_icon_size", default = 100, range = 0..200)
+
+    /** The gap between Home screen cells across and down: -1 Compact, 0 Default, 1 Relaxed. */
+    val GRID_SPACING_X = IntSetting("home_grid_spacing_x", default = 0, range = -1..1)
+    val GRID_SPACING_Y = IntSetting("home_grid_spacing_y", default = 0, range = -1..1)
+
+    /** Columns in All apps; 0 is the launcher's own. */
+    val APP_DRAWER_COLUMNS = IntSetting("app_drawer_columns", default = 0, range = 0..10)
+
+    /** Every Grid & size setting, for reset, Safe Mode and the live rebuild. */
+    val GRID: List<IntSetting> = listOf(GRID_COLUMNS, GRID_ROWS, GRID_ICON_SIZE, GRID_SPACING_X, GRID_SPACING_Y, APP_DRAWER_COLUMNS)
+
+    /**
      * Parts of the app drawer's search results a person can switch off. Each
      * one names a group the platform's search service returns; hiding a group
      * hides its heading with it.

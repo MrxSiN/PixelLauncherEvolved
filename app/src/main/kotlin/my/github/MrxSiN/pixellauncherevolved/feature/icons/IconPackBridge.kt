@@ -2,7 +2,6 @@ package my.github.MrxSiN.pixellauncherevolved.feature.icons
 
 import android.content.Context
 import android.graphics.drawable.Drawable
-import android.os.Binder
 import android.os.Bundle
 import android.os.Process
 
@@ -84,11 +83,7 @@ internal class IconPackBridge(
 
     private fun warn(what: String) = feature.logger.warn("Icons: $what; Wallpaper & style cannot choose icon packs")
 
-    private fun callerAllowed(): Boolean {
-        val uid = Binder.getCallingUid()
-        if (uid == Process.myUid() || uid == Process.SHELL_UID || uid == Process.ROOT_UID) return true
-        return context.packageManager.getPackagesForUid(uid)?.contains(IconsBridge.PICKER_PACKAGE) == true
-    }
+    private fun callerAllowed(): Boolean = IconsBridge.callerAllowed(context)
 
     private fun answer(method: String, arg: String?, extras: Bundle?): Bundle = when (method) {
         IconsBridge.STATE -> state()

@@ -54,40 +54,6 @@ object LaunchableApps {
         return apps.sortedWith(compareBy({ it.label.lowercase() }, { it.packageName }, { it.userId }))
     }
 
-    /**
-     * A handful of apps a person will recognise, for a pack preview.
-     *
-     * A fixed order of common packages narrowed to the ones this device actually
-     * has, so every pack is previewed against the same apps and the preview does
-     * not change between two openings of the same page.
-     */
-    fun previewSet(apps: List<LaunchableApp>, size: Int): List<LaunchableApp> {
-        val personal = apps.filter { it.userId == Process.myUid() / PER_USER_RANGE }
-        val chosen = ArrayList<LaunchableApp>(size)
-
-        for (name in PREVIEW_PACKAGES) {
-            personal.firstOrNull { it.packageName == name }?.let { chosen += it }
-            if (chosen.size == size) return chosen
-        }
-        for (app in personal) {
-            if (chosen.none { it.packageName == app.packageName }) chosen += app
-            if (chosen.size == size) break
-        }
-        return chosen
-    }
-
     /** How the platform packs a profile into an application's uid. */
     private const val PER_USER_RANGE = 100000
-
-    /** In order of preference, narrowed to what is installed. */
-    private val PREVIEW_PACKAGES = listOf(
-        "com.google.android.dialer",
-        "com.google.android.apps.messaging",
-        "com.google.android.GoogleCamera",
-        "com.android.chrome",
-        "com.google.android.gm",
-        "com.google.android.youtube",
-        "com.android.vending",
-        "com.android.settings",
-    )
 }

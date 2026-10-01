@@ -62,13 +62,11 @@ class TaskbarTransitionFeature : LauncherFeature {
 
     override val id: String = "taskbar_transition"
 
-    /** The hooks are placed once, and only where a taskbar exists at all. */
-    override val isLive: Boolean = false
-
     override fun isEnabled(settings: SettingsSource): Boolean =
         settings[Tweaks.TABLET_MODE] || settings[Tweaks.TASKBAR_ONLY]
 
     override fun install(context: FeatureContext) {
+        LiveLayout.install(context)
         val window = TaskbarWindow(context)
 
         window.followRoot()
@@ -156,7 +154,7 @@ private class TaskbarWindow(private val context: FeatureContext) {
         for (method in callbacks.declaredMethods) {
             when (method.name) {
                 start -> context.xposed.hook(method).intercept { chain ->
-                    hide()
+                    if (LiveLayout.taskbar) hide()
                     chain.proceed()
                 }
 
@@ -243,7 +241,7 @@ private class TaskbarWindow(private val context: FeatureContext) {
 
                     when {
                         // Home. The icons travel to the hotseat, so stand down.
-                        toHotseat && inLauncher(chain.thisObject, stateFlags, isInLauncher) -> show()
+                        toHotseat && inLauncher(chain.thisObject, stateFlags, isInLauncher) -> show(fade = false)
 
                         result is Animator -> result.addListener(
                             object : AnimatorListenerAdapter() {
@@ -303,18 +301,34 @@ private class TaskbarWindow(private val context: FeatureContext) {
         windowReturned = !followsTheWindow
         val transition = ++transitions
 
-        view.post { view.alpha = 0f }
+        view.post {
+            view.animate().cancel()
+            view.alpha = 0f
+        }
         // Numbered, so a safety net left over from an earlier transition cannot
         // cut a later one short.
         view.postDelayed({ if (transition == transitions) show() }, safetyMillis(view))
     }
 
-    private fun show() {
+    /**
+     * Brings the taskbar back. Once a transition has settled it fades in, as
+     * the launcher brings in the rest of Overview; set straight to 1 it popped
+     * in whole a frame after the card settled. The way home is not faded: the
+     * window was only hidden for the frame the animation started in.
+     */
+    private fun show(fade: Boolean = true) {
         if (!hidden) return
         hidden = false
 
         val view = root?.get() ?: return
-        view.post { view.alpha = 1f }
+        view.post {
+            view.animate().cancel()
+            if (fade) {
+                view.animate().alpha(1f).setDuration(FADE_MS).setInterpolator(EMPHASIZED_DECELERATE).start()
+            } else {
+                view.alpha = 1f
+            }
+        }
     }
 
     /**
@@ -338,6 +352,10 @@ private class TaskbarWindow(private val context: FeatureContext) {
 
     private companion object {
         const val SAFETY_MILLIS = 2_000f
+
+        /** Material 3's short fade, eased as content arriving on screen. */
+        const val FADE_MS = 250L
+        val EMPHASIZED_DECELERATE = android.view.animation.PathInterpolator(0.05f, 0.7f, 0.1f, 1f)
 
         const val RECENTS_ANIMATION_COMPAT =
             "com.android.systemui.shared.system.RecentsAnimationControllerCompat"

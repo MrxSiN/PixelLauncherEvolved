@@ -21,7 +21,6 @@ import my.github.MrxSiN.pixellauncherevolved.core.Logger
  */
 internal class FocusPageReveal(
     private val logger: Logger,
-    private val motion: FocusRevealMotion = MaterialExpressiveMotion(),
 ) {
 
     @Volatile
@@ -55,7 +54,7 @@ internal class FocusPageReveal(
 
         // Played rather than cut, because the model takes long enough to bind
         // that a page vanishing between two frames is the part that was seen.
-        if (view != null) play(motion.exit(view))
+        if (view != null) play(FocusRevealMotion.exit(view))
     }
 
     /** A failed reload must never leave the workspace hidden. */
@@ -66,7 +65,7 @@ internal class FocusPageReveal(
         scheduled = false
         running?.cancel()
         running = null
-        workspace?.get()?.let(motion::settle)
+        workspace?.get()?.let(FocusRevealMotion::settle)
     }
 
     /** Called at the stable end of the workspace's complete-model bind. */
@@ -86,7 +85,7 @@ internal class FocusPageReveal(
             // Already hidden when the exit is still playing or has finished;
             // this covers the bind that arrives with no exit ever having run,
             // because the workspace did not exist when the Mode changed.
-            if (running == null) motion.hide(view)
+            if (running == null) FocusRevealMotion.hide(view)
         }
         revealWhenReady(view)
     }
@@ -126,11 +125,11 @@ internal class FocusPageReveal(
         // A workspace with no size cannot be animated into view, and leaving it
         // hidden because of that would be worse than showing it at once.
         if (!view.isAttachedToWindow || view.width <= 0 || view.height <= 0) {
-            motion.settle(view)
+            FocusRevealMotion.settle(view)
             return
         }
 
-        play(motion.enter(view))
+        play(FocusRevealMotion.enter(view))
         logger.info("Focus page reveal played")
     }
 

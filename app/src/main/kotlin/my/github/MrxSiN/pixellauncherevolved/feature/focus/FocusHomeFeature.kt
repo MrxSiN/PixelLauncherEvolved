@@ -637,7 +637,7 @@ internal class FocusHome(
      * and the planning works from what that read found.
      */
     @Volatile
-    private var activeModes: Set<String>? = null
+    private var activeModes: Map<String, Long>? = null
 
     /** The screens to bind, out of the ones the launcher would have bound. */
     fun screens(all: List<Int>): List<Int> {
@@ -732,7 +732,7 @@ internal class FocusHome(
         val assignments = store.assignments()
         val winner = winner(assignments)
         return FocusState(
-            screens = FocusPlan.screens(all, assignments, store.priority(), setOfNotNull(winner)),
+            screens = FocusPlan.screens(all, assignments, winner),
             modeId = winner,
         )
     }
@@ -760,10 +760,10 @@ internal class FocusHome(
      * A read that succeeds also gives back the pages of Modes that no longer
      * exist, so the planning that follows never hides a page for one.
      */
-    private fun read(): Set<String> {
+    private fun read(): Map<String, Long> {
         val snapshot = source.snapshot()
         store.forgetModesMissingFrom(snapshot)
-        return snapshot.modes.filter { it.isActive }.map { it.id }.toSet().also { activeModes = it }
+        return snapshot.modes.filter { it.isActive }.associate { it.id to it.activatedAt }.also { activeModes = it }
     }
 
     private companion object {

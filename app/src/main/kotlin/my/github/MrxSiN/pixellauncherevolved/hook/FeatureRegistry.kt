@@ -3,10 +3,12 @@ package my.github.MrxSiN.pixellauncherevolved.hook
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TabletModeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HideAppsPickerFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.diagnostics.CompatibilityWatchFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.dock.DockFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.safemode.SafeModeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusHomeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.gesture.DoubleTapToSleepFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.grid.GridFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.icons.IconPackFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.OverviewOnlyFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarAllAppsButtonFeature
@@ -47,6 +49,8 @@ object FeatureRegistry {
         DoubleTapToSleepFeature(),
         StatusBarSleepFeature(),
         HomeSearchBarFeature(),
+        DockFeature(),
+        GridFeature(),
         IconPackFeature(),
         HiddenAppsFeature(),
         HideAppsPickerFeature(),

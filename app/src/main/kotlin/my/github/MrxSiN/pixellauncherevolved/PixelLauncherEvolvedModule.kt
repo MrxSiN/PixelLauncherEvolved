@@ -17,6 +17,7 @@ import my.github.MrxSiN.pixellauncherevolved.hook.FeatureRegistry
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherRestarter
 import my.github.MrxSiN.pixellauncherevolved.bridge.Bridge
 import my.github.MrxSiN.pixellauncherevolved.bridge.IconsBridge
+import my.github.MrxSiN.pixellauncherevolved.picker.GridPicker
 import my.github.MrxSiN.pixellauncherevolved.picker.IconPackPicker
 import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealOrigin
 import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealScrim
@@ -120,15 +121,17 @@ class PixelLauncherEvolvedModule : XposedModule() {
     }
 
     /**
-     * Wallpaper & style is entered for one thing: choosing the icon pack, beside
-     * its own Icons option. What is chosen is the launcher's, and is asked of it
-     * ([IconsBridge]).
+     * Wallpaper & style is entered for the icon pack, beside its own Icons
+     * option, and for Grid & size: the Custom grid in Layout and the Size tab in
+     * Icons. What is chosen is the launcher's, and is asked of it
+     * ([IconsBridge], [my.github.MrxSiN.pixellauncherevolved.bridge.GridBridge]).
      */
     private fun installPicker(application: Application, classLoader: ClassLoader, logger: Logger) {
         val text = runCatching { application.packageManager.getResourcesForApplication(moduleApplicationInfo) }
             .onFailure { logger.warn("Picker: this module's text is unreachable; no icon pack entry", it) }
             .getOrNull() ?: return
         IconPackPicker(this, classLoader, text, logger).install()
+        GridPicker(this, classLoader, text, logger).install()
     }
 
     /**
