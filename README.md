@@ -29,9 +29,9 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 
 <table>
 <tr>
-<td align="center" valign="top"><img src="docs/screenshots/home-settings.png" width="250"><br><sub>The launcher's own Home settings, with this module's section at the end</sub></td>
-<td align="center" valign="top"><img src="docs/screenshots/home-screen.png" width="250"><br><sub>Pages drawn the way Android 17 Settings draws them</sub></td>
-<td align="center" valign="top"><img src="docs/screenshots/diagnostics.png" width="250"><br><sub>Compatibility &amp; diagnostics</sub></td>
+<td width="33%" align="center" valign="top"><img src="docs/screenshots/home-settings.png" width="250"><br><sub>The launcher's own Home settings</sub></td>
+<td width="33%" align="center" valign="top"><img src="docs/screenshots/home-screen.png" width="250"><br><sub>Drawn like Android 17 Settings</sub></td>
+<td width="33%" align="center" valign="top"><img src="docs/screenshots/diagnostics.png" width="250"><br><sub>Compatibility &amp; diagnostics</sub></td>
 </tr>
 </table>
 
