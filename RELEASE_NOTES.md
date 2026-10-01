@@ -1,31 +1,39 @@
-# Pixel Launcher Evolved v0.1.3
+# Pixel Launcher Evolved v0.1.4
 
 Tested on a Pixel 8 Pro running Android 17 QPR1 (September 2026), build `CP3A.260905.009`,
-Pixel Launcher `907`. Your settings carry over untouched.
+Pixel Launcher `907`. Every launcher member the module stands on resolves (200 of 200). Your
+settings carry over untouched.
 
-### Icon packs, in Wallpaper & style
+### Grid & size, in Wallpaper & style
 
-- **Wallpaper & style → Home screen → Icons pack**, right under the system's own Icons option.
-  The page grows out of the home screen card: the real home screen on top, drawn by Pixel
-  Launcher, and every installed icon pack in the picker's own option sheet under it.
-- **Preview before you apply.** Tapping a pack shows your home screen with its icons; nothing
-  changes until you press Apply.
-- **Real Pixel icons.** Pack artwork goes through the launcher's own icon pipeline, so shape,
-  shadow, work badges, dots, folders, search, predictions and the taskbar all agree. Apps the pack
-  doesn't cover keep their own icon, themed or not. Calendar icons follow the date. Pick a
-  different icon from the pack, or the stock one, for any single app.
-- **No restart.** Changing the pack redraws only the icons that changed. Coming back home after
-  a change, the new icons are brought in one after another, and a notice tells you when the
-  change has landed.
-- ADW, Nova, Apex, Go, Atom, Lawnchair and Teslacoil packs are supported. Backups include the
-  pack and your per-app icons.
+- **Wallpaper & style → Layout → Custom**, a tile after Google's grids. Choose **Columns** and
+  **Rows** (from 3 up to what fits your screen with a comfortable touch target) and **Horizontal**
+  and **Vertical spacing** (Compact, Default, Relaxed). The preview shows exactly what **Apply**
+  gives, with every item kept on its page.
+- **Wallpaper & style → Icons → Size**: Small, Default, Large or Extra large, for every grid. The
+  dock, folders and All apps follow it.
+- **Home settings → App drawer → Columns** for All apps.
+- A grid a Home screen widget can't fit in is refused by name, and a grid change that would lose
+  anything is undone.
+- Previews work on copies of your layout and never touch it until you press Apply.
 
-**Existing installs:** enable **Wallpaper & style** (`com.google.android.apps.wallpaper`) for
-this module in your Xposed manager, then restart it.
+**Before removing the module**, pick one of Pixel Launcher's own grids: without the module, Pixel
+Launcher can't move a custom grid back.
+
+### Dock
+
+- **Home settings → Home screen → Dock**: hide the dock's icons and give their row to the Home
+  screen, and choose how many icons the dock holds, from 1 to as many as fit. Both apply live.
+
+### Layout & taskbar
+
+- Default, Overview only, Taskbar only and Full tablet layout now apply live, with no launcher
+  restart.
 
 ### Fixed
 
-- **Blur wallpaper**: Wallpaper & style's home screen preview is now blurred as your home screen
-  is, and opening or closing the app drawer no longer snaps the whole home screen to a blur and back.
-- **Focus home screens**: when a Mode changes while you're in an app, home no longer stays blank
-  for most of a second when you go back to it.
+- **Full tablet layout** no longer deletes Home screen items in the bottom row.
+- **Taskbar only / Full tablet layout**: the taskbar fades back in after swiping into Overview
+  instead of popping in.
+- **Wallpaper & style → Icons**: tabs no longer stop responding after the Size tab was open.
+- **Modes**: with two Modes on, the one turned on last now wins.

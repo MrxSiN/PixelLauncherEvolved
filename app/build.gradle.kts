@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.agp.app)
 }
 
-val appVersion = "0.1.3"
+val appVersion = "0.1.4"
 
 val envKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
 val envKeystoreAlias = System.getenv("ANDROID_KEYSTORE_ALIAS")
@@ -35,7 +35,7 @@ android {
         // The launcher surfaces these features hook into are Android 17 (API 37).
         minSdk = 37
         targetSdk = 37
-        versionCode = 14
+        versionCode = 15
         versionName = appVersion
         ndk { abiFilters += "arm64-v8a" }
     }

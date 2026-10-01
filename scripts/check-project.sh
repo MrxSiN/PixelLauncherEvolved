@@ -191,9 +191,13 @@ grep -q 'addOnPreDrawListener' "$SRC/feature/overview/OverviewActionsFeature.kt"
 # app drawer button's slots are measured off the launcher rather than subtracted.
 grep -q 'whileLearning' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
 
-# Layout: cached profiles, so neither mode can apply to a running launcher.
-grep -q 'override val isLive: Boolean = false' "$SRC/feature/layout/TabletModeFeature.kt"
-grep -q 'override val isLive: Boolean = false' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+# Layout modes apply live: every layout hook is installed and reads LiveLayout's
+# flags, and a change rebuilds the profiles through onConfigChanged.
+for mode in TabletModeFeature TaskbarOnlyFeature OverviewOnlyFeature; do
+  grep -q 'LiveLayout.install(context)' "$SRC/feature/layout/$mode.kt"
+  ! grep -q 'override val isLive: Boolean = false' "$SRC/feature/layout/$mode.kt"
+done
+grep -q 'onConfigChanged' "$SRC/feature/layout/LiveLayout.kt"
 
 # Tablet mode changes the one classification the grid and the taskbar share.
 grep -q 'com.android.launcher3.display.LauncherDisplayInfo' "$SRC/feature/layout/TabletModeFeature.kt"
@@ -611,8 +615,8 @@ grep -q 'moduleApplicationInfo.packageName' "$SRC/feature/focus/FocusHomeFeature
 grep -q '${applicationId}.focus' "$ROOT/app/src/main/AndroidManifest.xml"
 
 # Release build: shrunk, with the entry class kept by the name the framework reads.
-grep -q 'val appVersion = "0.1.3"' "$ROOT/app/build.gradle.kts"
-grep -q 'versionCode = 14' "$ROOT/app/build.gradle.kts"
+grep -q 'val appVersion = "0.1.4"' "$ROOT/app/build.gradle.kts"
+grep -q 'versionCode = 15' "$ROOT/app/build.gradle.kts"
 grep -q 'isMinifyEnabled = true' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeystorePath' "$ROOT/app/build.gradle.kts"
 grep -q 'envKeyPassword' "$ROOT/app/build.gradle.kts"
