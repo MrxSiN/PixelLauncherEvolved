@@ -93,10 +93,11 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             ),
             logger = context.logger,
         )
-        val previews = FocusPreviewRecorder(itemInfo, context.appContext)
+        val previews = FocusPreviewRecorder(itemInfo, context.appContext, context.logger)
+        FocusPageRenderer.install(context)
         val reveal = FocusPageReveal(context.logger)
         if (!previews.isUsable) {
-            context.logger.warn("The launcher's item positions are unavailable; Focus page previews will be empty")
+            context.logger.warn("The launcher's item positions are unavailable; a page it cannot draw stays empty")
         }
 
         forgetStrippedPages(context, workspace, toArray, focus)
@@ -423,12 +424,8 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         // that has kept its name.
         context.hookAfter(launcher, ON_RESUME) { activity, _ ->
             if (activity != null) current = WeakReference(activity)
-            if (activity is android.app.Activity) {
-                activity.window.decorView.postDelayed(
-                    { previews.capture(activity) },
-                    PREVIEW_CAPTURE_DELAY_MS,
-                )
-            }
+            // Only the window's size and grid are read off the running launcher.
+            if (activity is android.app.Activity) activity.window.decorView.post { previews.measure(activity) }
         }
 
         // Opening Modes from the shade takes window focus without pausing the
@@ -595,7 +592,6 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         const val MODEL_FIELD = "mModel"
         const val FORCE_RELOAD = "forceReload"
         const val RELOAD_REASON = "pixel_launcher_evolved_focus"
-        const val PREVIEW_CAPTURE_DELAY_MS = 500L
     }
 }
 

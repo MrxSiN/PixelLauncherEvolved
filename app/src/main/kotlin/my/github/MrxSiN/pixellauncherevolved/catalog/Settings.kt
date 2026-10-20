@@ -97,6 +97,13 @@ object Settings {
     val GRID_SPACING_X = IntSetting("home_grid_spacing_x", default = 0, range = -1..1)
     val GRID_SPACING_Y = IntSetting("home_grid_spacing_y", default = 0, range = -1..1)
 
+    /**
+     * Whether names chosen in App labels show on the Home screen only. The
+     * names themselves live in
+     * [my.github.MrxSiN.pixellauncherevolved.labels.AppLabelStore].
+     */
+    val APP_LABELS_HOME_ONLY = BoolSetting("home_app_labels_home_only", default = false)
+
     /** Columns in All apps; 0 is the launcher's own. */
     val APP_DRAWER_COLUMNS = IntSetting("app_drawer_columns", default = 0, range = 0..10)
 

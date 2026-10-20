@@ -7,6 +7,7 @@ import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagesDialog
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagePreviewSource
 import my.github.MrxSiN.pixellauncherevolved.feature.pages.ReorganizePagesScreen
+import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
 import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.SharedPreferencesFocusStore
 import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
@@ -68,14 +69,19 @@ internal object OrganizePagesRow : SettingsRow {
             title = R.string.pages_reorganize_title,
             summary = scope.string(R.string.pages_reorganize_summary),
         ) {
-            val modes = if (scope.settings[Settings.FOCUS_HOME_SCREENS] && store.assignments().isNotEmpty()) {
-                val source = ProviderFocusSource(context.contentResolver, scope.environment.modulePackage, scope.environment.logger)
-                source.snapshot().also(store::forgetModesMissingFrom).modes
-            } else {
-                emptyList()
+            val show = { modes: List<FocusMode> ->
+                ReorganizePagesScreen(context, scope.resources, store, scope.environment.logger)
+                    .show(FocusPagePreviewSource(context, scope.settings), modes)
             }
-            ReorganizePagesScreen(context, scope.resources, store, scope.environment.logger)
-                .show(FocusPagePreviewSource(context), modes)
+            if (scope.settings[Settings.FOCUS_HOME_SCREENS] && store.assignments().isNotEmpty()) {
+                val source = ProviderFocusSource(context.contentResolver, scope.environment.modulePackage, scope.environment.logger)
+                FocusPagesDialog.readThen(context, source::snapshot) { snapshot ->
+                    store.forgetModesMissingFrom(snapshot)
+                    show(snapshot.modes)
+                }
+            } else {
+                show(emptyList())
+            }
         }
         scope.api.add(group, row)
         scope.requires(CompatibilityFeature.ORGANIZE_PAGES, row)
@@ -101,7 +107,7 @@ internal object FocusPagesRow : SettingsRow {
             title = R.string.feature_focus_pages_title,
             summary = scope.string(R.string.feature_focus_pages_summary),
         ) {
-            FocusPagesDialog.show(context, scope.resources, store, source, FocusPagePreviewSource(context))
+            FocusPagesDialog.show(context, scope.resources, store, source, FocusPagePreviewSource(context, scope.settings))
         }
         scope.api.add(group, row)
         scope.dependOn(FeatureCatalog.FOCUS_HOME_SCREENS, row)

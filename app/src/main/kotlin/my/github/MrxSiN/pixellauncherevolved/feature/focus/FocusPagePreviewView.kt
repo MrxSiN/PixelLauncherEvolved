@@ -8,13 +8,8 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
-import android.text.TextPaint
-import android.text.TextUtils
 import android.view.View
 
 
@@ -27,8 +22,9 @@ import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRole
 /**
  * A miniature of one live launcher page.
  *
- * Drawn from the page's snapshot when there is one, and from the model when
- * there is not. How it is framed depends on [look].
+ * The launcher's own picture of the page over the blurred home wallpaper,
+ * drawn from the model only where the launcher cannot draw it. How it is
+ * framed depends on [look].
  */
 @SuppressLint("ViewConstructor")
 internal class FocusPagePreviewView(
@@ -59,12 +55,6 @@ internal class FocusPagePreviewView(
     private val page = RectF()
     private val clip = Path()
     private val check = Path()
-    private val text = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
-        textAlign = Paint.Align.CENTER
-        // The launcher's icon labels carry a soft shadow to stay legible on any wallpaper.
-        setShadowLayer(2f, 0f, 1f, Color.argb(140, 0, 0, 0))
-    }
 
     /** How selected the page is drawn, 0 to 1, overshooting while the spring settles. */
     private var selection = 0f
@@ -160,17 +150,31 @@ internal class FocusPagePreviewView(
         clip.addRoundRect(page, radius, radius, Path.Direction.CW)
         val saved = canvas.save()
         canvas.clipPath(clip)
-        val snapshot = preview.snapshot
-        if (snapshot != null) {
+        drawWallpaper(canvas)
+        val picture = FocusPageRenderer.picture(preview.screen)
+        if (picture != null) {
             paint.color = Color.WHITE
-            canvas.drawBitmap(snapshot, null, page, paint)
-        } else {
-            drawWallpaper(canvas)
+            canvas.drawBitmap(picture, null, page, paint)
+        } else if (FocusPageRenderer.state(preview.screen) != FocusPageRenderer.State.PENDING) {
+            // Only where the launcher cannot draw the page. While its picture
+            // is on the way the page shows its wallpaper alone, never a guess.
             paint.color = Color.argb(32, 0, 0, 0)
             canvas.drawRect(page, paint)
             drawPageContents(canvas)
         }
         canvas.restoreToCount(saved)
+    }
+
+    private val redraw = Runnable { invalidate() }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        FocusPageRenderer.addListener(redraw)
+    }
+
+    override fun onDetachedFromWindow() {
+        FocusPageRenderer.removeListener(redraw)
+        super.onDetachedFromWindow()
     }
 
     /**
@@ -226,42 +230,20 @@ internal class FocusPagePreviewView(
             paint.shader = null
             return
         }
-
-        val scale = maxOf(
-            page.width() / wallpaper.intrinsicWidth,
-            page.height() / wallpaper.intrinsicHeight,
-        )
-        val drawWidth = wallpaper.intrinsicWidth * scale
-        val drawHeight = wallpaper.intrinsicHeight * scale
-        val left = page.centerX() - drawWidth / 2f
-        val top = page.centerY() - drawHeight / 2f
-        wallpaper.setBounds(
-            left.roundToInt(),
-            top.roundToInt(),
-            (left + drawWidth).roundToInt(),
-            (top + drawHeight).roundToInt(),
-        )
-        wallpaper.draw(canvas)
+        drawCover(canvas, wallpaper, page.left, page.top, page.width(), page.height())
     }
 
     /**
-     * A page with no picture of its own, drawn from the launcher's model.
+     * A page the launcher's preview could not draw, drawn from its model.
      *
-     * Laid out on the geometry measured off a real page when there is one, so
-     * icons, labels and widgets land where and at the size the launcher puts
-     * them, and the dock and search bar are borrowed from a page that was
-     * photographed. Before any page has been measured the grid is guessed.
+     * ponytail: a guessed grid, no labels and no dock band; this only stands in
+     * where the launcher's own preview is missing or failed.
      */
     private fun drawPageContents(canvas: Canvas) {
-        val geometry = preview.geometry
-        val grid = if (geometry == null) {
-            RectF(page.left, page.top + page.height() * 0.11f, page.right, page.top + page.height() * 0.73f)
-        } else {
-            geometry.grid.within(page)
-        }
+        val grid = RectF(page.left, page.top + page.height() * 0.11f, page.right, page.top + page.height() * 0.73f)
         val cellWidth = grid.width() / preview.columns.coerceAtLeast(1)
         val cellHeight = grid.height() / preview.rows.coerceAtLeast(1)
-        val iconSize = geometry?.let { it.iconSize * page.width() } ?: (min(cellWidth, cellHeight) * 0.58f)
+        val iconSize = min(cellWidth, cellHeight) * 0.58f
 
         for (item in preview.items) {
             val bounds = RectF(
@@ -272,105 +254,24 @@ internal class FocusPagePreviewView(
             )
             if (item.isWidget) {
                 drawWidget(canvas, bounds, item)
+            } else if (item.folderIcons.isNotEmpty()) {
+                drawFolder(canvas, bounds.centerX(), bounds.centerY(), iconSize, item.folderIcons)
             } else {
-                drawShortcut(canvas, bounds, item, iconSize, geometry)
+                drawDrawable(canvas, item.icon, bounds.centerX(), bounds.centerY(), iconSize)
             }
         }
-        drawDock(canvas, geometry, iconSize)
-    }
 
-    /** An icon or folder, with its label under it the way the launcher sets one. */
-    private fun drawShortcut(
-        canvas: Canvas,
-        bounds: RectF,
-        item: FocusPreviewItem,
-        iconSize: Float,
-        geometry: PageGeometry?,
-    ) {
-        val label = item.label?.takeIf { geometry != null && it.isNotBlank() }
-        val labelSize = (geometry?.labelSize ?: 0f) * page.width()
-        val gap = (geometry?.labelGap ?: 0f) * page.width()
-        text.textSize = labelSize
-        val labelHeight = if (label == null) 0f else text.fontMetrics.let { it.descent - it.ascent }
-        // The icon and its label are centred together in the cell, as the
-        // launcher centres them.
-        val iconCenterY = bounds.centerY() - (gap + labelHeight) / 2f
-
-        if (item.folderIcons.isNotEmpty()) {
-            drawFolder(canvas, bounds.centerX(), iconCenterY, iconSize, item.folderIcons)
-        } else if (item.icon == null) {
-            paint.color = Color.argb(120, 18, 18, 22)
-            canvas.drawCircle(bounds.centerX(), iconCenterY, iconSize / 2f, paint)
-        } else {
-            drawDrawable(canvas, item.icon, bounds.centerX(), iconCenterY, iconSize)
-        }
-
-        if (label == null || labelSize <= 0f) return
-        val fitted = TextUtils.ellipsize(label, text, bounds.width(), TextUtils.TruncateAt.END)
-        val baseline = iconCenterY + iconSize / 2f + gap - text.fontMetrics.ascent
-        canvas.drawText(fitted, 0, fitted.length, bounds.centerX(), baseline, text)
-    }
-
-    /**
-     * The dock and search bar, borrowed from a photographed page when there is
-     * one, since they are the same on every page; the dock's icons otherwise.
-     */
-    private fun drawDock(canvas: Canvas, geometry: PageGeometry?, iconSize: Float) {
-        val dock = preview.dock
-        if (geometry != null && dock != null) {
-            // The band is borrowed with a strip of wallpaper above it, and only
-            // that strip fades in, so the photographed wallpaper blends into
-            // this page's without the search bar at the top of the band fading.
-            val band = geometry.dock
-            val bleed = (band.height() * DOCK_BLEED).coerceAtMost(band.top)
-            val borrowed = RectF(band.left, band.top - bleed, band.right, band.bottom)
-            val source = Rect(
-                (borrowed.left * dock.width).roundToInt(),
-                (borrowed.top * dock.height).roundToInt(),
-                (borrowed.right * dock.width).roundToInt(),
-                (borrowed.bottom * dock.height).roundToInt(),
-            )
-            val target = borrowed.within(page)
-            val layer = canvas.saveLayer(target, null)
-            paint.color = Color.WHITE
-            canvas.drawBitmap(dock, source, target, paint)
-            paint.shader = LinearGradient(
-                0f,
-                target.top,
-                0f,
-                band.within(page).top,
-                Color.TRANSPARENT,
-                Color.WHITE,
-                Shader.TileMode.CLAMP,
-            )
-            paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
-            canvas.drawRect(target, paint)
-            paint.xfermode = null
-            paint.shader = null
-            canvas.restoreToCount(layer)
-            return
-        }
-
-        val band = geometry?.dock?.within(page)
-            ?: RectF(page.left, page.top + page.height() * 0.87f, page.right, page.bottom - page.height() * 0.03f)
+        val band = RectF(page.left, page.top + page.height() * 0.87f, page.right, page.bottom - page.height() * 0.03f)
         val slots = maxOf(preview.hotseatIcons.size, 4)
         val slotWidth = band.width() / slots
-        val size = if (geometry != null) iconSize else min(slotWidth, page.height() * 0.07f) * 0.7f
+        val size = min(slotWidth, page.height() * 0.07f) * 0.7f
         preview.hotseatIcons.forEachIndexed { index, icon ->
             drawDrawable(canvas, icon, band.left + slotWidth * (index + 0.5f), band.bottom - band.width() / slots / 2f, size)
         }
     }
 
-    /** A rectangle given as fractions of the launcher window, placed on the miniature. */
-    private fun RectF.within(frame: RectF) = RectF(
-        frame.left + left * frame.width(),
-        frame.top + top * frame.height(),
-        frame.left + right * frame.width(),
-        frame.top + bottom * frame.height(),
-    )
-
     /**
-     * A widget on a page with no snapshot of its own.
+     * A widget on a page drawn from the model.
      *
      * Its own preview picture fills its footprint, the way the widget fills its
      * cells, with the rounding a widget on the home screen has. There is no
@@ -477,7 +378,5 @@ internal class FocusPagePreviewView(
         private const val WIDGET_INSET = 0.04f
         private const val WIDGET_CORNER = 0.12f
 
-        /** How much wallpaper above the dock band is borrowed with it, to fade in, as a share of its height. */
-        private const val DOCK_BLEED = 0.25f
     }
 }

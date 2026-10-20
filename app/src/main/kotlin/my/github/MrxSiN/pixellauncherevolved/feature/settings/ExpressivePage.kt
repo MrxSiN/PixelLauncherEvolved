@@ -118,7 +118,9 @@ class ExpressivePage(private val context: Context) {
             addView(column)
             setOnApplyWindowInsetsListener { view, insets ->
                 val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-                view.setPadding(bars.left, bars.top, bars.right, bars.bottom + dp(24f))
+                // A text field on the page brings the keyboard up over its lower part.
+                val keyboard = insets.getInsets(WindowInsets.Type.ime()).bottom
+                view.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, keyboard) + dp(24f))
                 insets
             }
         }

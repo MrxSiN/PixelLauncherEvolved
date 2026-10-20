@@ -2811,3 +2811,62 @@ com.android.launcher3.model.GridSizeMigrationLogic
   `cellLayoutHeightSpecification` 2181, `cellLayoutPaddingPx` 32, gaps 49 x 37 px, `iconTextSizePx` 42;
   with Relaxed gaps (x1.25), 48dp cells and one label line this offers 3–6 columns and 3–8 rows; All
   apps 3–6 columns.
+
+## App labels (Android 17 QPR1, launcher 907, verified October 13, 2026)
+
+```
+BubbleTextView.applyIconAndLabel(ItemInfoWithIcon)
+  ... setContentDescription(info.contentDescription)          progress level 100
+  applyLabel(info.title, info.contentDescription, isInactiveArchive, isDisabled)
+      setText(title); contentDescription only reworded when disabled
+BubbleTextView.applyFromApplicationInfo(AppInfo) / applyFromWorkspaceItem / applyFromItemInfoWithIcon
+  applyIconAndLabel(info); setItemInfo(info)  (tag set AFTER the label); applyDotState(info, false)
+BubbleTextView.applyDotState(ItemInfo, boolean)   rewrites the description from info.contentDescription
+                                                  or info.title ("X has 1 notification")
+BubbleTextView.mDisplay   iconDisplay: workspace 0, all_apps 1, folder 2, widget_section 3,
+                          shortcut_popup 4, taskbar 5, search_result_tall 6, _small 7,
+                          prediction_row 8, search_result_app_row 9, _inline 10
+AppInfoComparator.compare(AppInfo, AppInfo)   appTitle if non-empty else title, LabelComparator,
+                                              then componentName, then user
+AppsListData.<init>(AppInfo[], int)           every publication of the drawer's apps (loader,
+                                              ModelTaskController.bindApplicationsIfNeeded, ...);
+                                              the AppInfo objects are the model's own, not copies
+AllAppsList.add                               sectionName = mIndex.computeSectionName(title)
+AlphabeticIndexCompat(LocaleList).computeSectionName(CharSequence)
+SearchSession.query(Query, Executor, Consumer<List<SearchTarget>>)   app search, answered by ASI
+o4.d(ItemInfo) (fallback search)              SearchTarget.Builder(1, "icon", "APPLICATION:<user>:<pkg>:<cls>")
+                                              .setPackageName.setUserHandle.setExtras({"class": cls})
+StringMatcherUtility.matches(String, String, StringMatcher)
+```
+
+- The tag is set after the label, so the item comes from `applyIconAndLabel`'s argument and is
+  passed to `applyLabel` through a per-thread slot (the taskbar binds on its own thread).
+- `ItemInfo.getTargetComponent()` allocates an `Optional` and a lambda; the feature reads
+  `AppInfo.componentName`, else `getIntent().getComponent()`, else `mComponentName`.
+- Only `itemType == 0` (application) is renamed; deep shortcuts (6) keep their own label.
+- `applyLabel` sets the description only for a disabled app, and `applyDotState` rewrites it after
+  every bind and dot change, so the description is set after `applyLabel` and again after
+  `applyDotState` (replacing the app's own description inside the launcher's dot wording).
+- The stock global `pref_workspace_items_label_hidden` (`LauncherPrefs.WORKSPACE_ITEMS_LABEL_HIDDEN`)
+  is written by `LoaderTask` only on desktop and feeds `WorkspaceProfile.isItemsLabelHidden`, which
+  sizes cells without a label line. Home settings on a phone has no row for it.
+- The search service never sees the custom name. A result built like the launcher's own fallback
+  app result, put at the head of the list, renders as an ordinary app icon result and launches.
+
+### Long-press menu (Compose popup, 907)
+
+```
+PopupControllerForAppIcon.show(View)
+  getSupportedShortcuts(item) -> SystemShortcut -> PopupItem(iconResId, StringContainer, Function0, PopupCategory)
+  PopupContainerWithArrow.showComposePopup(int deepShortcutCount, List<PopupItem>)
+PopupContainer.itemInfo                         the item the menu is for
+PopupMenuItemsKt.SystemShortcutMenuItem         casts label to StringContainer$ResourceString
+```
+
+- The menu renders only `StringContainer$ResourceString(resId)`: a proxy `StringContainer` crashed
+  the launcher with a `ClassCastException` (R8 knows one implementation). The row uses the
+  launcher's own `string/folder_hint_text` ("Edit Name", translated) and
+  `drawable/material_ic_edit_black_24dp`; the action is a proxy of the constructor's third
+  parameter type (a shrunk `Function0`).
+- Pause app is found by its label's `resId` (`string/pause_app_label`); the row goes after it, or
+  last when the app has no Pause app.

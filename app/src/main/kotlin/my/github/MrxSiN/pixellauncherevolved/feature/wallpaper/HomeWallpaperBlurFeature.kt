@@ -128,10 +128,10 @@ class HomeWallpaperBlurFeature : ToggleFeature(Settings.HOME_BLUR_WALLPAPER) {
      * of its own, stays sharp. Read that file's three rejected gates before
      * trying to narrow this: the obvious ones were measured and none held.
      *
-     * [LauncherDepth.revealHome] is watched so the module knows a pause raised
-     * inside the animation home from any other, which is what such a gate would
-     * be built on. Nothing is gated on it here — the skip is unconditional
-     * while the tweak is on, exactly as recovered.
+     * A gate would be built on [LauncherDepth.revealHome], which tells a
+     * pause raised inside the animation home from any other. Nothing is gated
+     * here — the skip is unconditional while the tweak is on, exactly as
+     * recovered — so it is not watched.
      *
      * When the pause is not skipped it still leaves the workspace effect
      * behind, so that clearing stays: pausing applies depth and blur again,
@@ -144,24 +144,8 @@ class HomeWallpaperBlurFeature : ToggleFeature(Settings.HOME_BLUR_WALLPAPER) {
     private fun installPausedBlur(context: FeatureContext, depth: LauncherDepth, blur: HomeBlurDepth) {
         val pause = depth.pauseBlurs ?: return
 
-        // Read by the pause below, which runs on the same thread the animation
-        // is built on, so the two never overlap.
-        var revealing = false
-
-        depth.revealHome?.let { reveal ->
-            context.xposed.hook(reveal).intercept { chain ->
-                revealing = true
-                try {
-                    chain.proceed()
-                } finally {
-                    revealing = false
-                }
-            }
-        }
-
         context.xposed.hook(pause).intercept { chain ->
             val isPausing = chain.getArg(0) == true
-            context.logger.info("Blur pause: pausing=$isPausing revealing=$revealing")
 
             // Answered without being passed on, so the launcher's blurs stay on
             // and the wallpaper keeps its blur through the animation.

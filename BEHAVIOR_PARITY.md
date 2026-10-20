@@ -142,3 +142,44 @@ extremes, 3-button navigation, work profile, a hidden dock combined with a custo
 style previews of other grids while a custom grid is set, import onto another device. Tests:
 `GridSpecTest`, `SettingsBackupTest`, `CrashGuardTest`, `LauncherContractsTest`,
 `FeatureRegistryCompatibilityTest`.
+
+## App labels (device, Pixel 8 Pro, launcher 907, 2026-10-13)
+
+New feature, `home_app_labels`, stock by default: with no label stored the feature logs "none
+chosen; nothing hooked" and installs no hook, so every bind, sort and search is the launcher's own.
+Verified on device:
+
+- App labels page (moved to App drawer → Apps on 2026-10-13) with Per-app labels and Reset custom labels (greyed with none);
+  the editor lists every app with icon, searchable; the dialog shows the app's own name and
+  component.
+- Calculator renamed "Zeta Math": the first label installed the hooks live (no restart) and the
+  launcher reloaded in 0.7 s; the drawer shows it last, under Z, after YT Studio and before Zoom;
+  typing "zeta" and "calcu" both find it; its node reads text "Zeta Math", description "Zeta Math,
+  Calculator". Survived a launcher restart.
+- Hide label in app drawer: the label is empty and the icon keeps its place; TalkBack text unchanged.
+- WhatsApp (dock) renamed "WA": description "WA, WhatsApp has 1 notification". Keep Notes with Home
+  label hidden: empty label, icon in place, description "Keep Notes".
+- Reset custom labels: every label back, key removed, row greyed.
+
+Not verified: work profile / Private Space / clones (none on the test phone), folder contents and
+the drawer suggestions row with a renamed app, RTL, font and display size extremes, landscape,
+foldable/tablet/taskbar layouts, Safe Mode with labels set, TalkBack gestures (node text read with
+uiautomator only), export/import on device, desktop mode where Pixel Launcher hides Home labels
+itself. Tests: `AppLabelFormatTest` (format, profiles kept apart, bounds, store publish, backup by
+profile kind), `LauncherContractsTest`, `SettingsBackupTest`.
+
+Notes: the search box's inline completion shows the shown name ("calcu Zeta Math"), because the
+launcher completes from the result's label. Pixel Launcher offers no global label setting on a
+phone in 907 (its `WORKSPACE_ITEMS_LABEL_HIDDEN` is set only in desktop mode, where cells are sized
+without a label line), so there is no "follow" row: an app's label follows Pixel Launcher unless it
+is hidden for that app, and hiding is the only per-app override.
+
+### App labels: Home screen only and Edit Name (device, 2026-10-13)
+
+- Long-press on a Home icon (Keep Notes): **Edit Name** right after Pause app, launcher icon and the
+  launcher's own translated "Edit Name"; it opened the editor over the Home screen; "Notes" applied
+  live (reload 0.36 s), description "Notes, Keep Notes". Long-press in the drawer: the same row after
+  Pause app. Folders, shortcuts and widgets get no row.
+- **Rename on Home screen only** on: Home still "Notes"; drawer search for "keep" lists "Keep Notes".
+  Switched off and labels reset afterwards; settings file equal to the pre-test copy apart from the new
+  key (false) and one Safe Mode crash timestamp from a failed first attempt (see HOOK_NOTES).

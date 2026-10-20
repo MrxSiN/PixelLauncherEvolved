@@ -88,11 +88,22 @@ class OverviewActionsFeature : LauncherFeature {
     private fun watchBeforeDraw(row: ViewGroup, settings: SettingsSource) {
         if (!watchedRows.add(row)) return
 
-        row.viewTreeObserver.addOnPreDrawListener(
-            ViewTreeObserver.OnPreDrawListener {
-                !row.isShown || !apply(row, settings)
-            },
-        )
+        val watcher = object : ViewTreeObserver.OnPreDrawListener, View.OnAttachStateChangeListener {
+            override fun onPreDraw(): Boolean = !row.isShown || !apply(row, settings)
+
+            override fun onViewAttachedToWindow(view: View) {
+                // A re-attach gives the row a different observer to register
+                // with; removing first keeps one listener rather than two.
+                view.viewTreeObserver.removeOnPreDrawListener(this)
+                view.viewTreeObserver.addOnPreDrawListener(this)
+            }
+
+            // Still the window's observer here; left on it, this would keep the
+            // row, and the activity it belongs to, for as long as the window.
+            override fun onViewDetachedFromWindow(view: View) = view.viewTreeObserver.removeOnPreDrawListener(this)
+        }
+        row.viewTreeObserver.addOnPreDrawListener(watcher)
+        row.addOnAttachStateChangeListener(watcher)
     }
 
     /** Hides and restores the row's buttons, answering whether any of them changed. */

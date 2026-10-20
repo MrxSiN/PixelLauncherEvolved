@@ -348,12 +348,10 @@ private class LauncherLifecycle(
         if (taskbar.launcherIsResumed()) return@Runnable
 
         if (taskbar.believesLauncherIsInFront() == true) {
-            context.logger.info("Taskbar: the launcher paused; taking back its place in front")
             taskbar.tell(false)
         }
 
         if (taskbar.believesItIsInAnApp() == false) {
-            context.logger.info("Taskbar: the launcher paused; the taskbar is in an app")
             taskbar.tellItIsInAnApp()
         }
     }
@@ -362,7 +360,6 @@ private class LauncherLifecycle(
         if (!taskbar.launcherIsResumed()) return@Runnable
 
         if (taskbar.believesLauncherIsInFront() == false) {
-            context.logger.info("Taskbar: the launcher resumed; giving it back its place in front")
             taskbar.tell(true)
         }
     }
@@ -376,7 +373,10 @@ private class LauncherLifecycle(
 
     private fun state(repair: Runnable) {
         if (!LiveLayout.taskbar) return
-        handler.removeCallbacks(repair)
+        // Both: a pause answered by a resume before its repair ran (Home
+        // pressed on home) needs no repair at all.
+        handler.removeCallbacks(paused)
+        handler.removeCallbacks(resumed)
 
         // On the next message, because the taskbar starts drawing itself out of
         // the pill 18 ms after a pause and a correction that arrives later is a

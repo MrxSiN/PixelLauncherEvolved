@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **App labels**, in Home settings → Pixel Launcher Evolved → App drawer → App labels. **Per-app
+  labels** lists every app (searchable, with work, private-space and cloned apps marked); each opens
+  a dialog with a **Name** (empty uses the app's own), **Show label on Home screen**, **Show label in
+  app drawer** and the app's own name and component for reference. A new name shows on the Home
+  screen, the dock, folders, the drawer, its suggestions row and search results; the drawer sorts
+  and letters the app under it; search finds the app by either name; TalkBack reads the new name
+  then the app's own description ("Zeta Math, Calculator"), notification wording included. A hidden
+  label leaves the icon where it was. Deep shortcuts and Recents keep their own titles. Stored per
+  component and profile in `home_app_labels`; nothing in the launcher's database or icon cache is
+  rewritten. **Reset custom labels** returns every app to stock. Nothing is hooked until the first
+  label is chosen. Backed up under `appLabels` with the profile named by kind.
+  **Rename on Home screen only** keeps new names to the Home screen, dock and folders, leaving the
+  drawer, its order and search on each app's own name. **Edit Name** in an app's long-press menu,
+  right after Pause app, on the Home screen and in the drawer, opens the same dialog.
+
 ## 0.1.4
 
 ### Added

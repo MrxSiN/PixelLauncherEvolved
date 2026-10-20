@@ -74,3 +74,20 @@ everything.
   does not fit or a Home screen widget could not fit the imported grid. Reset puts every key back
   through the same live path. Safe Mode stores the values it reset as `key=value` entries in
   `safe_mode_disabled`.
+
+- **App labels (new state):** one preference key in the same file, `home_app_labels`: JSON
+  `{"version":1,"apps":[{"user","package","class","name","hideHome","hideDrawer"}]}`, sorted, with
+  only entries that change something. A missing key or an unreadable or newer `version` reads as no
+  labels, so an upgrade changes nothing. Keyed by component and user id together, so a work, private
+  or cloned copy of an app has its own entry. Nothing is written to the launcher's database or icon
+  cache: names are applied when a label is bound, so removing the module shows every app's own label
+  at the next bind. An uninstalled app's entry is kept (a reinstall of the same component in the same
+  profile gets it back); entries for a profile that no longer exists are dropped when the editor
+  opens; **Reset custom labels** and Reset all tweaks remove the key. Backup: optional array
+  `appLabels` (`package`, `class`, `profile` = `personal`/`work`/`private`/`clone`, `name`,
+  `hideHome`, `hideDrawer`), still format `version` 1. The user number is never written: an import
+  places each entry on this device's profile of that kind and drops kinds it does not have. Older
+  files read with no labels; older module versions ignore the name.
+
+- **App labels, Home screen only (new state):** bool `home_app_labels_home_only`, default false;
+  backed up as `appLabelsHomeOnly`. A missing key reads false, so an upgrade changes nothing.

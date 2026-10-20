@@ -10,6 +10,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusHomeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.gesture.DoubleTapToSleepFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.grid.GridFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.icons.IconPackFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.labels.AppLabelsFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.OverviewOnlyFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarAllAppsButtonFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TaskbarHomeVisibilityFeature
@@ -52,6 +53,7 @@ object FeatureRegistry {
         DockFeature(),
         GridFeature(),
         IconPackFeature(),
+        AppLabelsFeature(),
         HiddenAppsFeature(),
         HideAppsPickerFeature(),
         AppDrawerSearchFeature(),

@@ -116,3 +116,20 @@ features' code; the icon sources were read with `scripts/dex-audit.py` against t
 
 No reflection lookup, preference read, XML parse or resource enumeration is reachable from these
 hooks after install.
+
+## App label hooks (icon bind, drawer sort, search)
+
+None of these is installed until a label exists. Read from source and the release mapping
+(R8 merges the intercept lambdas with unrelated ones):
+
+| Source | Sites on the normal path |
+|---|---|
+| `applyIconAndLabel` hook, no label for the item | volatile `AppLabels.current`, `ThreadLocal.get` (slot allocated once per thread), `Field.getInt(itemType)`, `Field.get(user/componentName)` or `Method.invoke(getIntent, Invoke.NONE)`, `ComponentHash` fold and binary search (no allocation), `proceed` |
+| `applyLabel` hook, renamed or hidden | one 4-element argument array for `proceed`; the name and description are stored strings (description built once per entry and reused while the launcher's own description is the same object); `View.setContentDescription` |
+| `applyDotState` hook, renamed | `String.replace` once per dot bind when the launcher's wording names the app (renamed apps only) |
+| `AppInfoComparator.compare` hook | with no names stored: volatile read, `proceed`. With names: two lookups, and for a pair with a renamed app a 2-element varargs array for `LabelComparator.compare`. Sort path, not a frame path |
+| `AppsListData.<init>` hook | per drawer publication: one lookup per app, `computeSectionName` and `Field.set` for renamed apps |
+| `SearchSession.query` hook | per query with names stored: `String.lowercase`, `StringMatcherUtility.matches` per renamed app; a wrapping `Consumer` and new result list only when a name matches |
+
+No preference read, JSON parse, resource lookup, class or member lookup or logging is reachable from
+these hooks after install, except `Log.w` on failure.

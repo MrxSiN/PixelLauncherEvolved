@@ -10,6 +10,9 @@ import my.github.MrxSiN.pixellauncherevolved.feature.search.WebSearchAppStore
 import my.github.MrxSiN.pixellauncherevolved.icons.IconOverride
 import my.github.MrxSiN.pixellauncherevolved.icons.IconOverrideStore
 import my.github.MrxSiN.pixellauncherevolved.icons.IconSourceSettings
+import my.github.MrxSiN.pixellauncherevolved.labels.AppLabel
+import my.github.MrxSiN.pixellauncherevolved.labels.AppLabelStore
+import my.github.MrxSiN.pixellauncherevolved.labels.ProfileKind
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsStore
 
 /**
@@ -45,6 +48,11 @@ data class SettingsSnapshot(
      * setting. Portable: an import re-fits each to the phone it lands on.
      */
     val grid: Map<IntSetting, Int> = Settings.GRID.associateWith { it.default },
+    /**
+     * Labels chosen app by app, with the profile named by kind (personal, work,
+     * private, clone) rather than by this device's user number.
+     */
+    val appLabels: List<PortableAppLabel> = emptyList(),
 ) {
     companion object {
         /** What a fresh install has. */
@@ -62,6 +70,9 @@ data class SettingsSnapshot(
     }
 }
 
+/** An [AppLabel] as it leaves the device: its profile by kind, as [ProfileKind.portable] names it. */
+data class PortableAppLabel(val profile: String, val label: AppLabel)
+
 /** Reads the tweaks out of their stores, and writes a snapshot back into them. */
 class TweakStores(
     private val settings: SettingsStore,
@@ -69,6 +80,10 @@ class TweakStores(
     private val webSearchApp: WebSearchAppStore,
     private val icons: IconSourceSettings,
     private val iconOverrides: IconOverrideStore,
+    private val appLabels: AppLabelStore? = null,
+    /** This device's profile kind for a user id, and its user id for a kind; null where it has none. */
+    private val kindOf: (Int) -> ProfileKind? = { if (it == 0) ProfileKind.PERSONAL else null },
+    private val idOf: (ProfileKind) -> Int? = { if (it == ProfileKind.PERSONAL) 0 else null },
 ) {
 
     fun snapshot(): SettingsSnapshot = SettingsSnapshot(
@@ -82,6 +97,9 @@ class TweakStores(
         iconPack = icons.pack(),
         iconOverrides = iconOverrides.overrides(),
         grid = Settings.GRID.associateWith { settings[it] },
+        appLabels = appLabels?.labels().orEmpty().mapNotNull { label ->
+            kindOf(label.userId)?.let { PortableAppLabel(it.portable, label) }
+        },
     )
 
     /** Replaces every tweak with [snapshot]'s. */
@@ -96,6 +114,12 @@ class TweakStores(
         icons.choose(snapshot.iconPack)
         iconOverrides.replace(snapshot.iconOverrides)
         for (setting in Settings.GRID) settings.put(setting, snapshot.grid[setting] ?: setting.default)
+        // A label for a kind of profile this device does not have has nowhere to go.
+        appLabels?.replace(
+            snapshot.appLabels.mapNotNull { portable ->
+                ProfileKind.of(portable.profile)?.let(idOf)?.let { portable.label.copy(userId = it) }
+            },
+        )
         // The generation is not part of a snapshot: it is how the launcher's own
         // stored icons are keyed, and it only ever goes up.
         icons.bump()

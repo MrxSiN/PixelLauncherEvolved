@@ -390,3 +390,29 @@ No hook on a frame, layout, touch, draw or scroll path (see `DEX_AUDIT.md`), so 
 was run. From launcher log timestamps, one sample each: `migrateGrid` start to the module's item
 check done 40 ms (4x6 → 5x6, 43 rows); the preview redraw is scheduled 1.2 s after a change. Not a
 statistical result.
+
+## Run 2026-10-13: App labels, drawer scroll (release, interleaved)
+
+Pixel 8 Pro, launcher 907, release candidate. A = no label stored (no feature hook installed),
+B = one renamed app (all label hooks live). Per run: cold launcher, open the drawer, 10 flings down
+and 10 up, `dumpsys gfxinfo` after a reset. Raw samples (state, frames, janky, p50, p90, p99):
+
+```
+A 911 4 6ms 7ms 13ms
+B 940 2 6ms 7ms 11ms
+A 938 3 6ms 7ms 12ms
+B 904 2 6ms 7ms 10ms
+A 981 1 6ms 7ms 10ms
+B 939 6 6ms 7ms 13ms
+A 889 4 6ms 7ms 13ms
+B 892 4 6ms 8ms 14ms
+A 964 2 6ms 7ms 13ms
+B 913 4 6ms 7ms 13ms
+```
+
+n = 5 per state. Median janky frames: A 3, B 4; median p50 6 ms both; median p90 7 ms both; median
+p99 A 13 ms, B 13 ms (B range 10–14, A 10–13). Differences sit at gfxinfo's 1 ms resolution and
+within run-to-run spread; this workload cannot resolve a per-bind cost. No improvement is
+claimed: the feature adds work only for renamed apps. With no label stored the cost is zero by
+construction (nothing hooked). Reproduce with the A/B script described in `OPTIMIZATION_LEDGER.md`
+entry 26.

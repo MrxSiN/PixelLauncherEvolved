@@ -38,6 +38,18 @@ object FocusPlan {
     }
 
     /**
+     * The screens home shows alongside [screen], itself included, in order:
+     * its Mode's pages when it is set aside for one, the ordinary pages
+     * otherwise. Which part of the wallpaper is behind a page depends on where
+     * it stands among these.
+     */
+    fun shownWith(screen: Int, screens: List<Int>, assignments: Map<String, Set<Int>>): List<Int> {
+        val owner = assignments.values.firstOrNull { screen in it }
+            ?: return screens(screens, assignments, chosen = null)
+        return screens.filter { it in owner }
+    }
+
+    /**
      * The mode whose pages win, or null when the home screen is the ordinary one.
      *
      * A mode with no pages of its own is not a winner: it is on, but it has

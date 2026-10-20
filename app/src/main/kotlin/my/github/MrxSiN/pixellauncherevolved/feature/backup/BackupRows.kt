@@ -16,6 +16,8 @@ import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsRow
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.activityOrNull
 import my.github.MrxSiN.pixellauncherevolved.icons.IconSourceSettings
 import my.github.MrxSiN.pixellauncherevolved.icons.IconOverrideStore
+import my.github.MrxSiN.pixellauncherevolved.labels.AppLabelStore
+import my.github.MrxSiN.pixellauncherevolved.labels.Profiles
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 
 /**
@@ -30,12 +32,16 @@ internal object BackupRows : SettingsRow {
 
     override fun addTo(group: Any, scope: RowScope) {
         val activity = scope.context.activityOrNull()
+        val profiles = Profiles(scope.context)
         val tweaks = TweakStores(
             settings = scope.settings,
             hiddenApps = SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(scope.context)),
             webSearchApp = SharedPreferencesWebSearchAppStore(LauncherSettings.preferences(scope.context)),
             icons = IconSourceSettings(LauncherSettings.preferences(scope.context)),
             iconOverrides = IconOverrideStore(LauncherSettings.preferences(scope.context)),
+            appLabels = AppLabelStore(LauncherSettings.preferences(scope.context)),
+            kindOf = profiles::kindOf,
+            idOf = profiles::idOf,
         )
 
         scope.api.add(

@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.APP_DRAWER_COLUMNS
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.APP_LABELS
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.APP_DRAWER_SEARCH
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.BLUR_WALLPAPER
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.BUBBLE_LAUNCHER
@@ -40,6 +41,7 @@ enum class CompatibilityFeature(@param:StringRes val titleRes: Int) {
     APP_DRAWER_COLUMNS(R.string.compatibility_app_drawer_columns),
     HIDDEN_APPS(R.string.feature_hidden_apps_title),
     ICON_PACK(R.string.settings_page_icons),
+    APP_LABELS(R.string.settings_page_app_labels),
     APP_DRAWER_SEARCH(R.string.settings_group_search_results),
     OVERVIEW_ACTIONS(R.string.settings_group_overview_actions),
     BUBBLE_LAUNCHER(R.string.compatibility_bubble_launcher),
@@ -73,6 +75,9 @@ object LauncherContracts {
     private const val LAUNCHER_STATE = "com.android.launcher3.LauncherState"
     private const val BASE_STATE = "com.android.launcher3.statemanager.BaseState"
     private const val ITEM_INFO = "com.android.launcher3.model.data.ItemInfo"
+    private const val ITEM_INFO_WITH_ICON = "com.android.launcher3.model.data.ItemInfoWithIcon"
+    private const val ITEM_INFO_WITH_ICON_VIEW = "com.android.launcher3.BubbleTextView"
+    private const val APP_INFO = "com.android.launcher3.model.data.AppInfo"
     private const val MODEL_CALLBACKS = "com.android.launcher3.ModelCallbacks"
     private const val WORKSPACE = "com.android.launcher3.Workspace"
     private const val ALL_APPS_VIEW = "com.android.launcher3.allapps.ActivityAllAppsContainerView"
@@ -137,6 +142,11 @@ object LauncherContracts {
         optional(WORKSPACE, Member.Method("insertNewWorkspaceScreen"), FOCUS_HOME_SCREENS),
         optional("com.android.launcher3.model.WorkspaceItemSpaceFinder", Member.Method("findSpaceForItem"), FOCUS_HOME_SCREENS),
         contract(LAUNCHER, Member.Field("mModel"), FOCUS_HOME_SCREENS),
+        // Focus page previews, drawn by the launcher's own preview; a page is drawn from the model without it
+        optional("com.android.launcher3.dagger.LauncherComponentProvider", method("get", "android.content.Context"), FOCUS_HOME_SCREENS),
+        optional("com.android.launcher3.dagger.LauncherBaseAppComponent", method("getGridCustomizationsProxy"), FOCUS_HOME_SCREENS),
+        optional("com.android.launcher3.preview.PreviewSurfaceRenderer", Member.Field("mLifeCycleTracker"), FOCUS_HOME_SCREENS),
+        optional("com.android.launcher3.util.RunnableList", method("executeAllAndDestroy"), FOCUS_HOME_SCREENS),
 
         // Organize home screens
         contract("com.android.launcher3.LauncherAppState", Member.Field("model"), ORGANIZE_PAGES),
@@ -188,6 +198,46 @@ object LauncherContracts {
             "com.android.launcher3.icons.BitmapInfo",
             method("newIcon", CONTEXT, INT, "com.android.launcher3.icons.IconShape"),
             ICON_PACK,
+        ),
+
+        // App labels: the label put on an app icon, the drawer's order and letters, and search by the new name
+        contract(ITEM_INFO_WITH_ICON_VIEW, method("applyIconAndLabel", ITEM_INFO_WITH_ICON), APP_LABELS),
+        contract(
+            ITEM_INFO_WITH_ICON_VIEW,
+            method("applyLabel", "java.lang.CharSequence", "java.lang.CharSequence", BOOLEAN, BOOLEAN),
+            APP_LABELS,
+        ),
+        contract(ITEM_INFO_WITH_ICON_VIEW, Member.Field("mDisplay"), APP_LABELS),
+        optional(ITEM_INFO_WITH_ICON_VIEW, method("applyDotState", ITEM_INFO, BOOLEAN), APP_LABELS),
+        optional(ITEM_INFO, Member.Field("contentDescription"), APP_LABELS),
+        contract(ITEM_INFO, Member.Field("itemType"), APP_LABELS),
+        contract(ITEM_INFO, Member.Field("user"), APP_LABELS),
+        contract(ITEM_INFO, method("getIntent"), APP_LABELS),
+        optional(ITEM_INFO, Member.Field("mComponentName"), APP_LABELS),
+        optional(APP_INFO, Member.Field("componentName"), APP_LABELS),
+        // Without these a renamed app keeps its own place and letter in the drawer.
+        optional("com.android.launcher3.allapps.AppInfoComparator", method("compare", APP_INFO, APP_INFO), APP_LABELS),
+        optional("com.android.launcher3.allapps.AppInfoComparator", Member.Field("mLabelComparator"), APP_LABELS),
+        optional("com.android.launcher3.util.LabelComparator", method("compare", "java.lang.String", "java.lang.String"), APP_LABELS),
+        optional(ITEM_INFO, Member.Field("title"), APP_LABELS),
+        optional(APP_INFO, Member.Field("sectionName"), APP_LABELS),
+        optional("com.android.launcher3.model.data.AppsListData", Member.Field("apps"), APP_LABELS),
+        optional(
+            "com.android.launcher3.compat.AlphabeticIndexCompat",
+            method("computeSectionName", "java.lang.CharSequence"),
+            APP_LABELS,
+        ),
+        // Without these the long-press menu has no Rename row.
+        optional("com.android.launcher3.popup.PopupContainerWithArrow", method("showComposePopup", INT, "java.util.List"), APP_LABELS),
+        optional("com.android.launcher3.popup.PopupContainer", Member.Field("itemInfo"), APP_LABELS),
+        optional("com.android.launcher3.popup.ui.PopupItem", Member.Field("label"), APP_LABELS),
+        optional("com.android.launcher3.popup.ui.PopupItem", Member.Field("category"), APP_LABELS),
+        optional("com.android.launcher3.popup.ui.StringContainer\$ResourceString", Member.Field("resId"), APP_LABELS),
+        // Without these search finds a renamed app by its own label only.
+        optional(
+            "com.android.launcher3.search.StringMatcherUtility",
+            method("matches", "java.lang.String", "java.lang.String", "com.android.launcher3.search.StringMatcherUtility\$StringMatcher"),
+            APP_LABELS,
         ),
 
         // Dock: the hidden dock's row given to the Home screen, without a grid migration.

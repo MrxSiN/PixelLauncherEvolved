@@ -121,6 +121,7 @@ be in this module's scope in your Xposed manager.
 | Group | Tweak | What it does |
 |---|---|---|
 | Apps | **Columns** | Columns in All apps, from 3 up to what keeps a 48dp touch target; the launcher's own count reads "Default". Applies live. |
+| Apps | **App labels** | **Per-app labels**: rename an app, or hide its label on the Home screen or in the app drawer, app by app. Search finds the app by either name, the drawer sorts it under the new one, and TalkBack still says which app it is. **Rename on Home screen only** keeps new names to the Home screen, dock and folders. **Edit Name** in an app's long-press menu (Home screen and drawer, after Pause app) opens the same editor. Deep shortcuts and Recents keep their own names. **Reset custom labels** gives every app its own back. |
 | Apps | **Hidden apps** | Leaves the apps you pick out of the drawer and out of its search. Tapping it opens the drawer with a tick on every icon: tap the apps to hide, then the button in the corner. |
 | Search results | **Web Search** | Google's suggestions for what you typed. Switch off to take the whole group out. |
 | Search results | **Play Store** | Apps you could install. |

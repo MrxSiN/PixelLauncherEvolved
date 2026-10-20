@@ -14,8 +14,9 @@ grep -q '^com.google.android.apps.nexuslauncher$' "$META/scope.list"
 # around the point it was taken at. Every tweak still lives in the launcher.
 grep -q '^com.android.systemui$' "$META/scope.list"
 
-# Wallpaper & style is scoped for one thing: choosing the icon pack beside its
-# own Icons option. The choice is the launcher's, asked of it over grid_control.
+# Wallpaper & style is scoped for the icon pack beside its
+# own Icons option (asked of the launcher over grid_control), and to read the
+# wallpaper file the launcher may not read, for its Modes page previews.
 grep -q '^com.google.android.apps.wallpaper$' "$META/scope.list"
 test "$(wc -l < "$META/scope.list")" -eq 3
 grep -q 'IconsBridge.PICKER_PACKAGE' "$SRC/PixelLauncherEvolvedModule.kt"
@@ -114,15 +115,26 @@ grep -q 'FIXED = 1' "$SRC/feature/pages/PageOrder.kt"
 grep -q 'MODEL_EXECUTOR' "$SRC/feature/pages/LauncherPageRenumberer.kt"
 grep -q 'CASE screen' "$SRC/feature/pages/LauncherPageRenumberer.kt"
 grep -q 'focus.renumber(mapping)' "$SRC/feature/pages/ReorganizePagesScreen.kt"
-grep -q 'FocusPagePictures.renumber(mapping)' "$SRC/feature/pages/ReorganizePagesScreen.kt"
+grep -q 'FocusPageRenderer.renumber(mapping)' "$SRC/feature/pages/ReorganizePagesScreen.kt"
 grep -q 'previewLayout' "$SRC/feature/focus/WidgetPreviewRenderer.kt"
 # New apps never land on a page a Mode hides, and a page made by a drag is
 # neither refused nor rebound out from under the icon dropped on it.
 grep -q 'findSpaceForItem' "$SRC/feature/focus/FocusHomeFeature.kt"
 grep -q 'focus.hides(screen)' "$SRC/feature/focus/FocusHomeFeature.kt"
 grep -q 'focus.adopt(all)' "$SRC/feature/focus/FocusHomeFeature.kt"
-# A page picture is only dropped once its page is gone, never for missing a capture.
-grep -q 'pages: Set<Int>' "$SRC/feature/focus/FocusPageSnapshotStore.kt"
+# Focus page previews are drawn by the launcher's own preview, one page each,
+# never photographed off the live workspace; an older drawing never replaces a
+# newer one, and every preview drawn is released.
+grep -q 'workspace_page_id' "$SRC/feature/focus/FocusPageRenderer.kt"
+grep -q 'executeAllAndDestroy' "$SRC/feature/focus/FocusPageRenderer.kt"
+grep -q 'page.request != request' "$SRC/feature/focus/FocusPageRenderer.kt"
+! grep -q 'drawAtScreenPosition' "$SRC/feature/focus/FocusPagePreview.kt"
+# The wallpaper is read from its file through Wallpaper & style, never off the
+# display, so home never blanks and home's blur is put back only when drawn.
+! grep -q 'setAlpha(surface, 0f)' "$SRC/feature/focus/FocusPagePreview.kt"
+grep -q 'getWallpaperFile' "$SRC/bridge/WallpaperBridge.kt"
+grep -q 'WallpaperBridge.install' "$SRC/PixelLauncherEvolvedModule.kt"
+grep -q 'HomeBlurRadius.of' "$SRC/feature/focus/FocusPagePreview.kt"
 ! grep -q 'AlertDialog' "$SRC/feature/search/WebSearchAppDialog.kt"
 grep -q 'ExpressiveCardList' "$SRC/feature/focus/FocusModeList.kt"
 

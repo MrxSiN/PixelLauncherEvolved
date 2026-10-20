@@ -61,6 +61,11 @@ object FeatureCatalog {
         titleRes = R.string.feature_dock_move_title,
         summaryRes = R.string.feature_dock_move_summary,
     )
+    val APP_LABELS_HOME_ONLY = CatalogEntry(
+        setting = Settings.APP_LABELS_HOME_ONLY,
+        titleRes = R.string.app_labels_home_only_title,
+        summaryRes = R.string.app_labels_home_only_summary,
+    )
     val WEB_SEARCH = CatalogEntry(
         setting = Settings.APP_DRAWER_SEARCH_HIDE_WEB,
         titleRes = R.string.feature_app_drawer_search_web_title,
@@ -121,6 +126,7 @@ object FeatureCatalog {
         SEARCH_OPENS_DRAWER,
         SHOW_DOCK,
         DOCK_MOVE_TO_HOME,
+        APP_LABELS_HOME_ONLY,
         WEB_SEARCH,
         PLAY_STORE,
         SEARCH_IN_APPS,

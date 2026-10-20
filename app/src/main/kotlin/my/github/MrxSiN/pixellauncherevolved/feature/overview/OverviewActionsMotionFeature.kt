@@ -216,6 +216,9 @@ class OverviewActionsMotionFeature : LauncherFeature {
         }
 
         override fun onViewDetachedFromWindow(view: View) {
+            // Still the window's observer here; left on it, this would keep the
+            // row, and the activity it belongs to, for as long as the window.
+            view.viewTreeObserver.removeOnPreDrawListener(this)
             cancelTimed()
             opaqueFrames = 0
             state = State.AWAY

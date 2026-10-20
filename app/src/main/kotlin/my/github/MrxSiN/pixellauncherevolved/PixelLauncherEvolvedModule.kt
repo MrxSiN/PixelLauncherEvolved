@@ -17,6 +17,7 @@ import my.github.MrxSiN.pixellauncherevolved.hook.FeatureRegistry
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherRestarter
 import my.github.MrxSiN.pixellauncherevolved.bridge.Bridge
 import my.github.MrxSiN.pixellauncherevolved.bridge.IconsBridge
+import my.github.MrxSiN.pixellauncherevolved.bridge.WallpaperBridge
 import my.github.MrxSiN.pixellauncherevolved.picker.GridPicker
 import my.github.MrxSiN.pixellauncherevolved.picker.IconPackPicker
 import my.github.MrxSiN.pixellauncherevolved.reveal.SleepRevealOrigin
@@ -61,6 +62,9 @@ class PixelLauncherEvolvedModule : XposedModule() {
 
             IconsBridge.PICKER_PACKAGE -> {
                 logger.info("Loading in ${param.packageName}")
+                // Before the application: its providers are published, and can
+                // be called, before Application.onCreate runs.
+                WallpaperBridge.install(this, param.defaultClassLoader, logger)
                 ApplicationStartup(this, param.defaultClassLoader, logger, PICKER_APPLICATION)
                     .onApplicationCreated { application ->
                         installPicker(application, param.defaultClassLoader, logger)

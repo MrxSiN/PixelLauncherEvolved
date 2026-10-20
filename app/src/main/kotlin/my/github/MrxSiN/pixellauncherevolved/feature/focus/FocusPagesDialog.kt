@@ -1,13 +1,18 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.focus
 
+import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.content.res.Resources
+
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
+import my.github.MrxSiN.pixellauncherevolved.focus.FocusSnapshot
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
 import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
@@ -27,6 +32,33 @@ import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
  */
 internal object FocusPagesDialog {
 
+    private val reader: Executor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "ple-focus-modes").apply { isDaemon = true }
+    }
+
+    /** Main thread only. */
+    private var reading = false
+
+    /**
+     * Runs [read] off the main thread, then [then] on it, unless the screen
+     * that asked has gone. The Modes are read from this module's app, which
+     * may ask a root shell, so the launcher's main thread never waits on it.
+     * A second tap while one read is out is dropped, as the dialog it opens
+     * would have covered it.
+     */
+    fun <T> readThen(context: Context, read: () -> T, then: (T) -> Unit) {
+        if (reading) return
+        reading = true
+        reader.execute {
+            val value = read()
+            context.mainExecutor.execute {
+                reading = false
+                val activity = context as? Activity
+                if (activity == null || !(activity.isFinishing || activity.isDestroyed)) then(value)
+            }
+        }
+    }
+
     fun show(
         context: Context,
         resources: Resources,
@@ -34,7 +66,16 @@ internal object FocusPagesDialog {
         source: FocusSource,
         previewSource: FocusPagePreviewSource,
     ) {
-        val snapshot = source.snapshot()
+        readThen(context, source::snapshot) { snapshot -> show(context, resources, store, snapshot, previewSource) }
+    }
+
+    private fun show(
+        context: Context,
+        resources: Resources,
+        store: FocusStore,
+        snapshot: FocusSnapshot,
+        previewSource: FocusPagePreviewSource,
+    ) {
         store.forgetModesMissingFrom(snapshot)
         // A Mode switched off cannot come on, so it is not offered pages.
         val modes = snapshot.modes.filter(FocusMode::isEnabled)
@@ -53,7 +94,7 @@ internal object FocusPagesDialog {
             return
         }
 
-        val previews = previewSource.pages(FocusPages.order)
+        val previews = previewSource.pages(FocusPages.order, store.assignments())
         val list = FocusModeList(
             context,
             FocusModeList.Text(

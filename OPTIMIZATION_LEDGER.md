@@ -428,3 +428,105 @@ entries 1–6 together as one candidate, not one change at a time.
   pre-draw scrolls the Custom tile back into view; outside that window it costs one field read per frame.
 - **Result:** on device, Columns 4 → 5 and Rows 6 → 5 redraw the tile at once (5 × 6, 5 × 5) with
   Custom fully in view, one preview `initGrid` per change, real databases unchanged (md5).
+
+## 26. App labels hooked only once a label exists — ACCEPTED (design)
+
+- **Hypothesis:** label overrides touch the most frequent bind in the launcher
+  (`BubbleTextView.applyIconAndLabel`) and the drawer sort; most people will set none.
+- **Path:** `feature/labels/AppLabelsFeature.kt`, `labels/AppLabelStore.kt` (`onFirstLabels`).
+- **Mechanism:** at install the stored labels are compiled; with none, no hook is installed and the
+  store calls back the first time it publishes a non-empty set (from Home settings, same process),
+  which installs the hooks live. Once installed they stay; with no labels left each returns after a
+  volatile read. Lookup is a 64-bit component+user key, binary searched, no strings built per bind.
+- **Result:** default path costs nothing (no hook). Drawer scroll A/B in `PERFORMANCE.md`
+  (2026-10-13): p50/p90 identical, janky/p99 within noise. Script: cold launcher, toggle the
+  `home_app_labels` line in the prefs file with the launcher stopped, 10+10 flings, `dumpsys gfxinfo`.
+  **Caution:** inserting that line with `sed` broke the file (the JSON's `&quot;` is a sed
+  replacement metacharacter) and the launcher rewrote it nearly empty; the owner's settings were
+  restored from a copy. Back the file up first and write it whole (push a prepared copy) instead.
+- **Not tried:** fusing the two label hooks into one around `applyIconAndLabel` that swaps
+  `info.title` for the bind; rejected without measuring because it mutates the model's object, which
+  the model thread may write to the database at the same moment.
+
+## 27. App labels: Home screen only and Edit Name — ACCEPTED (feature)
+
+- **Path:** `feature/labels/AppLabelPopup.kt`, `AppLabelsFeature.kt`, `labels/AppLabels.java`.
+- **Mechanism:** Home-only is one static volatile, set whenever the store publishes, read only after a
+  label lookup already hit (bind) or before any sort/search work. The menu hook runs once per
+  long-press, allocates its row there, and is installed even with no label (a first label can come
+  from it). No frame, bind or scroll path changed for apps without a label.
+
+## 28. Modes page wallpaper read from its file, not off the display — ACCEPTED (bug fix, latency)
+
+- **Hypothesis:** the wallpaper capture (launcher surface alpha 0, then `ScreenCapture`) blanks home
+  and is never kept; reading the file through Wallpaper & style removes the blanking and gives every
+  page its own part of the wallpaper.
+- **Evidence before (2026-10-20, CP3A.261005.005, launcher 907):** 6.4 s after every return to home,
+  `input_focus` logs `Focus leaving … NexusLauncherActivity,reason=NOT_VISIBLE` for 165–240 ms.
+  Screenrecord: icons absent from 5827 to 5989 ms (Laplacian edge energy 25.7 against 519). Hiding the
+  surface drops window focus, so `isSettled` failed after the capture and every result was dropped:
+  `files/focus-page-previews/` stayed empty for 18 h and previews drew the gradient fallback. The
+  hidden frame was also still blurred (correlation with the wallpaper at Gaussian σ 20: 0.993, sharp:
+  0.900), so a kept capture would have been blurred twice.
+- **Path:** `bridge/WallpaperBridge.kt` (new, Wallpaper & style process), `feature/focus/FocusWallpaperStore.kt`,
+  `FocusPagePreview.kt` (`wallpaperOffset`, `wallpaperSection`, per-offset backdrops), `PixelLauncherEvolvedModule.kt`.
+- **Mechanism:** Wallpaper & style holds `READ_WALLPAPER_INTERNAL`; the launcher holds the permission of
+  its `RecentWallpapersProvider`. The module answers `ple_home_wallpaper` on that provider's `call`
+  (caller must be the launcher, shell or root): `getWallpaperFile(FLAG_SYSTEM)`, hidden
+  `getBitmapCrops([display], FLAG_SYSTEM, false)`, `BitmapRegionDecoder` of that crop sampled and
+  scaled to 1400 px tall, JPEG 90. The hook is installed at package load, because providers are
+  published before `Application.onCreate` (installed after it, the launcher's first call raced it and
+  got null). The launcher asks once per wallpaper (colours key) and keeps the JPEG; a page shows one
+  screen of the crop at the launcher's parallax offset (`i / (max(n, 4) − 1)`), zoomed by
+  `config_wallpaperMaxScale` less home's resting depth, then blurred as before.
+- **Result (device):** bridge picture 1258 × 1400 (crop 2017 × 2245, same aspect), correlation with
+  the dumpsys crop 0.991; no `NOT_VISIBLE` focus loss and no icon-less frame after returning home;
+  previews show the wallpaper once blurred, page 1 matching the live home, page 4 its trailing edge.
+  Release APK 1 140 536 → 1 124 152 bytes. One extra Wallpaper & style process start per wallpaper
+  change (off the main thread).
+- **Not verified on device:** offsets of pages other than the first against the live home (a Mode left
+  one page visible), RTL, live wallpapers (no file: previews keep the gradient, as before).
+
+## 29. Modes snapshot off the main thread; pages redrawn per opening — ACCEPTED (bug fix)
+
+- **Evidence before:** opening Modes pages read the Modes (`ProviderFocusSource.snapshot`, a provider in
+  this module's frozen app that may run `su`) on the launcher main thread: `Skipped 59 frames` on the
+  first opening, p99 250 ms on later ones. Pictures were redrawn only after a workspace bind, so a
+  widget's content could be stale.
+- **Path:** `FocusPagesDialog.readThen` (one daemon reader thread, drops a second tap while a read is
+  out, skips a finished activity), `HomeScreenRows.OrganizePagesRow`, `FocusPagePreviewSource.pages`.
+- **Result (device, 3 openings each):** janky 1.5–2.4 %, p99 16–25 ms while four pages redraw
+  (428–672 ms each, awake). Previous pictures stay up until replaced, so nothing blinks.
+
+## 30. Expected-path logging removed — ACCEPTED
+
+- `TaskbarHomeVisibilityFeature` logged on nearly every pause and resume ("taking back its place",
+  "giving it back") from the taskbar thread; `HomeWallpaperBlurFeature` logged every blur pause and
+  hooked `WorkspaceRevealAnim`'s constructor only to feed that log. Both removed; the reveal hook too.
+- A pause answered by a resume before its repair ran (Home pressed on home) now cancels the pending
+  opposite repair (`removeCallbacks` of both runnables).
+
+## 31. A Modes page sits on the wallpaper where its own home shows it — ACCEPTED (bug fix)
+
+- **Report (owner):** with Work on, the Work page's preview showed another part of the wallpaper than home.
+- **Cause:** entry 28 placed a page by its position among all pages. Home shows only the active
+  Mode's pages, or the ordinary ones, so a Mode's single page sits at offset 0.
+- **Fix:** `FocusPlan.shownWith(screen, order, assignments)` gives the pages shown with it (its Mode's,
+  or the ordinary ones); the offset is the page's index among those, mirrored for right-to-left.
+  `FocusPagePreviewSource.pages` takes the assignments from both callers.
+- **Result (device, Work on):** preview tile against the live home: best horizontal shift 4 px of a
+  459 px tile (< 1 %), correlation 0.988 (0.971 unshifted).
+
+## 32. Pre-draw listeners left on the window after their view detached — ACCEPTED (leak, per-frame cost)
+
+- **Evidence:** `meminfo` Activities 1 → 3 after two launcher recreates (`cmd uimode night no/yes`).
+  Heap dump taken in-process (`Debug.dumpHprofData` from a throwaway build; the launcher is not
+  debuggable), converted with `hprof-conv`, shortest strong path from GC roots: `ViewRootImpl` →
+  `ViewTreeObserver.mOnPreDrawListeners` → `OverviewActionsFeature` listener and
+  `OverviewActionsMotionFeature$ShownWatcher` → old `NexusOverviewActionsView` → old activity. With
+  those two excluded the old activities are unreachable.
+- **Fix:** each listener removes itself in `onViewDetachedFromWindow` (the window's observer is still
+  reachable there) and registers again on attach: `OverviewActionsFeature`, `ShownWatcher`,
+  `TaskCardButtonDecorator` (every TaskView ever made was checked per frame), `GridPicker`'s panel
+  (Wallpaper & style; one more listener per opening).
+- **Result (device):** two recreates with Recents opened between them: Activities 1.

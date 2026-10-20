@@ -23,7 +23,7 @@
     <string name="settings_page_search_bar">Search bar</string>
     <string name="settings_page_search_bar_summary">What tapping the search bar opens</string>
     <string name="settings_page_app_drawer">App drawer</string>
-    <string name="settings_page_app_drawer_summary">Hidden apps and search results</string>
+    <string name="settings_page_app_drawer_summary">Hidden apps, app labels and search results</string>
     <string name="settings_page_overview">Overview</string>
     <string name="settings_page_overview_summary">Buttons on and under each Recents card</string>
     <string name="settings_page_layout">Layout &amp; taskbar</string>
@@ -268,4 +268,40 @@
         <item quantity="one">%1$d row</item>
         <item quantity="other">%1$d rows</item>
     </plurals>
+    <string name="settings_page_app_labels">App labels</string>
+    <string name="settings_page_app_labels_summary">Rename apps and hide labels, app by app</string>
+    <string name="app_labels_per_app_title">Per-app labels</string>
+    <string name="app_labels_per_app_summary_none">Rename an app or hide its label</string>
+    <plurals name="app_labels_per_app_summary">
+        <item quantity="one">%1$d app customized</item>
+        <item quantity="other">%1$d apps customized</item>
+    </plurals>
+    <string name="app_labels_home_only_title">Rename on Home screen only</string>
+    <string name="app_labels_home_only_summary">New names show on your Home screen, dock and folders. The app drawer and search keep each app’s own name.</string>
+    <string name="app_labels_reset_title">Reset custom labels</string>
+    <string name="app_labels_reset_summary">Give every app its own name and label back</string>
+    <string name="app_labels_reset_confirm_title">Reset custom labels?</string>
+    <string name="app_labels_reset_confirm_message">Every app you renamed goes back to its own name, and every hidden label is shown again.</string>
+    <string name="app_labels_reset_confirm">Reset</string>
+    <string name="app_labels_page_description">Choose an app to rename it or hide its label.</string>
+    <string name="app_labels_search_hint">Search apps</string>
+    <string name="app_labels_back">Back</string>
+    <string name="app_labels_loading">Loading apps…</string>
+    <string name="app_labels_no_match">No apps match</string>
+    <string name="app_labels_renamed">Renamed from %1$s</string>
+    <string name="app_labels_hidden_home">Label hidden on Home screen</string>
+    <string name="app_labels_hidden_drawer">Label hidden in app drawer</string>
+    <string name="app_labels_hidden_both">Label hidden</string>
+    <string name="app_labels_summary_join">%1$s · %2$s</string>
+    <string name="app_labels_work_app">Work app</string>
+    <string name="app_labels_private_app">Private space app</string>
+    <string name="app_labels_clone_app">Cloned app</string>
+    <string name="app_labels_name_title">Name</string>
+    <string name="app_labels_name_hint">Use app name (%1$s)</string>
+    <string name="app_labels_show_home">Show label on Home screen</string>
+    <string name="app_labels_show_drawer">Show label in app drawer</string>
+    <string name="app_labels_reset_app">Reset</string>
+    <string name="app_labels_save">Save</string>
+    <string name="app_labels_identity">App name: %1$s\n%2$s</string>
+    <string name="app_labels_content_description">%1$s, %2$s</string>
 </resources>

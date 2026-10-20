@@ -15,9 +15,9 @@ import kotlin.math.roundToInt
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusModeIcons
-import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagePictures
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagePreview
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagePreviewSource
+import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPageRenderer
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagePreviewView
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressivePage
@@ -58,7 +58,7 @@ internal class ReorganizePagesScreen(
             return
         }
 
-        val previews = previewSource.pages(pages)
+        val previews = previewSource.pages(pages, focus.assignments())
         val owners = ownersOf(modes)
         val order = pages.toMutableList()
         val labels = mutableMapOf<Int, TextView>()
@@ -99,7 +99,7 @@ internal class ReorganizePagesScreen(
             // new ids, so no Mode loses a page and no page loses its picture.
             focus.renumber(mapping)
             FocusPages.renumber(mapping)
-            FocusPagePictures.renumber(mapping)
+            FocusPageRenderer.renumber(mapping)
         }
     }
 

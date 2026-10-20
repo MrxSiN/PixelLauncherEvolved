@@ -18,6 +18,7 @@ import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.LinearLayout
 import android.widget.TextView
 
@@ -179,12 +180,19 @@ internal class GridPicker(
             panel.addView(label(text.getString(R.string.feature_grid_custom_note), CAPTION_SP))
             shown = null
             follow()
-            // The tiles are the picker's; a tap or the picker selecting one redraws them.
-            panel.viewTreeObserver.addOnPreDrawListener {
+            // The tiles are the picker's; a tap or the picker selecting one redraws
+            // them. Only while the panel is in the window: the window outlives it,
+            // and a listener left on its observer would keep every panel opened.
+            val watch = ViewTreeObserver.OnPreDrawListener {
                 follow()
                 reveal()
                 true
             }
+            panel.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(view: View) = view.viewTreeObserver.addOnPreDrawListener(watch)
+                override fun onViewDetachedFromWindow(view: View) = view.viewTreeObserver.removeOnPreDrawListener(watch)
+            })
+            if (panel.isAttachedToWindow) panel.viewTreeObserver.addOnPreDrawListener(watch)
         }
 
         /** Whether the panel is shown; null until the first look at the tiles. */

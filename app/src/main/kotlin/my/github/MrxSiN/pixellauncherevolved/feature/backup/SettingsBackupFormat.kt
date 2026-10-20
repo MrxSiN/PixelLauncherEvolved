@@ -10,6 +10,8 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.icons.IconOverride
+import my.github.MrxSiN.pixellauncherevolved.labels.AppLabel
+import my.github.MrxSiN.pixellauncherevolved.labels.AppLabelFormat
 
 /**
  * A [SettingsSnapshot] as a JSON file a person can keep, read and move.
@@ -45,6 +47,7 @@ object SettingsBackupFormat {
         "searchBarOpensAppSearch" to Settings.HOME_SEARCH_OPENS_DRAWER,
         "hideDock" to Settings.DOCK_HIDDEN,
         "dockMovesToHome" to Settings.DOCK_MOVE_TO_HOME,
+        "appLabelsHomeOnly" to Settings.APP_LABELS_HOME_ONLY,
         "hideWebSearch" to Settings.APP_DRAWER_SEARCH_HIDE_WEB,
         "hidePlayStore" to Settings.APP_DRAWER_SEARCH_HIDE_PLAY_STORE,
         "hideSearchInApps" to Settings.APP_DRAWER_SEARCH_HIDE_SEARCH_IN_APPS,
@@ -73,6 +76,11 @@ object SettingsBackupFormat {
     private const val KEY_ICON_PACK = "iconPack"
     private const val KEY_ICON_OVERRIDES = "iconOverrides"
     private const val KEY_GRID = "grid"
+    private const val KEY_APP_LABELS = "appLabels"
+    private const val KEY_LABEL_PROFILE = "profile"
+    private const val KEY_LABEL_NAME = "name"
+    private const val KEY_LABEL_HIDE_HOME = "hideHome"
+    private const val KEY_LABEL_HIDE_DRAWER = "hideDrawer"
 
     /** Grid & size's values under `grid`, by this file's own names. */
     private val GRID = linkedMapOf(
@@ -102,7 +110,46 @@ object SettingsBackupFormat {
         put(KEY_ICON_PACK, snapshot.iconPack ?: JSONObject.NULL)
         put(KEY_ICON_OVERRIDES, writeOverrides(snapshot.iconOverrides))
         put(KEY_GRID, JSONObject().apply { for ((name, setting) in GRID) put(name, snapshot.grid[setting] ?: setting.default) })
+        put(KEY_APP_LABELS, writeLabels(snapshot.appLabels))
     }.toString(INDENT)
+
+    /** Labels by component and kind of profile; the user number stays on the device that wrote it. */
+    private fun writeLabels(labels: List<PortableAppLabel>): JSONArray = JSONArray().apply {
+        for ((profile, label) in labels.sortedWith(compareBy({ it.profile }, { it.label.packageName }, { it.label.className }))) {
+            put(
+                JSONObject().apply {
+                    put(KEY_OVERRIDE_PACKAGE, label.packageName)
+                    put(KEY_OVERRIDE_CLASS, label.className)
+                    put(KEY_LABEL_PROFILE, profile)
+                    put(KEY_LABEL_NAME, label.name ?: JSONObject.NULL)
+                    put(KEY_LABEL_HIDE_HOME, label.hideHome)
+                    put(KEY_LABEL_HIDE_DRAWER, label.hideDrawer)
+                },
+            )
+        }
+    }
+
+    private fun readLabels(array: JSONArray?): List<PortableAppLabel> {
+        if (array == null) return emptyList()
+        val read = ArrayList<PortableAppLabel>(array.length())
+        for (at in 0 until array.length()) {
+            val entry = array.optJSONObject(at) ?: continue
+            val packageName = entry.optString(KEY_OVERRIDE_PACKAGE)
+            val className = entry.optString(KEY_OVERRIDE_CLASS)
+            val profile = entry.optString(KEY_LABEL_PROFILE)
+            if (packageName.isBlank() || className.isBlank() || profile.isBlank()) continue
+            val label = AppLabel(
+                packageName = packageName,
+                className = className,
+                userId = 0,
+                name = if (entry.isNull(KEY_LABEL_NAME)) null else AppLabelFormat.normalize(entry.optString(KEY_LABEL_NAME)),
+                hideHome = entry.optBoolean(KEY_LABEL_HIDE_HOME, false),
+                hideDrawer = entry.optBoolean(KEY_LABEL_HIDE_DRAWER, false),
+            )
+            if (label.isCustom) read += PortableAppLabel(profile, label)
+        }
+        return read
+    }
 
     /**
      * The chosen icons, by component and profile.
@@ -189,6 +236,7 @@ object SettingsBackupFormat {
             grid = json.optJSONObject(KEY_GRID).let { grid ->
                 GRID.entries.associate { (name, setting) -> setting to (grid?.optInt(name, setting.default) ?: setting.default).coerceIn(setting.range) }
             },
+            appLabels = readLabels(json.optJSONArray(KEY_APP_LABELS)),
         )
     }
 

@@ -162,7 +162,9 @@ class TaskCardButtonDecorator(
                 view.viewTreeObserver.addOnPreDrawListener(this)
             }
 
-            override fun onViewDetachedFromWindow(view: View) = Unit
+            // Still the window's observer here; left on it, every card ever made
+            // would be checked each frame and kept alive with its activity.
+            override fun onViewDetachedFromWindow(view: View) = view.viewTreeObserver.removeOnPreDrawListener(this)
         }
 
         taskView.viewTreeObserver.addOnPreDrawListener(watcher)

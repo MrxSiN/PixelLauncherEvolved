@@ -50,6 +50,13 @@ internal object SettingsPages {
         ),
     )
 
+    private val APP_LABELS = SettingsPage(
+        key = "app_labels",
+        titleRes = R.string.settings_page_app_labels,
+        summaryRes = R.string.settings_page_app_labels_summary,
+        groups = listOf(SettingsGroup(null, listOf(AppLabelRows))),
+    )
+
     private val DIAGNOSTICS = SettingsPage(
         key = "diagnostics",
         titleRes = R.string.settings_page_diagnostics,
@@ -87,7 +94,7 @@ internal object SettingsPages {
         titleRes = R.string.settings_page_app_drawer,
         summaryRes = R.string.settings_page_app_drawer_summary,
         groups = listOf(
-            SettingsGroup(R.string.settings_group_apps, listOf(GridRows.appsColumns, HiddenAppsRow)),
+            SettingsGroup(R.string.settings_group_apps, listOf(GridRows.appsColumns, HiddenAppsRow, PageLinkRow(APP_LABELS))),
             SettingsGroup(
                 R.string.settings_group_search_results,
                 listOf(
@@ -142,7 +149,7 @@ internal object SettingsPages {
     /** The pages listed under this module's heading in Home settings. */
     val topLevel: List<SettingsPage> = listOf(HOME_SCREEN, APP_DRAWER, OVERVIEW, LAYOUT_AND_TASKBAR, ADVANCED)
 
-    private val all: List<SettingsPage> = topLevel + SEARCH_BAR + DOCK + DIAGNOSTICS
+    private val all: List<SettingsPage> = topLevel + SEARCH_BAR + DOCK + APP_LABELS + DIAGNOSTICS
 
     /** The page the launcher is opening under [rootKey], or null for one of its own. */
     fun byRootKey(rootKey: String?): SettingsPage? = all.firstOrNull { SettingsKeys.page(it) == rootKey }
