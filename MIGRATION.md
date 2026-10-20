@@ -91,3 +91,10 @@ everything.
 
 - **App labels, Home screen only (new state):** bool `home_app_labels_home_only`, default false;
   backed up as `appLabelsHomeOnly`. A missing key reads false, so an upgrade changes nothing.
+- **0.1.5, Modes page previews:** the files in `<credential-encrypted files>/focus-page-previews/`
+  are caches. Pictures from earlier versions (`page-*`, `wallpaper-raw-*.webp`) are deleted on the
+  first start; the wallpaper is kept as `wallpaper-<key>.jpg`, where the key is the wallpaper's
+  colours, and is fetched again when they change. No preference key or format changed. Wallpaper &
+  style must be in this module's scope for the wallpaper (it already is for the icon pack); without
+  it the pages keep a plain backdrop.
+

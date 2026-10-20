@@ -416,3 +416,22 @@ within run-to-run spread; this workload cannot resolve a per-bind cost. No impro
 claimed: the feature adds work only for renamed apps. With no label stored the cost is zero by
 construction (nothing hooked). Reproduce with the A/B script described in `OPTIMIZATION_LEDGER.md`
 entry 26.
+
+## Run 2026-10-20: Modes pages opening and home return (release, single device)
+
+Pixel 8 Pro, `CP3A.261005.005`, launcher 907, release build, phone awake. `dumpsys gfxinfo` reset
+before each opening of Home settings → Home screen → Modes pages, read 5–6 s later.
+
+```
+before  first opening   Skipped 59 frames (~490 ms) on the launcher main thread; pages 1598/887/840/638 ms
+before  later opening   158 frames, janky 4 (2.53 %), p99 250 ms (no pages redrawn)
+after   opening 1       210 frames, janky 4 (1.90 %), p99 25 ms; pages 672/669/553/450 ms
+after   opening 2       207 frames, janky 5 (2.42 %), p99 17 ms; pages 610/576/519/476 ms
+after   opening 3       206 frames, janky 3 (1.46 %), p99 16 ms; pages 551/538/517/428 ms
+```
+
+The "after" openings redraw all four pages each time; "before" redrew none after the first. Return
+home (screenrecord 672 × 1496, Laplacian edge energy per frame): before, icons absent for 162 ms
+(frames 5827–5989 ms, energy 25.7 against a median of 519); after, no frame below the opening
+animation's. Ordinary use in the same session: 1071 frames, 0.09 % janky, p99 8 ms. n is small; the
+claim is the removal of the 490 ms stall and the 162 ms blank, not a percentage.

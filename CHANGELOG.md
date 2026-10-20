@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.5
 
 ### Added
 
@@ -18,6 +18,36 @@
   **Rename on Home screen only** keeps new names to the Home screen, dock and folders, leaving the
   drawer, its order and search on each app's own name. **Edit Name** in an app's long-press menu,
   right after Pause app, on the Home screen and in the drawer, opens the same dialog.
+
+### Changed
+
+- **Modes pages** and **Organize home screens** draw each page with the launcher's own preview
+  (`get_preview_bitmap` with `workspace_page_id`), one page at a time on a worker thread, instead of
+  rebuilding it from the model by hand. Every icon, label, folder and widget is the launcher's own
+  view. The newest request's picture wins, so an older drawing finishing late never replaces a newer
+  one, and each preview is released once drawn. Pages are drawn again every time the screen opens, so
+  a widget shows what it shows now; the previous picture stays up until its replacement is ready.
+- The wallpaper behind those pages is read from the wallpaper file, through Wallpaper & style
+  (`RecentWallpapersProvider`, method `ple_home_wallpaper`, callable only by the launcher, the shell
+  and root), because the launcher may not read it. It is the part of the file the display crops,
+  kept once per wallpaper in the launcher's files. Each page shows its own part of it: its place
+  among the pages home shows it with (its Mode's, or the ordinary ones), at the launcher's own
+  parallax step, with home's zoom and blur. Wallpaper & style must be in this module's scope for it;
+  without it, or with a live wallpaper, pages keep a plain gradient behind them.
+
+### Fixed
+
+- The home screen no longer goes blank for about 160 ms six seconds after returning home. The
+  wallpaper used to be photographed off the display with the launcher's window hidden; hiding it
+  dropped window focus, so the picture was then thrown away, and it still carried home's blur.
+- Modes pages and Organize home screens no longer freeze the launcher for up to half a second when
+  they open: the Modes are read off the main thread (a second tap while they are read is dropped).
+- Pixel Launcher no longer keeps every old copy of itself alive after it recreates itself (a theme or
+  dark mode change). Four of this module's per-frame listeners stayed on the window after their view
+  was gone; they now leave with it. The Recents card one was also checked every frame for every card
+  ever shown.
+- Wallpaper & style → Layout → Custom no longer adds one more per-frame listener each time it opens.
+- No more log lines on every launcher pause and resume, or on every blur pause.
 
 ## 0.1.4
 

@@ -484,8 +484,13 @@ entries 1–6 together as one candidate, not one change at a time.
   previews show the wallpaper once blurred, page 1 matching the live home, page 4 its trailing edge.
   Release APK 1 140 536 → 1 124 152 bytes. One extra Wallpaper & style process start per wallpaper
   change (off the main thread).
-- **Not verified on device:** offsets of pages other than the first against the live home (a Mode left
-  one page visible), RTL, live wallpapers (no file: previews keep the gradient, as before).
+- **Verified later (entry 31):** a two-page ordinary home (Work's page released for the test, then put
+  back; the settings file was byte-identical afterwards): live page 2 `mWallpaperX=0.333`, as
+  `i / (max(n, 4) − 1)` gives; each preview tile matches its own live page (r 0.94 / 0.79, shift 0–4 px)
+  and not the other (r 0.29–0.34).
+- **Not verified on device:** RTL (`debug.force_rtl` without a configuration change does not mirror the
+  launcher; a real test needs an RTL system language), live wallpapers (no file: previews keep the
+  gradient, as before).
 
 ## 29. Modes snapshot off the main thread; pages redrawn per opening — ACCEPTED (bug fix)
 

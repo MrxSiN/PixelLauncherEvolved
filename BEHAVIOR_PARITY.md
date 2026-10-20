@@ -183,3 +183,26 @@ is hidden for that app, and hiding is the only per-app override.
 - **Rename on Home screen only** on: Home still "Notes"; drawer search for "keep" lists "Keep Notes".
   Switched off and labels reset afterwards; settings file equal to the pre-test copy apart from the new
   key (false) and one Safe Mode crash timestamp from a failed first attempt (see HOOK_NOTES).
+
+## Modes page previews (device, Pixel 8 Pro, `CP3A.261005.005`, launcher 907, 2026-10-20)
+
+Intentional changes, owner-reported or measured:
+
+- **Pictures:** pages are drawn by the launcher's own preview, not rebuilt from the model. Verified:
+  At a Glance content, labels, system icons (pack off), dock and search bar match the live home.
+  Pictures are redrawn on every opening (previously only after a workspace bind), so widget content
+  is current; the previous picture stays until replaced.
+- **Wallpaper:** read from the wallpaper file through Wallpaper & style, not photographed off the
+  display. Before: a gradient (no capture was ever kept) and a 160 ms blank home six seconds after
+  every return home. After: the display's crop (bridge picture 1258 × 1400 against a 2017 × 2245
+  crop, r 0.991), blurred once at home's radius; no blank frame after the opening animation. Each page
+  shows its own section: Work page with Work on (< 1 % shift, r 0.988); a two-page ordinary home
+  (`mWallpaperX` 0 / 0.333, each tile matching its own page). Live wallpapers keep the gradient.
+- **Opening:** the Modes are read off the main thread; a second tap while they are read is dropped
+  (before, the main thread blocked so a second tap waited behind the dialog).
+- **Lifecycle:** after a launcher recreate the old activity is collected (Activities 1, was 3 after
+  two recreates). Overview buttons, the Recents card buttons and the Custom grid panel behave as
+  before.
+
+Not verified: RTL (needs an RTL system language), live wallpapers beyond the gradient, a Mode with
+several pages, work profile pages.

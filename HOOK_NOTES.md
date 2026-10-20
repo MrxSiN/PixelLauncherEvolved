@@ -2870,3 +2870,65 @@ PopupMenuItemsKt.SystemShortcutMenuItem         casts label to StringContainer$R
   parameter type (a shrunk `Function0`).
 - Pause app is found by its label's `resId` (`string/pause_app_label`); the row goes after it, or
   last when the app has no Pause app.
+
+## Modes page previews (Android 17 QPR1 `CP3A.261005.005`, launcher 907, verified October 20, 2026)
+
+```
+LauncherComponentProvider.get(Context).getGridCustomizationsProxy()
+  Bundle call("get_preview_bitmap", null, Bundle)     // "workspace_page_id": one page; "image": the picture
+PreviewSurfaceRenderer(Context, RunnableList, Bundle, int, boolean bitmap)
+  RunnableList mLifeCycleTracker                       // executeAllAndDestroy() lets the preview go
+```
+
+Each page is drawn the way Wallpaper & style asks for its picture, one page per request, on a worker
+thread: the launcher answers by building the preview on its main thread while the caller waits.
+Awake, a page takes 430–720 ms. `get_preview_bitmap` never releases its preview (surface, context,
+preferences); the request carries a marker and the constructor hook remembers that renderer, so it is
+released once its picture is taken.
+
+### The wallpaper behind a page
+
+The launcher holds no `READ_WALLPAPER_INTERNAL`, so it cannot read the wallpaper file, and its own
+preview draws no wallpaper. Wallpaper & style holds that permission, and the launcher holds
+`com.google.android.apps.wallpaper.permission.RECENT_WALLPAPERS_PROVIDER`, the permission of its
+`RecentWallpapersProvider` (`com.google.android.apps.wallpaper.recents`). The module answers its own
+`call` method there, `ple_home_wallpaper`, for the launcher, the shell and root only:
+
+```
+WallpaperManager.getWallpaperFile(FLAG_SYSTEM)                       // null for a live wallpaper
+WallpaperManager.getBitmapCrops(List<Point>, int, boolean)           // hidden; [display], FLAG_SYSTEM, false
+BitmapRegionDecoder.decodeRegion(crop, inSampleSize)  → JPEG 90, ≤ 1400 px tall
+```
+
+- **Gotcha: providers are published before `Application.onCreate`.** Hooked from the application, the
+  launcher's first call after Wallpaper & style started cold arrived before the hook and got null.
+  The hook is installed when the package loads.
+- `/data/system/users/0/wallpaper` is already cropped to `mCropHint`; the display's crop inside it
+  (owner's: x 618–2635 of 2635, two screens wide) is what the home screen scrolls across. Shell test:
+  `su -c 'content call --uri content://com.google.android.apps.wallpaper.recents --method ple_home_wallpaper --extra width:i:1344 --extra height:i:2992 --extra max_height:i:1400'`.
+- A page sits at `i / (max(n, 4) − 1)` across that crop, mirrored for right-to-left, where `i` and
+  `n` count the pages home shows with it: its Mode's pages, or the ordinary ones
+  (`FocusPlan.shownWith`). `mWallpaperXStep` reads 1/3 even with one page: Launcher3's minimum
+  parallax span is 4. Verified with Work on (one page, offset 0) and a two-page ordinary home
+  (`mWallpaperX=0.333` on page 2).
+- Home zooms the wallpaper in by `config_wallpaperMaxScale` (1.1) less its resting depth (0.15 at 50%
+  blur → 1.085), about the screen's centre; the preview does the same, then blurs at home's radius.
+
+### Gotcha: the display capture this replaced
+
+The wallpaper used to be photographed with `ScreenCapture` while the launcher's surface was at alpha
+0. That drops the launcher's window focus (`input_focus … reason=NOT_VISIBLE`), so the home screen
+blanked for about 160 ms six seconds after every return home, and a picture checked against window
+focus was always thrown away. The hidden frame was also still blurred (σ ≈ 20). Don't capture the
+display for this again.
+
+## Gotcha: a pre-draw listener outlives its view (verified October 20, 2026)
+
+`view.viewTreeObserver.addOnPreDrawListener` on an attached view registers with the **window's**
+observer, which outlives the view. When the launcher recreates itself (theme or dark mode change),
+its old Overview row and Recents cards detach, but a listener left on the observer keeps them, and
+their activity, alive: `meminfo` Activities went 1 → 3 after two recreates. The heap was dumped from
+inside the launcher (`Debug.dumpHprofData`; the launcher is not debuggable, so `am dumpheap` is
+refused), converted with `hprof-conv`, and walked from the GC roots. Every listener on a launcher or
+picker view now removes itself in `onViewDetachedFromWindow`, where the window's observer is still
+reachable, and registers again on attach.

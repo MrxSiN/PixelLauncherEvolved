@@ -7,7 +7,7 @@ unzip -o app/build/outputs/apk/release/*.apk classes.dex -d out
 dexdump -d out/classes.dex > out/dex.txt
 python scripts/dex-audit.py out/dex.txt app/build/outputs/mapping/release/mapping.txt \
   'HiddenAppsFeature.shown$lambda' 'SharedPreferencesHiddenAppsStore.hidden' \
-  'OverviewActionsFeature.walk' 'OverviewActionsFeature.apply' 'OverviewActionsFeature.watchBeforeDraw$lambda' \
+  'OverviewActionsFeature.walk' 'OverviewActionsFeature.apply' 'OverviewActionsFeature$watchBeforeDraw$watcher$1.onPreDraw' \
   'OverviewActionsEntrance.applyTo' 'OverviewActionsEntrance.settle' 'ShownWatcher.onPreDraw' \
   'CardArrival.onFullscreenProgress' 'TaskCardButtonDecorator.findButton' 'TaskCardButtonDecorator.follow' \
   'TaskCardButtonDecorator.onFullscreenProgress' 'TaskCardButtonDecorator.onTaskViewLaidOut' \
@@ -27,7 +27,7 @@ No method in the module uses JNI. The module has no native code.
 
 | Source method | Final method | Sites on the path taken each frame |
 |---|---|---|
-| `OverviewActionsFeature` pre-draw lambda | `OverviewActionsFeature$$ExternalSyntheticLambda1.onPreDraw` | none |
+| `OverviewActionsFeature` pre-draw watcher (0.1.5: an object that also leaves the window on detach) | `OverviewActionsFeature$watchBeforeDraw$watcher$1.onPreDraw` | none (re-audited on the v0.1.5 release DEX, 2026-10-20) |
 | `OverviewActionsFeature.apply` | `OverviewActionsFeature.e` | `getIdentifier` ×2, only on the first call (ids cached after, `UNRESOLVED` guard) |
 | `OverviewActionsFeature.walk` | `OverviewActionsFeature.f` | `Integer.valueOf` in `putIfAbsent`, only on a frame where a button is being hidden |
 | `OverviewActionsMotionFeature.ShownWatcher.onPreDraw` | `…$ShownWatcher.onPreDraw` | `getIdentifier` in `findButtons`, only until the button row is found; `ValueAnimator`, `float[]`, `LinearInterpolator` and listener, once per clock-driven arrival (not per frame) |

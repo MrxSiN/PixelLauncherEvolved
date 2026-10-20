@@ -13,7 +13,7 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 [![Release](https://img.shields.io/github/v/release/MrxSiN/PixelLauncherEvolved?include_prereleases&color=5B3DF5&label=release&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Downloads](https://img.shields.io/github/downloads/MrxSiN/PixelLauncherEvolved/total?color=3DDC84&logo=android&logoColor=fff&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Android](https://img.shields.io/badge/Android-17%20QPR1-3DDC84?logo=android&logoColor=fff&style=for-the-badge)](https://developer.android.com)
-[![Compatibility](https://img.shields.io/badge/hooks-200%2F200%20resolved-3DDC84?style=for-the-badge)](#compatibility)
+[![Compatibility](https://img.shields.io/badge/hooks-227%2F227%20resolved-3DDC84?style=for-the-badge)](#compatibility)
 [![Licence](https://img.shields.io/github/license/MrxSiN/PixelLauncherEvolved?color=5B3DF5&style=for-the-badge)](LICENSE)
 
 </div>
@@ -21,9 +21,9 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 ---
 
 > [!NOTE]
-> **Fully compatible with the latest Android release — Android 17 QPR1 (September 2026),
-> build `CP3A.260905.009`, Pixel Launcher `907`.** Every launcher member the module stands on
-> resolves (200 of 200, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
+> **Fully compatible with the latest Android release — Android 17 QPR1 (October 2026),
+> build `CP3A.261005.005`, Pixel Launcher `907`.** Every launcher member the module stands on
+> resolves (227 of 227, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
 > Vector v2.2. The module checks this itself on every launcher start: see
 > [Compatibility](#compatibility).
 
@@ -69,7 +69,7 @@ running launcher on the next frame.
 | Dock | **Search bar** | A page of its own. **Search bar opens app search** makes the home search bar open the app drawer with its search box focused, instead of the Google app. The bar's own buttons keep their actions. | — |
 | Pages & layout | **Organize home screens** | Reorder and manage your Home screen pages. Every page on one screen, including pages a Mode hides, marked with that Mode. Touch and hold a page, then drag it into place; the order is saved when you leave. The first page keeps At a Glance, so it stays first. | — |
 | Pages & layout | **Modes home screens** | Gives home screen pages to one of the device's Modes — Bedtime, Driving, Sleeping, whatever you have. While that Mode is on, only its pages show; when it ends, the ordinary pages come back. | ✅ |
-| Pages & layout | **Modes pages** | Choose which pages each Mode shows, from live previews of each page. | ✅ |
+| Pages & layout | **Modes pages** | Choose which pages each Mode shows, from previews of each page drawn by Pixel Launcher itself — your real icons, labels, folders and widgets, drawn again each time you open it — over the wallpaper as your home screen shows behind that page, blurred as home blurs it. The wallpaper comes through Wallpaper &amp; style, which must be in this module's scope; without it, or with a live wallpaper, pages show a plain backdrop. | ✅ |
 | Gestures | **Double tap to sleep** | Two taps on an empty spot turn the screen off, closing the screen around the spot you tapped. | ✅ |
 | Gestures | **Double tap status bar to sleep** | The same, from two taps on the status bar. Watched in SystemUI, so it needs no root. | ✅ |
 
@@ -102,7 +102,8 @@ Pack artwork goes through Pixel Launcher's own icon pipeline, so the shape, shad
 notification dots, folders, search results, predictions and the taskbar all show the same icon.
 Apps the pack does not cover keep their stock icon, themed or not; a pack's own artwork keeps its
 colours when themed icons are on. Dynamic calendar icons follow the date. Wallpaper &amp; style must
-be in this module's scope in your Xposed manager.
+be in this module's scope in your Xposed manager. It is also where the launcher gets the wallpaper
+behind Modes pages: the launcher is not allowed to read the wallpaper file, Wallpaper &amp; style is.
 
 <table>
 <tr>
@@ -135,7 +136,13 @@ tips are untouched.
 <table>
 <tr>
 <td align="center"><img src="docs/screenshots/app-drawer.png" width="250"><br><sub>App drawer</sub></td>
+<td align="center"><img src="docs/screenshots/app-labels.png" width="250"><br><sub>App labels</sub></td>
+<td align="center"><img src="docs/screenshots/app-labels-apps.png" width="250"><br><sub>Per-app labels</sub></td>
+</tr>
+<tr>
 <td align="center"><img src="docs/screenshots/web-results-app.png" width="250"><br><sub>Open web results with</sub></td>
+<td></td>
+<td></td>
 </tr>
 </table>
 
@@ -254,7 +261,7 @@ does not assume they stayed put.
 
   ```
   Pixel Launcher versionCode: 907
-  Resolved 200 / 200, fallback signatures 0, failed 0
+  Resolved 227 / 227, fallback signatures 0, failed 0
 
   Contracts
   ✓ TaskView.onFinishInflate()
@@ -284,7 +291,7 @@ does not assume they stayed put.
 
 | | |
 |---|---|
-| **Android** | 17 (API 37). Fully compatible with 17 QPR1, September 2026 (`CP3A.260905.009`) |
+| **Android** | 17 (API 37). Fully compatible with 17 QPR1, October 2026 (`CP3A.261005.005`) |
 | **Launcher** | Pixel Launcher (`com.google.android.apps.nexuslauncher`), tested on `versionCode` 907 |
 | **Device** | Pixel (tested on Pixel 8 Pro) |
 | **Framework** | [Vector](https://github.com/JingMatrix/Vector) v2.2+, or any framework implementing libxposed API 101+ |
@@ -303,9 +310,10 @@ Built against the modern [libxposed API](https://github.com/libxposed/api)
 5. Long press home → Home settings → Pixel Launcher Evolved
 ```
 
-The module declares a **static scope**, so there is nothing to pick: the Pixel Launcher, and
-SystemUI for the one thing the launcher cannot draw — the screen off that Double tap to sleep
-asks for, opened around the spot you tapped. It has no icon in the app drawer and no screen of
+The module declares a **static scope**, so there is nothing to pick: the Pixel Launcher;
+SystemUI for what the launcher cannot draw or see — the screen off that Double tap to sleep asks
+for, opened around the spot you tapped, and taps on the status bar; and Wallpaper &amp; style for the
+icon pack, Grid &amp; size, and the wallpaper behind Modes pages. It has no icon in the app drawer and no screen of
 its own. Settings stored by earlier versions are carried across.
 
 Updating needs no force-stop: after a new build is installed, the launcher restarts itself the
@@ -398,6 +406,8 @@ feature/                     one package per area; each feature installs itself
   settings/                  Home settings pages, rows and Expressive drawing
   backup/                    export, import and reset
 focus/                       Modes, pages, and the provider that answers for them
+bridge/                      what the launcher, SystemUI and Wallpaper & style say to each other
+picker/                      Wallpaper & style: the icon pack and Grid & size pages
 lock/                        the root-backed endpoint that turns the screen off
 ```
 
