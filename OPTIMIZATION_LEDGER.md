@@ -575,3 +575,17 @@ entries 1–6 together as one candidate, not one change at a time.
   - forceReload: 219 179 158 220 171 153 140 170 199 154 156 223 ms; median 170.5.
   - rebindCallbacks: 30 56 24 46 26 57 25 51 27 61 27 51 ms; median 38.5 (−77%).
 - **Allocation/memory:** not measured; no database cursor or new item objects per change.
+
+## 35. Release Modes page previews when the launcher is hidden — REJECTED (P03, memory)
+
+- **Hypothesis:** the page pictures (`FocusPageRenderer`'s `RenderBook<Bitmap>`) live for the whole
+  launcher process; dropping them at `TRIM_MEMORY_UI_HIDDEN` when no preview view is attached would
+  bound their lifetime to the time they can be seen.
+- **Mechanism tried:** a `ComponentCallbacks2` on the launcher's app context clearing the book on
+  the main thread when no listener was registered; a dropped answer found no page and was discarded.
+- **Result (device, Pixel 8 Pro, CP3A.261005.005):** after a trim and reopening Home settings →
+  Modes pages, a stray dark landscape surface was drawn over the first row on two reopenings; the
+  same steps on the build without the change showed the dialog clean. Cause not traced (the
+  launcher's preview surfaces are owned by its own renderer); the pictures are bounded by page count
+  and redrawn per model generation already.
+- **Decision:** reverted. Do not retry without first finding who owns the stray surface.
