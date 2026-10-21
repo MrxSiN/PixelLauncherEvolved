@@ -20,6 +20,28 @@ class ZenModesTest {
         assertFalse(modes.getValue("inactive").isActive)
     }
 
+    /** Whether a rule is on, row for row as `ZenRule.isActive` decides it on `CP3A.261005.005`. */
+    @Test
+    fun activeStateFollowsTheFrameworksTruthTable() {
+        val rows = listOf(
+            Triple("OVERRIDE_ACTIVATE", "STATE_FALSE", true),
+            Triple("OVERRIDE_DEACTIVATE", "STATE_TRUE", false),
+            Triple("OVERRIDE_NONE", "STATE_TRUE", true),
+            Triple("OVERRIDE_NONE", "STATE_UNKNOWN", true),
+            Triple("OVERRIDE_NONE", "STATE_FALSE", false),
+            Triple("OVERRIDE_NONE", "STATE_ERROR", false),
+        )
+        val dump = dump(*rows.mapIndexed { index, (override, state, _) ->
+            "ZenRule[id=r$index,state=$state,enabled=TRUE,conditionOverride=$override,name=R$index,zenMode=ZEN_MODE_OFF,pkg=android]"
+        }.toTypedArray(), "ZenRule[id=off,state=STATE_TRUE,enabled=FALSE,conditionOverride=OVERRIDE_ACTIVATE,name=Off,zenMode=ZEN_MODE_OFF,pkg=android]")
+
+        val active = zen(dump).modes().associate { it.id to it.isActive }
+
+        rows.forEachIndexed { index, (override, state, on) -> assertEquals("$override/$state", on, active.getValue("r$index")) }
+        // A Mode switched off in Settings is off whatever its override or condition.
+        assertFalse(active.getValue("off"))
+    }
+
     @Test
     fun aModeSwitchedOffIsReportedButNeverActive() {
         val dump = dump("ZenRule[id=off,state=STATE_TRUE,enabled=FALSE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android]")

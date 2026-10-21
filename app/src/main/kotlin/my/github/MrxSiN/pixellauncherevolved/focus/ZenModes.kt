@@ -229,6 +229,12 @@ class ZenModes(
         val OVERRIDE = Regex("""conditionOverride=(OVERRIDE_[A-Z_]+)""")
         val ICON = Regex("""iconResName=([^,\]]+)""")
         val TYPE = Regex("""[,\[]type=(-?\d+)""")
+        /**
+         * The conditions that leave a rule on, as the framework decides it. `ZenRule.isActive` on
+         * `CP3A.261005.005`: enabled, then a manual override decides, else the condition is
+         * STATE_TRUE or STATE_UNKNOWN (`isTrueOrUnknown`); STATE_ERROR and no condition at all
+         * (printed as STATE_FALSE) are off. Read from the framework's own code, not assumed.
+         */
         val ACTIVE_STATES = setOf("STATE_TRUE", "STATE_UNKNOWN")
 
         /** `lastActivation=` and `lastManualActivation=`, each an `Instant` or `null`. */
