@@ -217,6 +217,18 @@ class GridFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
         val from = Reflect.declaredMethod(companion, "from", Int::class.javaPrimitiveType!!, Int::class.javaPrimitiveType!!)
         val canMigrate = requireNotNull(Reflect.declared(option, "canMigrate") { it.parameterTypes.size == 2 })
         val standIn = requireNotNull(context.findClass(MIGRATION_OPTION_STAND_IN)).let { Reflect.declaredField(it, "INSTANCE").get(null) }
+        // Names resolving proves nothing about behavior, and a wrong guess here
+        // loses the layout: the gate is only sound while from() still maps a
+        // stock size to an option, and the stand-in is one.
+        // R8 may make from() static, or keep the companion behind a renamed field.
+        val receiver = if (java.lang.reflect.Modifier.isStatic(from.modifiers)) null else
+            (option.declaredFields + companion.declaredFields)
+                .first { java.lang.reflect.Modifier.isStatic(it.modifiers) && it.type == companion }
+                .apply { isAccessible = true }.get(null)
+        val stock = from.invoke(receiver, 4, 6)
+        check(stock != null && option.isInstance(stock) && option.isInstance(standIn)) {
+            "GridMigrationOption.from(4, 6) answered $stock; this launcher migrates grids differently"
+        }
         val asked = ThreadLocal<Boolean>()
 
         context.xposed.hook(from).intercept { chain ->
