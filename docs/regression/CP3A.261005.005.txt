@@ -1,0 +1,16 @@
+# Regression: 2026-10-21T12:31Z
+# build CP3A.261005.005, Pixel Launcher 17, module 0.1.5
+process_restart              PASS     27 features installed
+usable_home                  PASS     workspace and hotseat drawn
+modes_dump_format            PASS     9 rules, 14933 bytes
+layout_copies                PASS     before.db before.properties latest.db latest.properties replaced.db 
+recovery_without_home        PASS     opened from app settings with the launcher frozen
+pme_health                   PASS     22 features ok
+pme_owned_modes              PASS     none
+layout_change_interrupt      NOT RUN  kills the launcher mid-migration; spare device only
+launcher_crash_loop          NOT RUN  needs a build that crashes at start; spare device only
+module_disabled              NOT RUN  Pixel Launcher deletes module-dependent items; spare device only
+mode_overlap                 NOT RUN  switches the owner's Modes
+stock_schedule_bounds        NOT RUN  needs a test Mode with a schedule and a trigger adb can flip
+manual_override              NOT RUN  switches the owner's Modes
+work_profile                 NOT RUN  no work profile on this phone
