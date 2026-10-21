@@ -116,7 +116,7 @@
     <string name="feature_focus_active">Active now</string>
     <string name="feature_focus_page">Page %1$d</string>
     <string name="feature_focus_save">Save</string>
-    <string name="feature_focus_no_pages_assigned">No pages</string>
+    <string name="feature_focus_no_pages_assigned">No pages · shows the ordinary home screen</string>
     <string name="feature_focus_pages_assigned">Pages %1$s</string>
     <string name="feature_focus_no_pages">The home screen pages are not known yet. Open the home screen once, then try again.</string>
     <string name="feature_focus_orphan">%1$s (deleted)</string>
