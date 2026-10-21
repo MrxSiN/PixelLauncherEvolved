@@ -7,3 +7,7 @@ local.properties
 *.jks
 *.keystore
 *.base64
+
+# Shared prompt kit, kept outside version control
+MASTER_PROMPT.md
+ROADMAP.md
