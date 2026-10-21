@@ -56,17 +56,26 @@ internal object DiagnosticsRows : SettingsRow {
         root(section, scope)
 
         section.heading(R.string.diagnostics_group_features)
+        // Four different answers, told apart: this launcher build lacks it, it failed while
+        // starting in this process, it is simply switched off, or it is running.
+        val failures = FeatureRegistry.failures
         for (feature in CompatibilityFeature.entries) {
             val available = analysis.isAvailable(feature)
+            val owners = FeatureRegistry.features.filter { it.compatibility == feature }
+            val failure = owners.firstNotNullOfOrNull { failures[it.id] }
+            val off = owners.isNotEmpty() && owners.none { it.isEnabled(scope.settings) }
+            val (value, tone, summary) = when {
+                !available -> Triple(R.string.diagnostics_incompatible, Tone.ERROR, scope.string(R.string.compatibility_unavailable, analysis.launcherVersion))
+                failure != null -> Triple(R.string.diagnostics_feature_failed, Tone.ERROR, scope.string(R.string.diagnostics_feature_failed_summary, failure))
+                off -> Triple(R.string.diagnostics_feature_off, Tone.NEUTRAL, scope.string(R.string.compatibility_supported, analysis.launcherVersion))
+                else -> Triple(R.string.diagnostics_compatible, Tone.POSITIVE, scope.string(R.string.compatibility_supported, analysis.launcherVersion))
+            }
             section.value(
                 name = "feature_" + feature.name.lowercase(),
                 title = feature.titleRes,
-                value = scope.string(if (available) R.string.diagnostics_compatible else R.string.diagnostics_incompatible),
-                tone = if (available) Tone.POSITIVE else Tone.ERROR,
-                summary = scope.string(
-                    if (available) R.string.compatibility_supported else R.string.compatibility_unavailable,
-                    analysis.launcherVersion,
-                ),
+                value = scope.string(value),
+                tone = tone,
+                summary = summary,
             )
         }
 

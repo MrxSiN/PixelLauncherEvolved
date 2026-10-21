@@ -185,6 +185,9 @@
     <string name="diagnostics_group_features">Feature compatibility</string>
     <string name="diagnostics_compatible">✓ Compatible</string>
     <string name="diagnostics_incompatible">✗ Unavailable</string>
+    <string name="diagnostics_feature_failed">✗ Failed to start</string>
+    <string name="diagnostics_feature_failed_summary">Its hooks were taken back and the rest of the module runs. %1$s</string>
+    <string name="diagnostics_feature_off">Off</string>
     <string name="compatibility_bubble_launcher">Bubble launcher</string>
     <string name="diagnostics_group_hooks">Hooks</string>
     <string name="diagnostics_hooks_resolved">Resolved</string>
