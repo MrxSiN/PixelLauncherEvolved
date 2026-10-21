@@ -179,6 +179,11 @@ internal object FocusPagesDialog {
         }
         lateinit var dialog: Dialog
         val hiddenApps = hiddenAppsRow(context, resources, mode) { dialog.dismiss() }
+        val drawerApps = pickAppsRow(
+            context, resources, mode,
+            SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(context), ModeOverrides.DRAWER_APPS_KEY + mode.id),
+            R.string.feature_focus_drawer_apps, R.string.feature_focus_drawer_apps_none, R.plurals.feature_focus_drawer_apps_summary,
+        ) { dialog.dismiss() }
         // Search groups this Mode turns off; one switched off everywhere stays off here.
         val preferences = LauncherSettings.preferences(context)
         val modeSearch = preferences.getString(ModeOverrides.SEARCH_KEY + mode.id, "").orEmpty().split(',').toSet()
@@ -231,6 +236,7 @@ internal object FocusPagesDialog {
             orientation = LinearLayout.VERTICAL
             addView(withOrdinary)
             addView(hiddenApps)
+            addView(drawerApps)
             addView(iconRow)
             addView(blurRow)
             addView(textRow(context, resources.getString(R.string.feature_focus_search_heading)).apply {
@@ -320,14 +326,34 @@ internal object FocusPagesDialog {
      * list, the way Hidden apps does: settings steps aside and the launcher
      * finishes the choosing ([HideAppsSelection]).
      */
-    private fun hiddenAppsRow(context: Context, resources: Resources, mode: FocusMode, close: () -> Unit): TextView {
-        val store = SharedPreferencesHiddenAppsStore.forMode(LauncherSettings.preferences(context), mode.id)
+    private fun hiddenAppsRow(context: Context, resources: Resources, mode: FocusMode, close: () -> Unit): TextView =
+        pickAppsRow(
+            context, resources, mode,
+            SharedPreferencesHiddenAppsStore.forMode(LauncherSettings.preferences(context), mode.id),
+            R.string.feature_focus_hidden_apps, R.string.feature_hidden_apps_summary_none, R.plurals.feature_hidden_apps_summary,
+            close,
+        )
+
+    /**
+     * A row that opens the drawer to tick apps for [store]: the Mode's hidden
+     * apps, or the apps it puts at the top of the drawer.
+     */
+    private fun pickAppsRow(
+        context: Context,
+        resources: Resources,
+        mode: FocusMode,
+        store: SharedPreferencesHiddenAppsStore,
+        title: Int,
+        none: Int,
+        some: Int,
+        close: () -> Unit,
+    ): TextView {
         val count = store.hidden().size
         val density = context.resources.displayMetrics.density
         return TextView(context).apply {
-            text = resources.getString(R.string.feature_focus_hidden_apps) + "\n" +
-                if (count == 0) resources.getString(R.string.feature_hidden_apps_summary_none)
-                else resources.getQuantityString(R.plurals.feature_hidden_apps_summary, count, count)
+            text = resources.getString(title) + "\n" +
+                if (count == 0) resources.getString(none)
+                else resources.getQuantityString(some, count, count)
             ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
             minHeight = (48f * density).roundToInt()
             gravity = android.view.Gravity.CENTER_VERTICAL

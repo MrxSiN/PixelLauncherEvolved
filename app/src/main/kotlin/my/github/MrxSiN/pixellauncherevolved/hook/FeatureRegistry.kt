@@ -8,6 +8,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.diagnostics.CompatibilityWa
 import my.github.MrxSiN.pixellauncherevolved.feature.dock.DockFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.safemode.SafeModeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.ModeDrawerSectionFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusHomeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.gesture.DoubleTapToSleepFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.grid.GridFeature
@@ -57,6 +58,7 @@ object FeatureRegistry {
         IconPackFeature(),
         AppLabelsFeature(),
         HiddenAppsFeature(),
+        ModeDrawerSectionFeature(),
         HideAppsPickerFeature(),
         AppDrawerSearchFeature(),
         WebSearchAppFeature(),

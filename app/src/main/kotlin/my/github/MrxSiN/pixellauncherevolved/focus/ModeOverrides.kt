@@ -33,6 +33,16 @@ object ModeOverrides {
     var iconPack: String? = null
         private set
 
+    /** Packages the winning Mode puts at the top of the drawer ([DRAWER_APPS_KEY]), under [drawerTitle]. */
+    @Volatile
+    var drawerApps: Set<String> = emptySet()
+        private set
+
+    /** That Mode's name, as last read from Settings, or null when no Mode puts apps there. */
+    @Volatile
+    var drawerTitle: String? = null
+        private set
+
     /** The winning Mode's wallpaper blur in percent ([BLUR_KEY]), 0 for none, or null to follow the everywhere setting. */
     @Volatile
     var blur: Int? = null
@@ -41,7 +51,7 @@ object ModeOverrides {
     @Volatile
     private var active: Map<String, Long> = emptyMap()
 
-    /** Told on any thread when [modeId] changes, so the drawer can be rebuilt. */
+    /** Told on any thread when [modeId] or the drawer section changes, so the drawer can be rebuilt. */
     @Volatile
     var onChanged: (() -> Unit)? = null
 
@@ -79,8 +89,16 @@ object ModeOverrides {
             onBlurChanged?.invoke()
         }
 
+        val drawerMode = winner(DRAWER_APPS_KEY)
+        val apps = drawerMode?.let { (all[DRAWER_APPS_KEY + it] as? String).orEmpty().split(',').filterTo(HashSet()) { p -> p.isNotBlank() } }
+            ?: emptySet()
+        val title = drawerMode?.let { SharedPreferencesFocusStore(preferences).nameOf(it) }
+        val drawerChanged = apps != drawerApps || title != drawerTitle
+        drawerApps = apps
+        drawerTitle = title
+
         val next = winner(HIDDEN_APPS_KEY)
-        if (next == modeId) return
+        if (next == modeId && !drawerChanged) return
         modeId = next
         onChanged?.invoke()
     }
@@ -98,6 +116,9 @@ object ModeOverrides {
 
     /** `focus_icon_pack_<modeId>`: the icon pack's package, or [SYSTEM_ICONS]. */
     const val ICON_PACK_KEY = "focus_icon_pack_"
+
+    /** `focus_drawer_apps_<modeId>`: comma-separated packages that Mode shows at the top of All apps. */
+    const val DRAWER_APPS_KEY = "focus_drawer_apps_"
 
     /** `focus_blur_<modeId>`: the wallpaper blur in percent while that Mode wins, as text; 0 for none. */
     const val BLUR_KEY = "focus_blur_"

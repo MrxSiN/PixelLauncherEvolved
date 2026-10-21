@@ -76,6 +76,23 @@ class ModeOverridesTest {
     }
 
     @Test
+    fun `the drawer section follows the winning Mode and its name`() {
+        var told = 0
+        ModeOverrides.onChanged = { told++ }
+        preferences.values["focus_drawer_apps_work"] = "com.a,com.b"
+        preferences.values["focus_name_work"] = "Work"
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
+        assertEquals(setOf("com.a", "com.b"), ModeOverrides.drawerApps)
+        assertEquals("Work", ModeOverrides.drawerTitle)
+
+        ModeOverrides.update(preferences, emptyMap())
+        ModeOverrides.onChanged = null
+        assertEquals(emptySet<String>(), ModeOverrides.drawerApps)
+        assertNull(ModeOverrides.drawerTitle)
+        assertEquals(2, told)
+    }
+
+    @Test
     fun `a change of winner is reported once`() {
         var told = 0
         ModeOverrides.onChanged = { told++ }

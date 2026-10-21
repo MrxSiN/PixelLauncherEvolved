@@ -29,6 +29,9 @@ S	com.android.launcher3.allapps.ActivityAllAppsContainerView
 S	com.android.launcher3.allapps.ActivityAllAppsContainerView$AdapterHolder
 S	com.android.launcher3.allapps.AlphabeticalAppsList
 S	com.android.launcher3.allapps.AppInfoComparator
+S	com.android.launcher3.allapps.BaseAllAppsAdapter
+S	com.android.launcher3.allapps.BaseAllAppsAdapter$AdapterItem
+S	com.android.launcher3.allapps.BaseAllAppsAdapter$ViewHolder
 S	com.android.launcher3.allapps.SearchUiManager
 S	com.android.launcher3.anim.PendingAnimation
 S	com.android.launcher3.compat.AlphabeticIndexCompat
@@ -196,6 +199,7 @@ N	actionsTopMarginPx
 N	activated_at
 N	active
 N	add
+N	addAppsWithSections
 N	addOnChangeListener
 N	addPreference
 N	addViewToCellLayout
@@ -330,6 +334,8 @@ N	findSpaceForItem
 N	fixedSize
 N	float
 N	focus_blur_
+N	focus_drawer_apps_
+N	focus_drawer_section
 N	focus_hidden_apps_
 N	focus_home_screens
 N	focus_icon_pack_
@@ -507,6 +513,7 @@ N	is_default
 N	item
 N	itemInfo
 N	itemType
+N	itemView
 N	items
 N	itemsIdMap
 N	key
@@ -529,8 +536,10 @@ N	locked
 N	long
 N	mActivity
 N	mActivityContext
+N	mAdapterItems
 N	mAllAppsButtonContainer
 N	mAllAppsStore
+N	mApps
 N	mAppsList
 N	mBgDataModel
 N	mComponentName
@@ -656,6 +665,7 @@ N	onBindViewHolder
 N	onConfigChanged
 N	onCreate
 N	onCreatePreferences
+N	onCreateViewHolder
 N	onDeviceProfileChanged
 N	onDragEnd
 N	onDraw
@@ -841,6 +851,7 @@ N	userId
 N	uses_pack
 N	value
 N	version
+N	viewType
 N	weather
 N	webSearchApp
 N	web_search_app

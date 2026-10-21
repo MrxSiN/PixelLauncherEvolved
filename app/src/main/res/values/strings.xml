@@ -120,6 +120,8 @@
     <string name="feature_focus_save">Save</string>
     <string name="feature_focus_with_ordinary">Also show the ordinary pages</string>
     <string name="feature_focus_hidden_apps">Apps hidden in this Mode</string>
+    <string name="feature_focus_drawer_apps">Apps at the top of the drawer</string>
+    <string name="feature_focus_drawer_apps_none">None. Tap to pick apps in the drawer; they show under this Mode\'s name and stay in A–Z too.</string>
     <string name="labels_home_title">Labels on Home screen</string>
     <string name="labels_home_summary">Names under app icons on the Home screen. Off leaves them out; TalkBack still says each app\'s name.</string>
     <string name="labels_folders_title">Labels in folders</string>
@@ -247,6 +249,11 @@
     <plurals name="feature_icon_per_app_summary">
         <item quantity="one">%1$d app has an icon of its own</item>
         <item quantity="other">%1$d apps have an icon of their own</item>
+    </plurals>
+
+    <plurals name="feature_focus_drawer_apps_summary">
+        <item quantity="one">%1$d app under this Mode\'s name. Tap to pick apps in the drawer.</item>
+        <item quantity="other">%1$d apps under this Mode\'s name. Tap to pick apps in the drawer.</item>
     </plurals>
 
     <plurals name="feature_hidden_apps_summary">

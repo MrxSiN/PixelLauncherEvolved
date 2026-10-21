@@ -253,6 +253,11 @@
    "compatibility": "HIDDEN_APPS"
   },
   {
+   "id": "focus_drawer_section",
+   "file": "feature/apps/ModeDrawerSectionFeature.kt",
+   "compatibility": null
+  },
+  {
    "id": "compatibility_watch",
    "file": "feature/diagnostics/CompatibilityWatchFeature.kt",
    "compatibility": null
@@ -581,6 +586,24 @@
    "root": false,
    "binder": [],
    "preferences": true
+  },
+  "feature/apps/ModeDrawerSectionFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.allapps.AlphabeticalAppsList",
+    "com.android.launcher3.allapps.BaseAllAppsAdapter",
+    "com.android.launcher3.allapps.BaseAllAppsAdapter\\$AdapterItem",
+    "com.android.launcher3.allapps.BaseAllAppsAdapter\\$ViewHolder",
+    "com.android.launcher3.model.data.ItemInfo"
+   ],
+   "host_members": [
+    "getTargetPackage",
+    "itemView"
+   ],
+   "hooks": 3,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
   },
   "feature/backup/BackupRows.kt": {
    "host_classes": [],
