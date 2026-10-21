@@ -14,6 +14,7 @@ import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.hook.ApplicationStartup
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureRegistry
+import my.github.MrxSiN.pixellauncherevolved.hook.HookRecorder
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherRestarter
 import my.github.MrxSiN.pixellauncherevolved.layout.LayoutCheckpoints
 import my.github.MrxSiN.pixellauncherevolved.bridge.Bridge
@@ -102,14 +103,16 @@ class PixelLauncherEvolvedModule : XposedModule() {
             recover()
         }
 
+        val hooks = HookRecorder(this)
         FeatureRegistry.install(
             FeatureContext(
-                xposed = this,
+                xposed = hooks,
                 classLoader = classLoader,
                 appContext = application,
                 settings = settings,
                 logger = logger,
             ),
+            hooks,
         )
         Host.settle()
     }

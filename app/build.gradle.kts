@@ -109,5 +109,6 @@ dependencies {
     implementation(libs.dexkit)
 
     testImplementation(libs.junit)
+    testImplementation(libs.libxposed.api)
     testImplementation(libs.org.json)
 }

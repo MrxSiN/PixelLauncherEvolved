@@ -22,6 +22,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsRow
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusFailure
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSnapshot
 import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
+import my.github.MrxSiN.pixellauncherevolved.hook.FeatureRegistry
 
 /**
  * The Compatibility & diagnostics page: what is running, and what of the
@@ -75,7 +76,7 @@ internal object DiagnosticsRows : SettingsRow {
         scope.api.add(
             section.target,
             scope.link(SettingsKeys.row("diagnostics_copy"), R.string.diagnostics_copy_report, scope.string(R.string.diagnostics_copy_report_summary)) {
-                copy(scope.context, analysis.text)
+                copy(scope.context, analysis.text + failuresText())
             },
         )
     }
@@ -99,6 +100,15 @@ internal object DiagnosticsRows : SettingsRow {
             R.string.diagnostics_hooks_failed,
             report.failed.toString(),
             if (report.failed == 0) Tone.NEUTRAL else Tone.ERROR,
+        )
+        // Resolved members that still failed to install; each was taken back and the rest run.
+        val failures = FeatureRegistry.failures
+        section.value(
+            "features_failed",
+            R.string.diagnostics_features_failed,
+            failures.size.toString(),
+            if (failures.isEmpty()) Tone.NEUTRAL else Tone.ERROR,
+            summary = failures.keys.sorted().joinToString(", "),
         )
     }
 
@@ -167,6 +177,10 @@ internal object DiagnosticsRows : SettingsRow {
             }
         }, "PixelLauncherEvolved-root").start()
     }
+
+    /** Features that failed to install, with why, for the copied report. */
+    private fun failuresText(): String = FeatureRegistry.failures.entries.sortedBy { it.key }
+        .joinToString("") { (id, why) -> "\nfailed to install: $id: $why" }
 
     private fun moduleVersion(scope: RowScope): String = runCatching {
         scope.context.packageManager.getPackageInfo(scope.environment.modulePackage, 0).versionName

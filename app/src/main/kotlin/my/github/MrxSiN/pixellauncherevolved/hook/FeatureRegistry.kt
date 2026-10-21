@@ -1,5 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.hook
 
+import java.util.concurrent.ConcurrentHashMap
+
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.TabletModeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HideAppsPickerFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.diagnostics.CompatibilityWatchFeature
@@ -74,9 +76,11 @@ object FeatureRegistry {
      * switched on. A feature this launcher build lacks the members for is not
      * installed, rather than installed to fail somewhere later. A feature that
      * throws is skipped and reported: one broken tweak must not take the rest of
-     * the launcher down with it.
+     * the launcher down with it, nor leave half of itself hooked: every hook it
+     * had set by then is taken back ([HookRecorder]), and it is listed in
+     * [failures] for Diagnostics to show.
      */
-    fun install(context: FeatureContext) {
+    fun install(context: FeatureContext, hooks: HookRecorder) {
         val wanted = features.filter { it.isLive || it.isEnabled(context.settings) }
 
         for (feature in wanted) {
@@ -88,9 +92,18 @@ object FeatureRegistry {
                 continue
             }
 
-            runCatching { feature.install(context) }
-                .onSuccess { context.logger.info("Installed ${feature.id}") }
-                .onFailure { context.logger.warn("Feature ${feature.id} failed to install", it) }
+            val failure = hooks.install { feature.install(context) }
+            if (failure == null) {
+                context.logger.info("Installed ${feature.id}")
+            } else {
+                failed[feature.id] = failure.error.toString()
+                context.logger.warn("Feature ${feature.id} failed to install; took back the ${failure.undone} hook(s) it had set", failure.error)
+            }
         }
     }
+
+    private val failed = ConcurrentHashMap<String, String>()
+
+    /** Features that failed to install in this launcher process, by id, with why. */
+    val failures: Map<String, String> get() = failed
 }

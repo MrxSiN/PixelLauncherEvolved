@@ -168,6 +168,7 @@
     <string name="diagnostics_hooks_resolved">Resolved</string>
     <string name="diagnostics_hooks_fallback">Fallback signatures</string>
     <string name="diagnostics_hooks_failed">Failed</string>
+    <string name="diagnostics_features_failed">Features that failed to start</string>
     <string name="diagnostics_group_contracts">Launcher contracts</string>
     <string name="diagnostics_contract_fallback">Missing. Alternative found: %1$s</string>
     <string name="diagnostics_contract_missing">Missing. The features that need it are incompatible.</string>
