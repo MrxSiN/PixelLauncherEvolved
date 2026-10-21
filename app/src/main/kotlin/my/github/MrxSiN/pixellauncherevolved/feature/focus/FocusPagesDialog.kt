@@ -233,6 +233,12 @@ internal object FocusPagesDialog {
             addView(hiddenApps)
             addView(iconRow)
             addView(blurRow)
+            addView(textRow(context, resources.getString(R.string.feature_focus_search_heading)).apply {
+                isClickable = false
+                isFocusable = false
+                ExpressiveType.LABEL_LARGE.applyTo(this, ExpressiveRole.PRIMARY)
+                isAccessibilityHeading = true
+            })
             searchSwitches.forEach { addView(it.second) }
             addView(gallery)
         }

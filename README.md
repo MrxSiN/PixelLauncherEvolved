@@ -250,6 +250,13 @@ Modes, and import and reset leave them as they are.
 Pixel Launcher is updated with every monthly Android release, and its internals move. This module
 does not assume they stayed put.
 
+**Tested on** (anything else is untested, not unsupported):
+
+| Device | Android build | Pixel Launcher | Checked | Not yet checked |
+|---|---|---|---|---|
+| Pixel 8 Pro | CP3A.261005.005 (Android 17) | 907 | home, dock, Modes pages and per-Mode settings, app drawer and search, icon packs, Overview, Home settings at 100% and 130% text, Diagnostics, recovery screen | TalkBack end to end, work profile and Private Space, other screen sizes and foldables, landscape, RTL, more than one Android user |
+
+
 - **Launcher contracts.** Every class, method and field a tweak stands on is listed once, with the
   signature this module expects and the older one it falls back to. They are checked against the
   running launcher when it starts.

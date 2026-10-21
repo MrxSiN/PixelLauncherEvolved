@@ -128,6 +128,7 @@
     <string name="feature_double_tap_action_sleep">Turn the screen off</string>
     <string name="feature_double_tap_action_modes">Open Modes</string>
     <string name="feature_focus_icon_pack">Icons in this Mode</string>
+    <string name="feature_focus_search_heading">Search results shown in this Mode</string>
     <string name="feature_focus_icon_pack_inherit">Same as everywhere</string>
     <string name="feature_focus_icon_pack_system">System icons</string>
     <string name="feature_focus_blur">Wallpaper blur in this Mode</string>
