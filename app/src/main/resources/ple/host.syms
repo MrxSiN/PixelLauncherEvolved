@@ -327,6 +327,7 @@ N	features_failed
 N	findSpaceForItem
 N	fixedSize
 N	float
+N	focus_blur_
 N	focus_hidden_apps_
 N	focus_home_screens
 N	focus_icon_pack_

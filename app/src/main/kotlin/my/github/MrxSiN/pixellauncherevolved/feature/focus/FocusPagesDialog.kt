@@ -199,26 +199,32 @@ internal object FocusPagesDialog {
         showIconPack(iconPackLabel(context, resources, iconPack))
         iconRow.setOnClickListener {
             readThen(context, { IconPacks.installed(context) }) { packs ->
-                lateinit var picker: Dialog
-                val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
                 val choices = listOf<Pair<String?, CharSequence>>(
                     null to resources.getString(R.string.feature_focus_icon_pack_inherit),
                     ModeOverrides.SYSTEM_ICONS to resources.getString(R.string.feature_focus_icon_pack_system),
                 ) + packs.map { it.packageName to it.label }
-                for ((value, label) in choices) {
-                    list.addView(textRow(context, label).apply {
-                        setOnClickListener {
-                            iconPack = value
-                            showIconPack(label)
-                            picker.dismiss()
-                        }
-                    })
+                choose(context, resources.getString(R.string.feature_focus_icon_pack), choices) { value, label ->
+                    iconPack = value
+                    showIconPack(label)
                 }
-                picker = ExpressiveDialog(context)
-                    .title(resources.getString(R.string.feature_focus_icon_pack))
-                    .content(list)
-                    .dismiss(context.getString(android.R.string.cancel))
-                    .show()
+            }
+        }
+
+        // Null follows Home settings' blur; "0" is none.
+        var blurValue: String? = preferences.getString(ModeOverrides.BLUR_KEY + mode.id, null)
+        val blurChoices = listOf<Pair<String?, CharSequence>>(
+            null to resources.getString(R.string.feature_focus_icon_pack_inherit),
+            "0" to resources.getString(R.string.feature_focus_blur_none),
+        ) + listOf(25, 50, 75, 100).map { it.toString() to "$it%" }
+        val blurRow = textRow(context, "")
+        fun showBlur(label: CharSequence) {
+            blurRow.text = resources.getString(R.string.feature_focus_blur) + "\n" + label
+        }
+        showBlur(blurChoices.firstOrNull { it.first == blurValue }?.second ?: "$blurValue%")
+        blurRow.setOnClickListener {
+            choose(context, resources.getString(R.string.feature_focus_blur), blurChoices) { value, label ->
+                blurValue = value
+                showBlur(label)
             }
         }
         val content = LinearLayout(context).apply {
@@ -226,6 +232,7 @@ internal object FocusPagesDialog {
             addView(withOrdinary)
             addView(hiddenApps)
             addView(iconRow)
+            addView(blurRow)
             searchSwitches.forEach { addView(it.second) }
             addView(gallery)
         }
@@ -247,6 +254,9 @@ internal object FocusPagesDialog {
                         val pack = iconPack
                         if (pack == null) remove(ModeOverrides.ICON_PACK_KEY + mode.id)
                         else putString(ModeOverrides.ICON_PACK_KEY + mode.id, pack)
+                        val blur = blurValue
+                        if (blur == null) remove(ModeOverrides.BLUR_KEY + mode.id)
+                        else putString(ModeOverrides.BLUR_KEY + mode.id, blur)
                     }.apply()
                     ModeOverrides.recompute(preferences)
                     apply(store, mode, chosen)
@@ -328,6 +338,30 @@ internal object FocusPagesDialog {
                 (context as? Activity)?.finish()
             }
         }
+    }
+
+    /** One choice out of [choices], as a list of rows in a dialog of its own. */
+    private fun choose(
+        context: Context,
+        title: CharSequence,
+        choices: List<Pair<String?, CharSequence>>,
+        onPick: (String?, CharSequence) -> Unit,
+    ) {
+        lateinit var picker: Dialog
+        val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        for ((value, label) in choices) {
+            list.addView(textRow(context, label).apply {
+                setOnClickListener {
+                    onPick(value, label)
+                    picker.dismiss()
+                }
+            })
+        }
+        picker = ExpressiveDialog(context)
+            .title(title)
+            .content(list)
+            .dismiss(context.getString(android.R.string.cancel))
+            .show()
     }
 
     private fun iconPackLabel(context: Context, resources: Resources, pack: String?): CharSequence = when (pack) {

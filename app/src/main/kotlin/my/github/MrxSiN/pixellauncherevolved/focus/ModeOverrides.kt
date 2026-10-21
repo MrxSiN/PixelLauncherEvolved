@@ -33,12 +33,21 @@ object ModeOverrides {
     var iconPack: String? = null
         private set
 
+    /** The winning Mode's wallpaper blur in percent ([BLUR_KEY]), 0 for none, or null to follow the everywhere setting. */
+    @Volatile
+    var blur: Int? = null
+        private set
+
     @Volatile
     private var active: Map<String, Long> = emptyMap()
 
     /** Told on any thread when [modeId] changes, so the drawer can be rebuilt. */
     @Volatile
     var onChanged: (() -> Unit)? = null
+
+    /** Told on any thread when [blur] changes, so the wallpaper can be blurred again. */
+    @Volatile
+    var onBlurChanged: (() -> Unit)? = null
 
     /** Told on any thread when [iconPack] changes, so icons can be redrawn. */
     @Volatile
@@ -64,6 +73,12 @@ object ModeOverrides {
             onIconsChanged?.invoke()
         }
 
+        val blurNow = winner(BLUR_KEY)?.let { (all[BLUR_KEY + it] as? String)?.toIntOrNull()?.coerceIn(0, 100) }
+        if (blurNow != blur) {
+            blur = blurNow
+            onBlurChanged?.invoke()
+        }
+
         val next = winner(HIDDEN_APPS_KEY)
         if (next == modeId) return
         modeId = next
@@ -83,6 +98,9 @@ object ModeOverrides {
 
     /** `focus_icon_pack_<modeId>`: the icon pack's package, or [SYSTEM_ICONS]. */
     const val ICON_PACK_KEY = "focus_icon_pack_"
+
+    /** `focus_blur_<modeId>`: the wallpaper blur in percent while that Mode wins, as text; 0 for none. */
+    const val BLUR_KEY = "focus_blur_"
 
     /** A Mode's icon pack value meaning the system's own icons. */
     const val SYSTEM_ICONS = ":system"

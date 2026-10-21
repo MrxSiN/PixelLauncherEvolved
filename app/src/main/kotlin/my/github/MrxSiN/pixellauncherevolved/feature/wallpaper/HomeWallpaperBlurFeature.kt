@@ -3,6 +3,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.wallpaper
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 import my.github.MrxSiN.pixellauncherevolved.wallpaper.HomeBlurDepth
@@ -36,8 +37,8 @@ class HomeWallpaperBlurFeature : ToggleFeature(Settings.HOME_BLUR_WALLPAPER) {
         }
 
         val blur = HomeBlurDepth()
-        blur.isEnabled = isEnabled(context.settings)
-        blur.strength = context.settings[Settings.HOME_BLUR_STRENGTH]
+        blur.isEnabled = wanted(context)
+        blur.strength = strength(context)
 
         context.xposed.hook(depth.stateDepth).intercept { chain ->
             val asked = chain.proceed() as Float
@@ -214,20 +215,31 @@ class HomeWallpaperBlurFeature : ToggleFeature(Settings.HOME_BLUR_WALLPAPER) {
             return
         }
 
-        context.xposed.hook(resumed).intercept { chain ->
-            chain.proceed().also {
-                val wanted = isEnabled(context.settings)
-                val strength = context.settings[Settings.HOME_BLUR_STRENGTH]
+        fun refresh() {
+            val wanted = wanted(context)
+            val strength = strength(context)
 
-                if (wanted != blur.isEnabled || strength != blur.strength) {
-                    blur.isEnabled = wanted
-                    blur.strength = strength
-                    blur.remembered().forEach { (controller, state) -> depth.reapply(controller, state) }
-                    context.logger.info("Wallpaper blur ${onOff(wanted)} at $strength%")
-                }
+            if (wanted != blur.isEnabled || strength != blur.strength) {
+                blur.isEnabled = wanted
+                blur.strength = strength
+                blur.remembered().forEach { (controller, state) -> depth.reapply(controller, state) }
+                context.logger.info("Wallpaper blur ${onOff(wanted)} at $strength%")
             }
         }
+
+        context.xposed.hook(resumed).intercept { chain -> chain.proceed().also { refresh() } }
+
+        // A Mode with its own blur coming on or going off applies at once, through the same reapply.
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        ModeOverrides.onBlurChanged = { main.post(::refresh) }
     }
+
+    /** On while a winning Mode asks for some blur, or as Home settings says when none asks. */
+    private fun wanted(context: FeatureContext): Boolean =
+        ModeOverrides.blur?.let { it > 0 } ?: isEnabled(context.settings)
+
+    private fun strength(context: FeatureContext): Int =
+        ModeOverrides.blur?.takeIf { it > 0 } ?: context.settings[Settings.HOME_BLUR_STRENGTH]
 
     private fun onOff(isEnabled: Boolean): String = if (isEnabled) "on" else "off"
 
