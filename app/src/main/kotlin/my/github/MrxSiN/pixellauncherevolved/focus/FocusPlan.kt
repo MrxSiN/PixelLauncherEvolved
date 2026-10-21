@@ -19,11 +19,14 @@ object FocusPlan {
      * @param screens every screen the launcher would otherwise show, in order.
      * @param assignments screens set aside for each mode, by mode id.
      * @param chosen the mode whose pages win ([winner]), or null for none.
+     * @param withOrdinary whether [chosen] shows the ordinary pages as well as its own,
+     * in the launcher's order; other Modes' pages stay hidden either way.
      */
     fun screens(
         screens: List<Int>,
         assignments: Map<String, Set<Int>>,
         chosen: String?,
+        withOrdinary: Boolean = false,
     ): List<Int> {
         val spokenFor = assignments.values.flatten().toSet()
         val ordinary = screens.filterNot { it in spokenFor }
@@ -34,6 +37,7 @@ object FocusPlan {
         // otherwise leave a launcher with no pages at all, which is not a home
         // screen. The ordinary pages stand in until its own are put back.
         val wanted = assignments.getValue(chosen)
+        if (withOrdinary) return screens.filter { it in wanted || it !in spokenFor }
         return screens.filter { it in wanted }.ifEmpty { ordinary }
     }
 

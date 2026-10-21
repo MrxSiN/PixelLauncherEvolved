@@ -436,6 +436,26 @@ class FocusHomeTest {
         assertEquals(listOf(3, 4), focus.screens(listOf(0, 2, 3, 4)))
     }
 
+    /** A Mode set to keep the ordinary pages shows them after its own; another Mode's stay hidden. */
+    @Test
+    fun aModeCanKeepTheOrdinaryPagesBesideItsOwn() {
+        store.assign("work", setOf(2))
+        store.assign("driving", setOf(3))
+        source.current = listOf(FocusMode("work", "Work", isActive = true), FocusMode("driving", "Driving", false))
+        val focus = focus()
+        focus.change()
+        assertEquals(listOf(2), focus.screens(listOf(0, 1, 2, 3)))
+
+        store.setWithOrdinary("work", true)
+        assertEquals(FocusChange(workspaceChanged = true, modeChanged = false), focus.change())
+        assertEquals(listOf(0, 1, 2), focus.screens(listOf(0, 1, 2, 3)))
+
+        // A deleted Mode's choice goes with it.
+        source.current = listOf(FocusMode("driving", "Driving", false))
+        focus.change()
+        assertFalse(store.withOrdinary("work"))
+    }
+
     private fun focus() = FocusHome(
         isEnabled = { enabled },
         store = store,
@@ -475,6 +495,14 @@ private class FakeStore : FocusStore {
 
     override fun rememberName(modeId: String, name: String) {
         names[modeId] = name
+    }
+
+    private val withOrdinary = hashSetOf<String>()
+
+    override fun withOrdinary(modeId: String): Boolean = modeId in withOrdinary
+
+    override fun setWithOrdinary(modeId: String, on: Boolean) {
+        if (on) withOrdinary += modeId else withOrdinary -= modeId
     }
 }
 

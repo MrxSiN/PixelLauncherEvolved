@@ -40,4 +40,13 @@ class FocusPlanTest {
         assertNull(FocusPlan.winner(pages, emptyList(), emptyMap()))
         assertEquals(listOf(0, 1), FocusPlan.screens(listOf(0, 1, 2, 3, 4), pages, chosen = null))
     }
+
+    @Test
+    fun withOrdinaryAddsTheOrdinaryPagesInOrderAndNeverAnotherModes() {
+        val all = listOf(0, 1, 2, 3, 4)
+        assertEquals(listOf(2), FocusPlan.screens(all, pages, chosen = "work"))
+        assertEquals(listOf(0, 1, 2), FocusPlan.screens(all, pages, chosen = "work", withOrdinary = true))
+        // Off by default, and nothing changes with no Mode chosen.
+        assertEquals(listOf(0, 1), FocusPlan.screens(all, pages, chosen = null, withOrdinary = true))
+    }
 }

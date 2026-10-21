@@ -46,6 +46,11 @@ interface FocusStore {
     fun nameOf(modeId: String): String?
 
     fun rememberName(modeId: String, name: String)
+
+    /** Whether [modeId], while it is the Mode shown, shows the ordinary pages too, after its own. Off unless chosen. */
+    fun withOrdinary(modeId: String): Boolean
+
+    fun setWithOrdinary(modeId: String, on: Boolean)
 }
 
 /** The pages a deleted Mode had, and its name if it was ever seen. */
@@ -106,6 +111,7 @@ fun FocusStore.forgetModesMissingFrom(snapshot: FocusSnapshot) {
     gone.forEach {
         keepOrphan(it, Orphan(nameOf(it), assignments.getValue(it)))
         assign(it, emptySet())
+        setWithOrdinary(it, false)
     }
     reorder(kept)
 }
@@ -164,6 +170,14 @@ class SharedPreferencesFocusStore(
         preferences.edit().putString(NAME + modeId, name).apply()
     }
 
+    override fun withOrdinary(modeId: String): Boolean = preferences.getBoolean(WITH_ORDINARY + modeId, false)
+
+    override fun setWithOrdinary(modeId: String, on: Boolean) {
+        val editor = preferences.edit()
+        if (on) editor.putBoolean(WITH_ORDINARY + modeId, true) else editor.remove(WITH_ORDINARY + modeId)
+        editor.apply()
+    }
+
     private fun screens(key: String): Set<Int> =
         read(key).mapNotNull { it.trim().toIntOrNull() }.toSet()
 
@@ -177,6 +191,7 @@ class SharedPreferencesFocusStore(
         const val PRIORITY = "focus_priority"
         const val ORPHAN = "focus_orphan_"
         const val NAME = "focus_name_"
+        const val WITH_ORDINARY = "focus_with_ordinary_"
         const val NAME_SEPARATOR = "|"
         const val SEPARATOR = ","
     }

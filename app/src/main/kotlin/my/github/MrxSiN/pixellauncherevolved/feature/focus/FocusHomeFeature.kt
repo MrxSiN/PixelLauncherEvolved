@@ -748,7 +748,7 @@ internal class FocusHome(
         val assignments = store.assignments()
         val winner = winner(assignments)
         return FocusState(
-            screens = FocusPlan.screens(all, assignments, winner),
+            screens = FocusPlan.screens(all, assignments, winner, withOrdinary = winner != null && store.withOrdinary(winner)),
             modeId = winner,
         )
     }

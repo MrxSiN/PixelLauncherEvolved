@@ -4,12 +4,17 @@ import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.content.res.Resources
+import android.widget.LinearLayout
+import android.widget.Switch
 
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import kotlin.math.roundToInt
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRole
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveType
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusFailure
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
@@ -153,15 +158,32 @@ internal object FocusPagesDialog {
             selected = assignments[mode.id].orEmpty(),
         )
 
+        // Off keeps the Mode to its own pages, as before; on keeps the ordinary pages beside them.
+        val withOrdinary = Switch(context).apply {
+            text = resources.getString(R.string.feature_focus_with_ordinary)
+            isChecked = store.withOrdinary(mode.id)
+            ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
+            minHeight = (48f * context.resources.displayMetrics.density).roundToInt()
+            // In line with the page grid under it, which keeps the dialog's inset.
+            val inset = (24f * context.resources.displayMetrics.density).roundToInt()
+            setPadding(inset, 0, inset, 0)
+        }
+        val content = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(withOrdinary)
+            addView(gallery)
+        }
+
         ExpressiveDialog(context)
             .icon(FocusModeIcons.load(context, mode.icon))
             .title(mode.name)
             .message(resources.getString(R.string.feature_focus_choose_pages_summary))
-            .content(gallery)
+            .content(content)
             .dismiss(context.getString(android.R.string.cancel))
             .confirm(resources.getString(R.string.feature_focus_save)) {
                 val chosen = grid.selectedScreens()
                 if (leavesOrdinaryPage(FocusPages.order, store.assignments(), mode.id, chosen)) {
+                    store.setWithOrdinary(mode.id, withOrdinary.isChecked)
                     apply(store, mode, chosen)
                 } else {
                     ExpressiveDialog(context)
