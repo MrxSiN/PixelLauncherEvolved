@@ -4,7 +4,7 @@ import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.EffectiveHiddenApps
-import my.github.MrxSiN.pixellauncherevolved.feature.apps.ModeHiddenApps
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
@@ -86,7 +86,7 @@ class AppDrawerSearchFeature : LauncherFeature {
         settings: SettingsSource,
         apps: HiddenAppsStore,
     ): ArrayList<*>? {
-        val hidden = HiddenSearchResults(hiddenSearchResults(settings, ModeHiddenApps.searchHidden), apps.hidden())
+        val hidden = HiddenSearchResults(hiddenSearchResults(settings, ModeOverrides.searchHidden), apps.hidden())
         if (results == null || hidden.isEmpty) return results
 
         val kept = results.filterNotTo(ArrayList()) { item ->

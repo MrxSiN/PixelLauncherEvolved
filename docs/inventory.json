@@ -558,15 +558,6 @@
    "binder": [],
    "preferences": true
   },
-  "feature/apps/ModeHiddenApps.kt": {
-   "host_classes": [],
-   "host_members": [],
-   "hooks": 0,
-   "threads": 0,
-   "root": false,
-   "binder": [],
-   "preferences": true
-  },
   "feature/backup/BackupRows.kt": {
    "host_classes": [],
    "host_members": [],
@@ -1658,6 +1649,15 @@
    "preferences": false
   },
   "focus/FocusStore.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "focus/ModeOverrides.kt": {
    "host_classes": [],
    "host_members": [],
    "hooks": 0,

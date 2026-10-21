@@ -4,6 +4,7 @@ import android.view.View
 
 import java.util.function.Predicate
 
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
@@ -64,7 +65,7 @@ class HiddenAppsFeature : LauncherFeature {
         // A Mode that hides apps coming on or going off rebuilds the list at once,
         // so a hidden app does not linger in a drawer already open.
         val main = android.os.Handler(android.os.Looper.getMainLooper())
-        ModeHiddenApps.onChanged = {
+        ModeOverrides.onChanged = {
             main.post {
                 val hidden = store.hidden()
                 if (hidden != applied) {

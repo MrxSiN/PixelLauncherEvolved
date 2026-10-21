@@ -11,6 +11,7 @@ import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.icons.IconPackState
 import my.github.MrxSiN.pixellauncherevolved.icons.IconSource
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
@@ -81,6 +82,8 @@ class IconPackFeature : LauncherFeature {
         }
 
         val controller = IconPackController.of(context)
+        // A Mode with its own pack coming on or going off redraws icons once, like a choice in settings.
+        ModeOverrides.onIconsChanged = { controller.apply("Mode icon pack") }
         val previews = IconPreviews(context, controller).also { it.install() }
         val providerContext = provider?.let { Reflect.field(it, CONTEXT) }
 

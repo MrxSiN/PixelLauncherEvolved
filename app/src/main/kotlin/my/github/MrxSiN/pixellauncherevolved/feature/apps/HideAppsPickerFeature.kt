@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 
 import java.lang.ref.WeakReference
 
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
@@ -216,7 +217,7 @@ class HideAppsPickerFeature : LauncherFeature {
 
         if (keep != null) {
             target.hide(keep)
-            if (target !== hidden) ModeHiddenApps.recompute(preferences)
+            if (target !== hidden) ModeOverrides.recompute(preferences)
         }
         // Either way the list is wrong: it has been showing every app, hidden
         // ones included, for as long as the choosing lasted.

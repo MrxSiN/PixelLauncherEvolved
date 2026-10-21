@@ -1,4 +1,4 @@
-package my.github.MrxSiN.pixellauncherevolved.feature.apps
+package my.github.MrxSiN.pixellauncherevolved.focus
 
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -6,23 +6,24 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.EffectiveHiddenApps
 import my.github.MrxSiN.pixellauncherevolved.icons.FakePreferences
 
-class ModeHiddenAppsTest {
+class ModeOverridesTest {
 
     private val preferences = FakePreferences()
     private val effective = EffectiveHiddenApps(preferences)
 
     @After
-    fun reset() = ModeHiddenApps.update(FakePreferences(), emptyMap())
+    fun reset() = ModeOverrides.update(FakePreferences(), emptyMap())
 
     @Test
     fun `no Mode on hides only the everywhere list`() {
         preferences.values["app_drawer_hidden_apps"] = "com.a"
         preferences.values["focus_hidden_apps_work"] = "com.b"
-        ModeHiddenApps.update(preferences, emptyMap())
+        ModeOverrides.update(preferences, emptyMap())
 
-        assertNull(ModeHiddenApps.modeId)
+        assertNull(ModeOverrides.modeId)
         assertEquals(setOf("com.a"), effective.hidden())
     }
 
@@ -32,19 +33,19 @@ class ModeHiddenAppsTest {
         preferences.values["focus_hidden_apps_work"] = "com.b"
         preferences.values["focus_hidden_apps_bed"] = "com.c"
         // Driving came on last but hides nothing, so it does not win.
-        ModeHiddenApps.update(preferences, mapOf("work" to 10L, "bed" to 20L, "driving" to 30L))
+        ModeOverrides.update(preferences, mapOf("work" to 10L, "bed" to 20L, "driving" to 30L))
 
-        assertEquals("bed", ModeHiddenApps.modeId)
+        assertEquals("bed", ModeOverrides.modeId)
         assertEquals(setOf("com.a", "com.c"), effective.hidden())
 
-        ModeHiddenApps.update(preferences, mapOf("work" to 10L))
+        ModeOverrides.update(preferences, mapOf("work" to 10L))
         assertEquals(setOf("com.a", "com.b"), effective.hidden())
     }
 
     @Test
     fun `an unchanged answer is the same set`() {
         preferences.values["focus_hidden_apps_work"] = "com.b"
-        ModeHiddenApps.update(preferences, mapOf("work" to 1L))
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
         assertSame(effective.hidden(), effective.hidden())
     }
 
@@ -52,21 +53,36 @@ class ModeHiddenAppsTest {
     fun `search groups follow the latest Mode that hides any`() {
         preferences.values["focus_search_hide_work"] = "app_drawer_search_hide_web"
         preferences.values["focus_search_hide_bed"] = "app_drawer_search_hide_web,app_drawer_search_hide_play_store"
-        ModeHiddenApps.update(preferences, mapOf("work" to 10L, "bed" to 5L))
-        assertEquals(setOf("app_drawer_search_hide_web"), ModeHiddenApps.searchHidden)
+        ModeOverrides.update(preferences, mapOf("work" to 10L, "bed" to 5L))
+        assertEquals(setOf("app_drawer_search_hide_web"), ModeOverrides.searchHidden)
 
-        ModeHiddenApps.update(preferences, emptyMap())
-        assertEquals(emptySet<String>(), ModeHiddenApps.searchHidden)
+        ModeOverrides.update(preferences, emptyMap())
+        assertEquals(emptySet<String>(), ModeOverrides.searchHidden)
+    }
+
+    @Test
+    fun `a Mode's icon pack applies while it is on and is told once`() {
+        var told = 0
+        ModeOverrides.onIconsChanged = { told++ }
+        preferences.values["focus_icon_pack_work"] = "com.pack"
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
+        assertEquals("com.pack", ModeOverrides.iconPack)
+
+        ModeOverrides.update(preferences, emptyMap())
+        ModeOverrides.onIconsChanged = null
+        assertNull(ModeOverrides.iconPack)
+        assertEquals(2, told)
     }
 
     @Test
     fun `a change of winner is reported once`() {
         var told = 0
-        ModeHiddenApps.onChanged = { told++ }
+        ModeOverrides.onChanged = { told++ }
         preferences.values["focus_hidden_apps_work"] = "com.b"
-        ModeHiddenApps.update(preferences, mapOf("work" to 1L))
-        ModeHiddenApps.update(preferences, mapOf("work" to 1L))
-        ModeHiddenApps.onChanged = null
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
+        ModeOverrides.onChanged = null
         assertEquals(1, told)
     }
 }

@@ -28,7 +28,7 @@ import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
 import my.github.MrxSiN.pixellauncherevolved.focus.forgetOrphanPages
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
-import my.github.MrxSiN.pixellauncherevolved.feature.apps.ModeHiddenApps
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 
 /**
@@ -99,7 +99,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             ),
             logger = context.logger,
             // Per-Mode hidden apps follow the same reads as the pages.
-            onActive = { ModeHiddenApps.update(LauncherSettings.preferences(context.appContext), it) },
+            onActive = { ModeOverrides.update(LauncherSettings.preferences(context.appContext), it) },
         )
         val previews = FocusPreviewRecorder(itemInfo, context.appContext, context.logger)
         FocusPageRenderer.install(context)

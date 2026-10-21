@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HideAppsSelection
-import my.github.MrxSiN.pixellauncherevolved.feature.apps.ModeHiddenApps
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.feature.search.SearchResultKind
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
@@ -29,6 +29,7 @@ import my.github.MrxSiN.pixellauncherevolved.focus.FocusSnapshot
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
 import my.github.MrxSiN.pixellauncherevolved.focus.Orphan
+import my.github.MrxSiN.pixellauncherevolved.icons.IconPacks
 import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 
@@ -180,7 +181,7 @@ internal object FocusPagesDialog {
         val hiddenApps = hiddenAppsRow(context, resources, mode) { dialog.dismiss() }
         // Search groups this Mode turns off; one switched off everywhere stays off here.
         val preferences = LauncherSettings.preferences(context)
-        val modeSearch = preferences.getString(ModeHiddenApps.SEARCH_KEY + mode.id, "").orEmpty().split(',').toSet()
+        val modeSearch = preferences.getString(ModeOverrides.SEARCH_KEY + mode.id, "").orEmpty().split(',').toSet()
         val searchSwitches = FeatureCatalog.entries.filter { entry -> SearchResultKind.entries.any { it.setting == entry.setting } }
             .map { entry ->
                 val everywhere = preferences.getBoolean(entry.setting.key, entry.setting.default)
@@ -189,10 +190,42 @@ internal object FocusPagesDialog {
                     isEnabled = !everywhere
                 }
             }
+        // Null follows the everywhere choice; saved with the pages.
+        var iconPack: String? = preferences.getString(ModeOverrides.ICON_PACK_KEY + mode.id, null)
+        val iconRow = textRow(context, "")
+        fun showIconPack(label: CharSequence) {
+            iconRow.text = resources.getString(R.string.feature_focus_icon_pack) + "\n" + label
+        }
+        showIconPack(iconPackLabel(context, resources, iconPack))
+        iconRow.setOnClickListener {
+            readThen(context, { IconPacks.installed(context) }) { packs ->
+                lateinit var picker: Dialog
+                val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+                val choices = listOf<Pair<String?, CharSequence>>(
+                    null to resources.getString(R.string.feature_focus_icon_pack_inherit),
+                    ModeOverrides.SYSTEM_ICONS to resources.getString(R.string.feature_focus_icon_pack_system),
+                ) + packs.map { it.packageName to it.label }
+                for ((value, label) in choices) {
+                    list.addView(textRow(context, label).apply {
+                        setOnClickListener {
+                            iconPack = value
+                            showIconPack(label)
+                            picker.dismiss()
+                        }
+                    })
+                }
+                picker = ExpressiveDialog(context)
+                    .title(resources.getString(R.string.feature_focus_icon_pack))
+                    .content(list)
+                    .dismiss(context.getString(android.R.string.cancel))
+                    .show()
+            }
+        }
         val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             addView(withOrdinary)
             addView(hiddenApps)
+            addView(iconRow)
             searchSwitches.forEach { addView(it.second) }
             addView(gallery)
         }
@@ -209,10 +242,13 @@ internal object FocusPagesDialog {
                     store.setWithOrdinary(mode.id, withOrdinary.isChecked)
                     val off = searchSwitches.filter { (_, it) -> it.isEnabled && !it.isChecked }.map { it.first }
                     preferences.edit().apply {
-                        if (off.isEmpty()) remove(ModeHiddenApps.SEARCH_KEY + mode.id)
-                        else putString(ModeHiddenApps.SEARCH_KEY + mode.id, off.joinToString(","))
+                        if (off.isEmpty()) remove(ModeOverrides.SEARCH_KEY + mode.id)
+                        else putString(ModeOverrides.SEARCH_KEY + mode.id, off.joinToString(","))
+                        val pack = iconPack
+                        if (pack == null) remove(ModeOverrides.ICON_PACK_KEY + mode.id)
+                        else putString(ModeOverrides.ICON_PACK_KEY + mode.id, pack)
                     }.apply()
-                    ModeHiddenApps.recompute(preferences)
+                    ModeOverrides.recompute(preferences)
                     apply(store, mode, chosen)
                 } else {
                     ExpressiveDialog(context)
@@ -292,6 +328,24 @@ internal object FocusPagesDialog {
                 (context as? Activity)?.finish()
             }
         }
+    }
+
+    private fun iconPackLabel(context: Context, resources: Resources, pack: String?): CharSequence = when (pack) {
+        null -> resources.getString(R.string.feature_focus_icon_pack_inherit)
+        ModeOverrides.SYSTEM_ICONS -> resources.getString(R.string.feature_focus_icon_pack_system)
+        else -> IconPacks.labelOf(context.packageManager, pack) ?: pack
+    }
+
+    private fun textRow(context: Context, label: CharSequence) = TextView(context).apply {
+        text = label
+        ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
+        val density = context.resources.displayMetrics.density
+        minHeight = (48f * density).roundToInt()
+        gravity = android.view.Gravity.CENTER_VERTICAL
+        val inset = (24f * density).roundToInt()
+        setPadding(inset, 0, inset, 0)
+        isClickable = true
+        isFocusable = true
     }
 
     private fun switch(context: Context, label: String) = Switch(context).apply {

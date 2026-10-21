@@ -7,6 +7,7 @@ import java.util.Calendar
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 
 /**
  * Which icons the launcher draws, as stored, and as the hooks read it.
@@ -71,8 +72,16 @@ class IconSourceFactory(
     private val logger: Logger,
 ) {
 
-    /** The pack the stored settings call for, or null for stock behaviour. */
-    fun wantedPack(): String? = if (settings.usesPack()) settings.pack() else null
+    /**
+     * The pack the stored settings call for, or null for stock behaviour. A Mode
+     * that is on and has its own choice ([ModeOverrides.iconPack]) wins over the
+     * everywhere one.
+     */
+    fun wantedPack(): String? {
+        val mode = ModeOverrides.iconPack
+        if (mode != null) return mode.takeIf { it != ModeOverrides.SYSTEM_ICONS }
+        return if (settings.usesPack()) settings.pack() else null
+    }
 
     /**
      * Publishes the source the stored settings call for, compiling the pack's

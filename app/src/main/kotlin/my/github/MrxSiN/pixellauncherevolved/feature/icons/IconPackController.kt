@@ -137,8 +137,8 @@ internal class IconPackController private constructor(
         done: CompletableFuture<Unit>? = null,
     ) {
         runCatching {
-            factory.publish()
-            logger.info("Icons: $reason published ${SystemClock.elapsedRealtime() - asked} ms after it was asked for")
+            val source = factory.publish()
+            logger.info("Icons: $reason published ${source?.packPackage ?: "system"} ${SystemClock.elapsedRealtime() - asked} ms after it was asked for")
             reloader.reload(reason, asked, done)
         }.onFailure {
             logger.warn("Icons: $reason was not applied", it)
@@ -196,7 +196,8 @@ internal class IconPackController private constructor(
     }
 
     private fun onPackageChanged(packageName: String?) {
-        val chosen = settings.pack()
+        // The pack drawn now: a Mode's own while one is on, else the everywhere choice.
+        val chosen = factory.wantedPack() ?: settings.pack()
         if (packageName != null && packageName != chosen) {
             // Any other pack is indexed now, so choosing it later is immediate.
             if (IconPacks.isPack(context, packageName)) prewarm(listOf(packageName))
@@ -204,7 +205,7 @@ internal class IconPackController private constructor(
         }
         chosen ?: return
 
-        if (!settings.usesPack()) return
+        if (factory.wantedPack() == null) return
 
         val current = IconPackState.source
         if (!IconPacks.isUsable(context, chosen)) {

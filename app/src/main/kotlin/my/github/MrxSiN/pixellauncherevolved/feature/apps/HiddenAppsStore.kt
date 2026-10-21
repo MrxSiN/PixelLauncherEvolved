@@ -2,6 +2,8 @@ package my.github.MrxSiN.pixellauncherevolved.feature.apps
 
 import android.content.SharedPreferences
 
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
+
 /**
  * Which apps the app drawer leaves out.
  *
@@ -64,8 +66,8 @@ class SharedPreferencesHiddenAppsStore(
         private const val KEY = "app_drawer_hidden_apps"
         private const val SEPARATOR = ","
 
-        /** Apps a Mode hides on top of [KEY] while it is the Mode that wins ([ModeHiddenApps]). */
-        const val MODE_KEY = "focus_hidden_apps_"
+        /** Apps a Mode hides on top of [KEY] while it is the Mode that wins ([ModeOverrides]). */
+        const val MODE_KEY = ModeOverrides.HIDDEN_APPS_KEY
 
         fun forMode(preferences: SharedPreferences, modeId: String) =
             SharedPreferencesHiddenAppsStore(preferences, MODE_KEY + modeId)
@@ -74,7 +76,7 @@ class SharedPreferencesHiddenAppsStore(
 
 /**
  * What the drawer and search leave out: the apps hidden everywhere, plus the
- * ones the winning Mode hides ([ModeHiddenApps]). One answer for every surface,
+ * ones the winning Mode hides ([ModeOverrides]). One answer for every surface,
  * so the drawer and search never disagree.
  *
  * Asked once per app on every rebuild: both parts are cached sets handed back
@@ -91,7 +93,7 @@ class EffectiveHiddenApps(private val preferences: SharedPreferences) : HiddenAp
     private var union = Union(null, emptySet(), emptySet(), emptySet())
 
     override fun hidden(): Set<String> {
-        val id = ModeHiddenApps.modeId
+        val id = ModeOverrides.modeId
         val store = mode.takeIf { union.modeId == id }
             ?: id?.let { SharedPreferencesHiddenAppsStore.forMode(preferences, it) }.also { mode = it }
         val everywhere = global.hidden()
