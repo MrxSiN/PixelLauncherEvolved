@@ -557,3 +557,21 @@ entries 1–6 together as one candidate, not one change at a time.
     displayed 353/432 vs 354/376 ms; first screen bound **7091/7213 vs 625/677 ms**; module-forced
     reloads 1/1 vs 0/0.
 - **Allocation/memory:** none measured; the change removes a call, adds a boolean.
+
+## 34. A Mode change rebinds the loaded model instead of reloading the database — ACCEPTED (P02, latency)
+
+- **Hypothesis:** a Mode change only changes which pages show, yet `forceReload` threw the model
+  away and read the whole workspace database again before binding.
+- **Path:** `feature/focus/FocusHomeFeature.kt` (`rebuild`).
+- **Mechanism:** call `LauncherModel.rebindCallbacks(String)`, which binds the in-memory
+  `BgDataModel` through the same `bindWorkspace` path (and falls back to a full load itself while
+  nothing is loaded or a loader is running). `forceReload` stays as the fallback when the method
+  is missing.
+- **Correctness:** same filter hooks run on the bind; DND mapped to page 7 showed page 7 on and
+  the ordinary home off (screenshots), reveal animation still ends on `removeExtraEmptyScreenDelayed`.
+- **Measurement:** Pixel 8 Pro, CP3A.261005.005, launcher 907, release builds identical except the
+  method called, temporary log probes from `applyChange` to the binding-end hook, DND toggled from
+  adb, interleaved 3 rounds × 2 toggles × on/off (n = 12 each).
+  - forceReload: 219 179 158 220 171 153 140 170 199 154 156 223 ms; median 170.5.
+  - rebindCallbacks: 30 56 24 46 26 57 25 51 27 61 27 51 ms; median 38.5 (−77%).
+- **Allocation/memory:** not measured; no database cursor or new item objects per change.

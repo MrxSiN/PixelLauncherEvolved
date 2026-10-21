@@ -55,6 +55,9 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
     @Volatile
     private var current: WeakReference<Any>? = null
 
+    /** `LauncherModel.rebindCallbacks`, once found; see [rebuild]. */
+    private var rebind: Method? = null
+
     override fun install(context: FeatureContext) {
         val callbacks = context.findClass(MODEL_CALLBACKS)
         val intArray = context.findClass(INT_ARRAY)
@@ -538,13 +541,22 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         }
     }
 
-    /** Asks the launcher's model to bind the workspace again, through the filter. */
+    /**
+     * Asks the launcher's model to bind the workspace again, through the filter.
+     *
+     * Only which pages show changes, so the model already in memory is bound
+     * again (`rebindCallbacks`, which falls back to a full load itself while
+     * none is loaded); `forceReload`, which reads the whole database again, is
+     * kept for a launcher without it.
+     */
     private fun rebuild(model: Field, context: FeatureContext): Boolean = runCatching {
         val activity = current?.get() ?: return false
         val launcherModel = model.get(activity) ?: return false
 
-        requireNotNull(Reflect.method(launcherModel.javaClass, FORCE_RELOAD, String::class.java))
-            .invoke(launcherModel, RELOAD_REASON)
+        val bind = rebind ?: Reflect.method(launcherModel.javaClass, REBIND, String::class.java)
+            ?.also { rebind = it }
+            ?: requireNotNull(Reflect.method(launcherModel.javaClass, FORCE_RELOAD, String::class.java))
+        bind.invoke(launcherModel, RELOAD_REASON)
         true
     }
         .onFailure { context.logger.warn("The workspace could not be rebuilt for the new focus", it) }
@@ -593,6 +605,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         const val CONTAINER = "container"
         const val MODEL_FIELD = "mModel"
         const val FORCE_RELOAD = "forceReload"
+        const val REBIND = "rebindCallbacks"
         const val RELOAD_REASON = "pixel_launcher_evolved_focus"
     }
 }
