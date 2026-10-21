@@ -24,6 +24,7 @@ import my.github.MrxSiN.pixellauncherevolved.focus.FocusWatcher
 import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.SharedPreferencesFocusStore
 import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
+import my.github.MrxSiN.pixellauncherevolved.focus.forgetOrphanPages
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
@@ -677,6 +678,7 @@ internal class FocusHome(
             val left = owned - gone
             if (left != owned) store.assign(mode, left)
         }
+        store.forgetOrphanPages(gone)
         apply(plan(FocusPages.order), FocusPages.order)
     }
 

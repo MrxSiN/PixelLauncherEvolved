@@ -16,6 +16,7 @@ import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSnapshot
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
+import my.github.MrxSiN.pixellauncherevolved.focus.Orphan
 import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
 
 /**
@@ -105,9 +106,20 @@ internal object FocusPagesDialog {
             ),
         )
         lateinit var dialog: Dialog
-        val rows = list.build(modes, store.assignments(), previews) { mode ->
+        // A deleted Mode's pages follow the Modes as one more row, under the name it had.
+        val orphans = store.orphans()
+        val orphanRows = orphans.map { (id, orphan) ->
+            FocusMode(ORPHAN_ROW + id, resources.getString(R.string.feature_focus_orphan, orphan.name ?: resources.getString(R.string.feature_focus_orphan_unnamed)), false)
+        }
+        val owned = store.assignments() + orphans.map { (id, orphan) -> ORPHAN_ROW + id to orphan.screens }
+        val rows = list.build(modes + orphanRows, owned, previews) { mode ->
             dialog.dismiss()
-            choosePages(context, resources, store, mode, previews)
+            val orphan = orphans[mode.id.removePrefix(ORPHAN_ROW)]
+            if (mode.id.startsWith(ORPHAN_ROW) && orphan != null) {
+                giveOrphan(context, resources, store, mode.id.removePrefix(ORPHAN_ROW), orphan, modes, list, previews)
+            } else {
+                choosePages(context, resources, store, mode, previews)
+            }
         }
         dialog = ExpressiveDialog(context)
             .title(resources.getString(R.string.feature_focus_pages_title))
@@ -162,8 +174,47 @@ internal object FocusPagesDialog {
             .show()
     }
 
+    /**
+     * Gives a deleted Mode's pages to a Mode, on top of the pages it has, or forgets them.
+     * Meanwhile they are on the ordinary home screen, as any page no Mode has.
+     */
+    private fun giveOrphan(
+        context: Context,
+        resources: Resources,
+        store: FocusStore,
+        id: String,
+        orphan: Orphan,
+        modes: List<FocusMode>,
+        list: FocusModeList,
+        previews: Map<Int, FocusPagePreview>,
+    ) {
+        lateinit var dialog: Dialog
+        val rows = list.build(modes, store.assignments(), previews) { mode ->
+            dialog.dismiss()
+            val chosen = store.assignments()[mode.id].orEmpty() + orphan.screens
+            if (leavesOrdinaryPage(FocusPages.order, store.assignments(), mode.id, chosen)) {
+                apply(store, mode, chosen)
+                store.keepOrphan(id, orphan.copy(screens = emptySet()))
+            } else {
+                ExpressiveDialog(context)
+                    .title(mode.name)
+                    .message(resources.getString(R.string.feature_focus_keep_one_page))
+                    .dismiss(context.getString(android.R.string.ok))
+                    .show()
+            }
+        }
+        dialog = ExpressiveDialog(context)
+            .title(resources.getString(R.string.feature_focus_orphan, orphan.name ?: resources.getString(R.string.feature_focus_orphan_unnamed)))
+            .message(resources.getString(R.string.feature_focus_orphan_summary))
+            .content(rows)
+            .confirm(resources.getString(R.string.feature_focus_orphan_forget)) { store.keepOrphan(id, orphan.copy(screens = emptySet())) }
+            .dismiss(context.getString(android.R.string.cancel))
+            .show()
+    }
+
     /** Gives [screens] to [mode] and takes them off every other Mode. */
     private fun apply(store: FocusStore, mode: FocusMode, screens: Set<Int>) {
+        store.rememberName(mode.id, mode.name)
         for ((other, owned) in store.assignments()) {
             if (other == mode.id) continue
             val left = owned - screens
@@ -210,3 +261,6 @@ internal fun leavesOrdinaryPage(
     val reserved = assignments.filterKeys { it != modeId }.values.flatten().toSet() + chosen
     return pages.any { it !in reserved }
 }
+
+/** Marks a row standing for a deleted Mode's pages; Mode ids never contain a colon at the start. */
+private const val ORPHAN_ROW = ":orphan:"

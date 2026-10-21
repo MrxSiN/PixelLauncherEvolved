@@ -5,6 +5,7 @@ import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
+import my.github.MrxSiN.pixellauncherevolved.focus.Orphan
 import my.github.MrxSiN.pixellauncherevolved.focus.renumber
 
 import org.junit.Assert.assertEquals
@@ -241,6 +242,27 @@ class FocusHomeTest {
         assertEquals(listOf(0, 2), focus.screens(listOf(0, 1, 2)))
     }
 
+    /** What a deleted Mode had is kept, under the name it was last seen with, to be given back. */
+    @Test
+    fun aDeletedModesPagesAreKeptAsAnOrphanWithItsName() {
+        store.assign("old-work", setOf(2, 3))
+        source.current = listOf(FocusMode("old-work", "Work", false))
+        val focus = focus()
+        focus.change()
+        assertEquals("Work", store.nameOf("old-work"))
+
+        source.current = emptyList()
+        focus.change()
+
+        assertEquals(emptyMap<String, Set<Int>>(), store.assignments())
+        assertEquals(mapOf("old-work" to Orphan("Work", setOf(2, 3))), store.orphans())
+        // A page the launcher removes leaves the orphan too; the last one ends it.
+        focus.forget(listOf(3))
+        assertEquals(setOf(2), store.orphans().getValue("old-work").screens)
+        focus.forget(listOf(2))
+        assertTrue(store.orphans().isEmpty())
+    }
+
     /** A Mode deleted after its pages were given back still leaves the Mode order. */
     @Test
     fun aDeletedModeWithNoPagesLeavesTheOrder() {
@@ -335,6 +357,22 @@ private class FakeStore : FocusStore {
 
     override fun reorder(modeIds: List<String>) {
         order = modeIds
+    }
+
+    val left = linkedMapOf<String, Orphan>()
+    private val names = hashMapOf<String, String>()
+
+    override fun orphans(): Map<String, Orphan> = left.toMap()
+
+    override fun keepOrphan(modeId: String, orphan: Orphan) {
+        names.remove(modeId)
+        if (orphan.screens.isEmpty()) left.remove(modeId) else left[modeId] = orphan
+    }
+
+    override fun nameOf(modeId: String): String? = names[modeId]
+
+    override fun rememberName(modeId: String, name: String) {
+        names[modeId] = name
     }
 }
 

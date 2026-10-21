@@ -119,6 +119,10 @@
     <string name="feature_focus_no_pages_assigned">No pages</string>
     <string name="feature_focus_pages_assigned">Pages %1$s</string>
     <string name="feature_focus_no_pages">The home screen pages are not known yet. Open the home screen once, then try again.</string>
+    <string name="feature_focus_orphan">%1$s (deleted)</string>
+    <string name="feature_focus_orphan_unnamed">A deleted Mode</string>
+    <string name="feature_focus_orphan_summary">This Mode was deleted, and its pages are back on your ordinary home screen. Give them to a Mode, such as one made in its place, or forget them.</string>
+    <string name="feature_focus_orphan_forget">Forget</string>
     <string name="feature_focus_keep_one_page">Leave at least one page off every Mode, so the home screen has a page to show while no Mode is on.</string>
     <string name="feature_focus_read_failed">Your Modes could not be read just now. Try again in a moment.</string>
     <string name="feature_focus_needs_access">Your Modes could not be read. This needs root access, because Android only lets an app see the Modes it created itself. Grant Pixel Launcher Evolved root, then try again.</string>
