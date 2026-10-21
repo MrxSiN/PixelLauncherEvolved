@@ -144,7 +144,7 @@ grep -q 'dismissAllTasks' "$SRC/feature/overview/ClearAllAction.kt"
 grep -q 'fun method' "$SRC/core/Reflect.kt"
 
 # A failing feature is contained.
-grep -q 'runCatching' "$SRC/hook/FeatureRegistry.kt"
+grep -q 'hooks.install { feature.install(context) }' "$SRC/hook/FeatureRegistry.kt"
 grep -q 'isEnabled(context.settings)' "$SRC/hook/FeatureRegistry.kt"
 
 # Card buttons: the three TaskView members every one of them depends on, hooked
@@ -592,8 +592,8 @@ grep -q 'focus.forget' "$SRC/feature/focus/FocusHomeFeature.kt"
 # Modes are read in this module's own app, which is the process that holds root,
 # and answered to the launcher alone. The platform API is not used: since Android
 # 15 it reports only the rules the calling app owns, so it returns nothing.
-grep -q 'dumpsys notification --zen' "$SRC/focus/ZenModes.kt"
-grep -q 'ProcessBuilder("su"' "$SRC/focus/ZenModes.kt"
+grep -q '"dumpsys notification --zen' "$SRC/focus/ZenModes.kt"
+grep -q 'ProcessBuilder(su)' "$SRC/focus/ZenModes.kt"
 grep -q 'callingPackage != LAUNCHER_PACKAGE' "$SRC/focus/FocusProvider.kt"
 
 # A Mode that comes on by itself has to be noticed by itself. The interruption
@@ -601,9 +601,9 @@ grep -q 'callingPackage != LAUNCHER_PACKAGE' "$SRC/focus/FocusProvider.kt"
 # configuration tag is watched as well, and it is written for every rule change.
 grep -q 'zen_mode_config_etag' "$SRC/focus/FocusSource.kt"
 
-# Reading the Modes is a root shell in another process, so it happens once per
-# prompt, on the thread that asked to look, and never again while binding.
-grep -q 'activeModes ?: read()' "$SRC/feature/focus/FocusHomeFeature.kt"
+# Reading the Modes is a root shell in another process, so it happens off the
+# binding thread; binding uses only the last answer (none yet = neutral home).
+grep -q 'active = activeModes.orEmpty()' "$SRC/feature/focus/FocusHomeFeature.kt"
 [ "$(grep -c 'source.snapshot()' "$SRC/feature/focus/FocusHomeFeature.kt")" = 1 ]
 
 # The page swap is Material 3 Expressive: content leaves before it is replaced,
@@ -639,6 +639,8 @@ grep -q 'adaptresourcefilecontents META-INF/xposed/java_init.list' "$ROOT/app/pr
 # Release automation.
 grep -q 'workflow_dispatch:' "$ROOT/.github/workflows/android.yml"
 grep -q 'Build release APK' "$ROOT/.github/workflows/android.yml"
+grep -q 'testDebugUnitTest' "$ROOT/.github/workflows/android.yml"
+grep -q 'scripts/host-symbols.py' "$ROOT/.github/workflows/android.yml"
 grep -q 'actions/upload-artifact@v4' "$ROOT/.github/workflows/android.yml"
 grep -q 'softprops/action-gh-release@v2' "$ROOT/.github/workflows/android.yml"
 grep -qi 'apksigner.*verify' "$ROOT/.github/workflows/android.yml"

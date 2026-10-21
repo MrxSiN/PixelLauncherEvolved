@@ -7,7 +7,8 @@
   ],
   "scope.list": [
    "com.google.android.apps.nexuslauncher",
-   "com.android.systemui"
+   "com.android.systemui",
+   "com.google.android.apps.wallpaper"
   ],
   "java_init.list": [
    "my.github.MrxSiN.pixellauncherevolved.PixelLauncherEvolvedModule"
@@ -19,6 +20,13 @@
    "name": ".focus.FocusProvider",
    "authorities": "${applicationId}.focus",
    "exported": "true"
+  },
+  {
+   "kind": "activity",
+   "name": ".recovery.RecoveryActivity",
+   "exported": "true",
+   "label": "@string/recovery_title",
+   "theme": "@android:style/Theme.DeviceDefault.DayNight"
   },
   {
    "kind": "provider",
@@ -65,6 +73,12 @@
    "default": "false"
   },
   {
+   "name": "ICONS_USE_PACK",
+   "type": "Bool",
+   "key": "home_icons_use_pack",
+   "default": "false"
+  },
+  {
    "name": "STATUS_BAR_DOUBLE_TAP_TO_SLEEP",
    "type": "Bool",
    "key": "status_bar_double_tap_to_sleep",
@@ -75,6 +89,72 @@
    "type": "Bool",
    "key": "home_search_opens_drawer",
    "default": "false"
+  },
+  {
+   "name": "DOCK_HIDDEN",
+   "type": "Bool",
+   "key": "home_dock_hidden",
+   "default": "false"
+  },
+  {
+   "name": "DOCK_ICONS",
+   "type": "Int",
+   "key": "home_dock_icons",
+   "default": "0"
+  },
+  {
+   "name": "DOCK_MOVE_TO_HOME",
+   "type": "Bool",
+   "key": "home_dock_move_to_home",
+   "default": "true"
+  },
+  {
+   "name": "DOCK_KEPT",
+   "type": "Int",
+   "key": "home_dock_kept",
+   "default": "0"
+  },
+  {
+   "name": "GRID_COLUMNS",
+   "type": "Int",
+   "key": "home_grid_columns",
+   "default": "0"
+  },
+  {
+   "name": "GRID_ROWS",
+   "type": "Int",
+   "key": "home_grid_rows",
+   "default": "0"
+  },
+  {
+   "name": "GRID_ICON_SIZE",
+   "type": "Int",
+   "key": "home_grid_icon_size",
+   "default": "100"
+  },
+  {
+   "name": "GRID_SPACING_X",
+   "type": "Int",
+   "key": "home_grid_spacing_x",
+   "default": "0"
+  },
+  {
+   "name": "GRID_SPACING_Y",
+   "type": "Int",
+   "key": "home_grid_spacing_y",
+   "default": "0"
+  },
+  {
+   "name": "APP_LABELS_HOME_ONLY",
+   "type": "Bool",
+   "key": "home_app_labels_home_only",
+   "default": "false"
+  },
+  {
+   "name": "APP_DRAWER_COLUMNS",
+   "type": "Int",
+   "key": "app_drawer_columns",
+   "default": "0"
   },
   {
    "name": "APP_DRAWER_SEARCH_HIDE_WEB",
@@ -154,6 +234,11 @@
    "compatibility": null
   },
   {
+   "id": "home_dock",
+   "file": "feature/dock/DockFeature.kt",
+   "compatibility": "DOCK"
+  },
+  {
    "id": "focus_home_screens",
    "file": "feature/focus/FocusHomeFeature.kt",
    "compatibility": "FOCUS_HOME_SCREENS"
@@ -162,6 +247,21 @@
    "id": "home_double_tap_to_sleep",
    "file": "feature/gesture/DoubleTapToSleepFeature.kt",
    "compatibility": "DOUBLE_TAP_TO_SLEEP"
+  },
+  {
+   "id": "home_grid",
+   "file": "feature/grid/GridFeature.kt",
+   "compatibility": null
+  },
+  {
+   "id": "home_icon_pack",
+   "file": "feature/icons/IconPackFeature.kt",
+   "compatibility": "ICON_PACK"
+  },
+  {
+   "id": "home_app_labels",
+   "file": "feature/labels/AppLabelsFeature.kt",
+   "compatibility": "APP_LABELS"
   },
   {
    "id": "overview_only",
@@ -267,22 +367,103 @@
    "binder": [],
    "preferences": false
   },
+  "bridge/IconsBridge.kt": {
+   "host_classes": [
+    "com.google.android.apps.nexuslauncher.grid_control",
+    "com.google.android.apps.wallpaper"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "bridge/WallpaperBridge.kt": {
+   "host_classes": [
+    "com.google.android.apps.wallpaper.provider.RecentWallpapersProvider",
+    "com.google.android.apps.wallpaper.recents"
+   ],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "core/HostDex.java": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 1,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
   "diagnostics/LauncherContracts.kt": {
    "host_classes": [
     "com.android.launcher3.BubbleTextView",
+    "com.android.launcher3.CellLayout",
     "com.android.launcher3.DeviceProfile",
+    "com.android.launcher3.Hotseat",
+    "com.android.launcher3.InvariantDeviceProfile",
     "com.android.launcher3.Launcher",
     "com.android.launcher3.LauncherAppState",
+    "com.android.launcher3.LauncherModel",
     "com.android.launcher3.LauncherState",
     "com.android.launcher3.ModelCallbacks",
     "com.android.launcher3.Workspace",
     "com.android.launcher3.allapps.ActivityAllAppsContainerView",
+    "com.android.launcher3.allapps.AppInfoComparator",
+    "com.android.launcher3.compat.AlphabeticIndexCompat",
+    "com.android.launcher3.dagger.LauncherBaseAppComponent",
+    "com.android.launcher3.dagger.LauncherComponentProvider",
+    "com.android.launcher3.deviceprofile.AllAppsProfile",
+    "com.android.launcher3.deviceprofile.DeviceProfileBuilder",
     "com.android.launcher3.deviceprofile.DeviceProperties",
+    "com.android.launcher3.deviceprofile.FolderProfile",
+    "com.android.launcher3.deviceprofile.HotseatProfile",
+    "com.android.launcher3.deviceprofile.TaskbarConfiguration",
+    "com.android.launcher3.deviceprofile.WorkspaceProfile",
+    "com.android.launcher3.deviceprofile.parser.DisplayOption",
+    "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec",
+    "com.android.launcher3.deviceprofile.parser.GridOption",
     "com.android.launcher3.display.LauncherDisplayInfo",
+    "com.android.launcher3.folder.FolderIcon",
+    "com.android.launcher3.icons.BaseIconFactory",
+    "com.android.launcher3.icons.BitmapInfo",
+    "com.android.launcher3.icons.IconProvider",
+    "com.android.launcher3.icons.IconShape",
+    "com.android.launcher3.icons.LauncherIcons\\$Companion",
+    "com.android.launcher3.icons.PersistedItemState",
+    "com.android.launcher3.icons.SourceHint",
+    "com.android.launcher3.icons.mono.MonoIconThemeController",
+    "com.android.launcher3.model.BgDataModel",
+    "com.android.launcher3.model.DbEntry",
+    "com.android.launcher3.model.DeviceGridState",
+    "com.android.launcher3.model.GridMigrationOption",
+    "com.android.launcher3.model.GridSizeMigrationLogic",
+    "com.android.launcher3.model.ModelWriter",
     "com.android.launcher3.model.WorkspaceItemSpaceFinder",
+    "com.android.launcher3.model.data.AppInfo",
+    "com.android.launcher3.model.data.AppsListData",
     "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.model.data.ItemInfoWithIcon",
     "com.android.launcher3.model.data.WorkspaceData\\$MutableWorkspaceData",
+    "com.android.launcher3.popup.PopupContainer",
+    "com.android.launcher3.popup.PopupContainerWithArrow",
+    "com.android.launcher3.popup.ui.PopupItem",
+    "com.android.launcher3.popup.ui.StringContainer\\$ResourceString",
+    "com.android.launcher3.preview.PreviewSurfaceRenderer",
     "com.android.launcher3.qsb.OseWidgetController",
+    "com.android.launcher3.responsive.CellSpec",
+    "com.android.launcher3.responsive.ResponsiveCellSpecsProvider",
+    "com.android.launcher3.responsive.ResponsiveSpec",
+    "com.android.launcher3.responsive.ResponsiveSpecGroup",
+    "com.android.launcher3.responsive.ResponsiveSpecsProvider",
+    "com.android.launcher3.responsive.SizeSpec",
+    "com.android.launcher3.search.StringMatcherUtility",
+    "com.android.launcher3.search.StringMatcherUtility\\$StringMatcher",
     "com.android.launcher3.statehandlers.DepthController",
     "com.android.launcher3.statehandlers.LauncherDepthController",
     "com.android.launcher3.statemanager.BaseState",
@@ -292,10 +473,16 @@
     "com.android.launcher3.taskbar.TaskbarView",
     "com.android.launcher3.touch.WorkspaceTouchListener",
     "com.android.launcher3.uioverrides.QuickstepLauncher",
+    "com.android.launcher3.util.ContentProviderProxy",
     "com.android.launcher3.util.DaggerSingletonObject",
     "com.android.launcher3.util.Executors",
+    "com.android.launcher3.util.LabelComparator",
+    "com.android.launcher3.util.MultiPropertyFactory",
+    "com.android.launcher3.util.MultiValueAlpha",
+    "com.android.launcher3.util.RunnableList",
     "com.android.launcher3.util.WindowBounds",
     "com.android.launcher3.views.ActivityContext",
+    "com.android.launcher3.views.PredictedAppIcon",
     "com.android.launcher3.views.Snackbar",
     "com.android.launcher3.widget.LauncherAppWidgetHostView",
     "com.android.quickstep.BaseContainerInterface",
@@ -400,6 +587,80 @@
    ],
    "preferences": false
   },
+  "feature/dock/Dock.kt": {
+   "host_classes": [
+    "com.android.launcher3.Hotseat"
+   ],
+   "host_members": [
+    "getDeviceProfile",
+    "getModelWriter",
+    "getScreenIdForPageIndex",
+    "isOccupied",
+    "onConfigChanged"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/dock/DockFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.InvariantDeviceProfile",
+    "com.android.launcher3.deviceprofile.DeviceProfileBuilder",
+    "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec",
+    "com.android.launcher3.model.DeviceGridState",
+    "com.android.launcher3.util.MultiValueAlpha"
+   ],
+   "host_members": [
+    "barSizePx",
+    "borderSpace",
+    "cellHeightPx",
+    "cellLayoutHeightSpecification",
+    "deviceProperties",
+    "hotseatProfile",
+    "inv",
+    "isFixedLandscape",
+    "isQsbInline",
+    "isVerticalBarLayout",
+    "mTarget",
+    "numRows",
+    "workspacePadding",
+    "workspaceProfile"
+   ],
+   "hooks": 8,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/dock/DockIconSize.kt": {
+   "host_classes": [
+    "com.android.launcher3.BubbleTextView",
+    "com.android.launcher3.CellLayout",
+    "com.android.launcher3.folder.FolderIcon",
+    "com.android.launcher3.views.PredictedAppIcon"
+   ],
+   "host_members": [
+    "borderSpace",
+    "cellHeightPx",
+    "folderIconOffsetYPx",
+    "folderProfile",
+    "getDeviceProfile",
+    "hotseatProfile",
+    "iconSizePx",
+    "mActivity",
+    "mNormalizedIconSize",
+    "numShownIcons",
+    "widthPx",
+    "workspaceProfile"
+   ],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
   "feature/focus/FocusHomeFeature.kt": {
    "host_classes": [
     "com.android.launcher3.BaseActivity",
@@ -425,21 +686,31 @@
   "feature/focus/FocusPagePreview.kt": {
    "host_classes": [],
    "host_members": [
-    "getColorSpace",
-    "getHardwareBuffer",
-    "getScreenIdForPageIndex",
-    "getTargetComponent",
-    "isPageInTransition"
+    "getTargetComponent"
    ],
    "hooks": 0,
    "threads": 0,
    "root": false,
-   "binder": [
-    "getSystemService"
-   ],
+   "binder": [],
    "preferences": false
   },
-  "feature/focus/FocusPageSnapshotStore.kt": {
+  "feature/focus/FocusPageRenderer.kt": {
+   "host_classes": [
+    "com.android.launcher3.dagger.LauncherBaseAppComponent",
+    "com.android.launcher3.dagger.LauncherComponentProvider",
+    "com.android.launcher3.preview.PreviewSurfaceRenderer",
+    "com.android.launcher3.util.RunnableList"
+   ],
+   "host_members": [
+    "getGridCustomizationsProxy"
+   ],
+   "hooks": 1,
+   "threads": 2,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/focus/FocusPagesDialog.kt": {
    "host_classes": [],
    "host_members": [],
    "hooks": 0,
@@ -455,6 +726,18 @@
    "threads": 2,
    "root": false,
    "binder": [],
+   "preferences": false
+  },
+  "feature/focus/FocusWallpaperStore.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 2,
+   "root": false,
+   "binder": [
+    "contentResolver.call",
+    "getSystemService"
+   ],
    "preferences": false
   },
   "feature/gesture/DoubleTapToSleepFeature.kt": {
@@ -473,6 +756,274 @@
    ],
    "preferences": false
   },
+  "feature/grid/Grid.kt": {
+   "host_classes": [
+    "com.android.launcher3.InvariantDeviceProfile",
+    "com.android.launcher3.LauncherAppState",
+    "com.android.launcher3.ProxyPrefs"
+   ],
+   "host_members": [
+    "appWidgetId",
+    "isLandscape",
+    "mPrefs"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/grid/GridFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.InvariantDeviceProfile",
+    "com.android.launcher3.deviceprofile.parser.DisplayOption",
+    "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec",
+    "com.android.launcher3.deviceprofile.parser.GridOption",
+    "com.android.launcher3.model.DbEntry",
+    "com.android.launcher3.model.DeviceGridState",
+    "com.android.launcher3.model.GridMigrationOption",
+    "com.android.launcher3.model.GridMigrationOption\\$Companion",
+    "com.android.launcher3.model.GridMigrationOption\\$FourByFour",
+    "com.android.launcher3.model.GridSizeMigrationLogic",
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.prefs",
+    "com.android.launcher3.responsive.CellSpec",
+    "com.android.launcher3.responsive.ResponsiveCellSpecsProvider",
+    "com.android.launcher3.responsive.ResponsiveCellSpecsProvider\\$Companion",
+    "com.android.launcher3.responsive.ResponsiveSpec",
+    "com.android.launcher3.responsive.ResponsiveSpecGroup",
+    "com.android.launcher3.responsive.ResponsiveSpecsProvider",
+    "com.android.launcher3.responsive.ResponsiveSpecsProvider\\$Companion",
+    "com.android.launcher3.responsive.SizeSpec"
+   ],
+   "host_members": [
+    "add",
+    "getDeviceType",
+    "mIsDualGrid",
+    "numAllAppsColumns"
+   ],
+   "hooks": 13,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/grid/GridPickerBridge.kt": {
+   "host_classes": [
+    "com.android.launcher3.InvariantDeviceProfile",
+    "com.android.launcher3.LauncherAppState",
+    "com.android.launcher3.dagger.LauncherBaseAppComponent",
+    "com.android.launcher3.graphics.LauncherCustomizationProvider",
+    "com.android.launcher3.prefs",
+    "com.android.launcher3.preview.PreviewSurfaceRenderer",
+    "com.android.launcher3.util.ContentProviderProxy"
+   ],
+   "host_members": [
+    "call",
+    "get",
+    "getGridCustomizationsProxy",
+    "onViewDestroyed",
+    "setCurrentGrid"
+   ],
+   "hooks": 4,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/grid/PreviewSandbox.kt": {
+   "host_classes": [
+    "com.android.launcher3.preview.PreviewContext"
+   ],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/icons/IconChangeNotice.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "feature/icons/IconChangeReveal.kt": {
+   "host_classes": [
+    "com.android.launcher3.BubbleTextView",
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.ShortcutAndWidgetContainer",
+    "com.android.launcher3.icons.FastBitmapDrawable"
+   ],
+   "host_members": [
+    "onPause",
+    "onResume",
+    "setIcon"
+   ],
+   "hooks": 3,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/icons/IconPackBridge.kt": {
+   "host_classes": [
+    "com.android.launcher3.graphics.LauncherCustomizationProvider",
+    "com.android.launcher3.util.ContentProviderProxy"
+   ],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/icons/IconPackController.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 2,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/icons/IconPackFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.icons.BaseIconFactory",
+    "com.android.launcher3.icons.BitmapInfo",
+    "com.android.launcher3.icons.IconProvider",
+    "com.android.launcher3.icons.PersistedItemState",
+    "com.android.launcher3.icons.SourceHint",
+    "com.android.launcher3.icons.mono.MonoIconThemeController",
+    "com.android.launcher3.util.ComponentKey"
+   ],
+   "host_members": [
+    "componentName",
+    "context",
+    "createThemedBitmap",
+    "getIcon",
+    "getStateForApp",
+    "key",
+    "user",
+    "withAdditionalValues"
+   ],
+   "hooks": 3,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/icons/IconPreviews.kt": {
+   "host_classes": [
+    "com.android.launcher3.preview.PreviewSurfaceRenderer",
+    "com.android.launcher3.util.RunnableList"
+   ],
+   "host_members": [],
+   "hooks": 2,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/icons/IconReloader.kt": {
+   "host_classes": [
+    "com.android.launcher3.LauncherAppState",
+    "com.android.launcher3.util.DaggerSingletonObject",
+    "com.android.launcher3.util.Executors"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 1,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/icons/LauncherIconRenderer.kt": {
+   "host_classes": [
+    "com.android.launcher3.icons.BaseIconFactory",
+    "com.android.launcher3.icons.BitmapInfo",
+    "com.android.launcher3.icons.IconShape",
+    "com.android.launcher3.icons.LauncherIcons"
+   ],
+   "host_members": [
+    "newIcon",
+    "obtain",
+    "recycle"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/labels/AppLabelPopup.kt": {
+   "host_classes": [
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.popup.PopupContainer",
+    "com.android.launcher3.popup.PopupContainerWithArrow",
+    "com.android.launcher3.popup.ui.PopupItem",
+    "com.android.launcher3.popup.ui.StringContainer\\$ResourceString"
+   ],
+   "host_members": [
+    "close"
+   ],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/labels/AppLabelSearch.kt": {
+   "host_classes": [
+    "android.app.search.SearchSession",
+    "android.app.search.SearchTarget",
+    "com.android.launcher3.search.StringMatcherUtility"
+   ],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "feature/labels/AppLabelsFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.BubbleTextView",
+    "com.android.launcher3.allapps.AppInfoComparator",
+    "com.android.launcher3.compat.AlphabeticIndexCompat",
+    "com.android.launcher3.model.data.AppInfo",
+    "com.android.launcher3.model.data.AppsListData",
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.model.data.ItemInfoWithIcon",
+    "com.android.launcher3.util.LabelComparator"
+   ],
+   "host_members": [
+    "appTitle",
+    "componentName",
+    "mComponentName"
+   ],
+   "hooks": 5,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/labels/AppLabelsScreen.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 2,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
   "feature/layout/DeviceProfiles.kt": {
    "host_classes": [
     "com.android.launcher3.DeviceProfile",
@@ -485,6 +1036,23 @@
    "root": false,
    "binder": [],
    "preferences": false
+  },
+  "feature/layout/LiveLayout.kt": {
+   "host_classes": [
+    "com.android.launcher3.InvariantDeviceProfile",
+    "com.android.launcher3.Launcher"
+   ],
+   "host_members": [
+    "INSTANCE",
+    "get",
+    "onConfigChanged",
+    "onCreate"
+   ],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
   },
   "feature/layout/OverviewOnlyFeature.kt": {
    "host_classes": [
@@ -546,11 +1114,12 @@
   },
   "feature/layout/TabletModeFeature.kt": {
    "host_classes": [
+    "com.android.launcher3.deviceprofile.parser.DisplayOption",
     "com.android.launcher3.display.LauncherDisplayInfo",
     "com.android.launcher3.util.WindowBounds"
    ],
    "host_members": [],
-   "hooks": 1,
+   "hooks": 2,
    "threads": 0,
    "root": false,
    "binder": [],
@@ -768,6 +1337,28 @@
     "getRecentsView",
     "getSplitPositionOption",
     "getTaskContainers"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/TaskTargetResolver.kt": {
+   "host_classes": [],
+   "host_members": [
+    "getFirstTask"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/TaskViewGeometry.kt": {
+   "host_classes": [],
+   "host_members": [
+    "getThumbnailBounds"
    ],
    "hooks": 0,
    "threads": 0,
@@ -1034,6 +1625,18 @@
    "binder": [],
    "preferences": false
   },
+  "feature/wallpaper/PreviewWallpaperBlur.kt": {
+   "host_classes": [
+    "com.android.launcher3.preview.PreviewSurfaceRenderer",
+    "com.android.launcher3.util.RunnableList"
+   ],
+   "host_members": [],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
   "focus/FocusProvider.kt": {
    "host_classes": [
     "com.google.android.apps.nexuslauncher"
@@ -1081,6 +1684,68 @@
    "binder": [],
    "preferences": false
   },
+  "icons/IconOverrideStore.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "icons/IconSourceFactory.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "icons/LaunchableApps.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "labels/AppLabelStore.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "labels/Profiles.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "layout/LayoutCheckpoints.kt": {
+   "host_classes": [
+    "com.android.launcher3.prefs"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 1,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": true
+  },
   "lock/ScreenLock.kt": {
    "host_classes": [],
    "host_members": [],
@@ -1124,11 +1789,91 @@
    ],
    "preferences": false
   },
+  "picker/GridPicker.kt": {
+   "host_classes": [
+    "com.android.customization.model.grid.DefaultShapeGridManager\\$getGridOptions\\$lambda\\$7\\$\\$inlined\\$sortedByDescending\\$1",
+    "com.android.customization.model.grid.GridOptionModel",
+    "com.android.wallpaper.customization.ui.binder.ThemePickerCustomizationOptionsBinder",
+    "com.android.wallpaper.picker.common.icon.ui.viewmodel.Icon\\$Loaded",
+    "com.android.wallpaper.picker.common.text.ui.viewmodel.Text\\$Loaded",
+    "com.android.wallpaper.picker.customization.ui.view.adapter.FloatingToolbarTabAdapter",
+    "com.android.wallpaper.picker.customization.ui.viewmodel.ColorUpdateViewModel",
+    "com.android.wallpaper.picker.customization.ui.viewmodel.FloatingToolbarTabViewModel"
+   ],
+   "host_members": [],
+   "hooks": 4,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "picker/IconPackPicker.kt": {
+   "host_classes": [
+    "com.android.wallpaper.picker.customization.ui.CustomizationPickerFragment"
+   ],
+   "host_members": [
+    "updateHeaderHeightConstraints"
+   ],
+   "hooks": 2,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "picker/IconsClient.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 2,
+   "root": false,
+   "binder": [
+    "contentResolver.call"
+   ],
+   "preferences": false
+  },
+  "picker/LauncherPreview.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 2,
+   "root": false,
+   "binder": [
+    "contentResolver.call",
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "picker/PickerColors.kt": {
+   "host_classes": [
+    "com.android.wallpaper.picker.customization.ui.binder.ColorUpdateBinder"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "picker/PickerSlider.kt": {
+   "host_classes": [
+    "com.google.android.material.slider.BaseOnChangeListener",
+    "com.google.android.material.slider.BaseOnSliderTouchListener",
+    "com.google.android.material.slider.BaseSlider",
+    "com.google.android.material.slider.Slider"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
   "PixelLauncherEvolvedModule.kt": {
    "host_classes": [
     "com.android.launcher3.LauncherApplication",
     "com.android.systemui.application.impl.SystemUIApplicationImpl",
-    "com.google.android.apps.nexuslauncher"
+    "com.google.android.apps.nexuslauncher",
+    "com.google.android.apps.wallpaper.picker.WallpapersApplication"
    ],
    "host_members": [],
    "hooks": 0,
@@ -1136,6 +1881,17 @@
    "root": false,
    "binder": [],
    "preferences": true
+  },
+  "recovery/RecoveryActivity.kt": {
+   "host_classes": [
+    "com.google.android.apps.nexuslauncher"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 1,
+   "root": false,
+   "binder": [],
+   "preferences": false
   },
   "reveal/SleepRevealScrim.kt": {
    "host_classes": [
@@ -1196,15 +1952,6 @@
    "binder": [],
    "preferences": true
   },
-  "settings/SharedPreferencesSettings.kt": {
-   "host_classes": [],
-   "host_members": [],
-   "hooks": 0,
-   "threads": 0,
-   "root": false,
-   "binder": [],
-   "preferences": true
-  },
   "statusbar/StatusBarSleep.kt": {
    "host_classes": [
     "com.android.systemui.statusbar.phone.PhoneStatusBarView"
@@ -1214,6 +1961,17 @@
    "threads": 0,
    "root": false,
    "binder": [],
+   "preferences": false
+  },
+  "wallpaper/HomeBlurRadius.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
    "preferences": false
   }
  }

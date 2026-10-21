@@ -47,6 +47,21 @@ jobs:
       - name: Run project checks
         run: ./scripts/check-project.sh
 
+      - name: Check generated files are committed
+        shell: bash
+        run: |
+          # DexKit fingerprints the names host.syms lists; a stale list leaves a
+          # renamed member unrecoverable after a launcher update.
+          python3 scripts/host-symbols.py
+          python3 scripts/inventory.py > docs/inventory.json
+          if ! git diff --exit-code -- app/src/main/resources/ple/host.syms docs/inventory.json; then
+            echo "::error::Generated files drifted. Run scripts/host-symbols.py and 'scripts/inventory.py > docs/inventory.json', then commit." >&2
+            exit 1
+          fi
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
       - name: Read project version
         id: metadata
         shell: bash

@@ -153,6 +153,8 @@ S	com.google.android.apps.nexuslauncher
 S	com.google.android.apps.nexuslauncher.grid_control
 S	com.google.android.apps.wallpaper
 S	com.google.android.apps.wallpaper.picker.WallpapersApplication
+S	com.google.android.apps.wallpaper.provider.RecentWallpapersProvider
+S	com.google.android.apps.wallpaper.recents
 S	com.google.android.googlequicksearchbox
 N	ALL_APPS
 N	Bubble
@@ -232,6 +234,7 @@ N	backup_import
 N	backup_reset
 N	barSizePx
 N	baseIntent
+N	before
 N	bindAddScreens
 N	bindCompleteModelAsync
 N	bindItems
@@ -253,7 +256,6 @@ N	calendar
 N	call
 N	canMigrate
 N	canStartHomeSafely
-N	capture
 N	category
 N	cellHeightPx
 N	cellLayoutBorderSpacePx
@@ -284,6 +286,7 @@ N	compatibility_watch
 N	component
 N	componentName
 N	computeSectionName
+N	config_wallpaperMaxScale
 N	container
 N	containerFromContext
 N	contentDescription
@@ -293,6 +296,7 @@ N	createDeviceProperties
 N	createHardwareBitmap
 N	createThemedBitmap
 N	current
+N	db
 N	dbFile
 N	default
 N	detachNavigationBarFromApp
@@ -317,14 +321,19 @@ N	endPadding
 N	equals
 N	executeAllAndDestroy
 N	extraItemsProvider
+N	failure
 N	feature_
+N	features_failed
 N	findSpaceForItem
 N	fixedSize
 N	float
 N	focus_home_screens
+N	focus_name_
+N	focus_orphan_
 N	focus_pages
 N	focus_pages_
 N	focus_priority
+N	focus_with_ordinary_
 N	folderIconOffsetYPx
 N	folderProfile
 N	folder_hint_text
@@ -334,10 +343,10 @@ N	from
 N	fullTablet
 N	get
 N	getAppsView
+N	getBitmapCrops
 N	getBottomMargin
 N	getChipWidth
 N	getCollapsedBackgroundLtrBounds
-N	getColorSpace
 N	getDatabasePath
 N	getDepth
 N	getDeviceProfile
@@ -347,7 +356,6 @@ N	getEditText
 N	getExtras
 N	getFirstTask
 N	getGridCustomizationsProxy
-N	getHardwareBuffer
 N	getIcon
 N	getIconBounds
 N	getIconLayoutWidth
@@ -480,7 +488,6 @@ N	isLandscape
 N	isLargeScreen
 N	isLaunchable
 N	isOccupied
-N	isPageInTransition
 N	isQsbInline
 N	isSignificantMove
 N	isTaskbarAlignedWithHotseat
@@ -490,11 +497,13 @@ N	is_default
 N	item
 N	itemInfo
 N	itemType
+N	items
 N	itemsIdMap
 N	key
 N	keys
 N	label
 N	labels
+N	latest
 N	launchWithAnimation
 N	launcher
 N	launcher_ple_
@@ -535,7 +544,6 @@ N	mIconSize
 N	mIconSpaceReserved
 N	mIconTouchSize
 N	mIdp
-N	mIsBeingDragged
 N	mIsDualGrid
 N	mItemMarginLeftRight
 N	mKey
@@ -572,7 +580,6 @@ N	mViewRoot
 N	mVisible
 N	mWidth
 N	mWorkspace
-N	mWorkspacePageId
 N	mapTypeIndex
 N	matchWorkspace
 N	matches
@@ -582,9 +589,11 @@ N	material_ic_edit_black_24dp
 N	maxSize
 N	maxWidth
 N	max_depth_blur_radius_enhanced
+N	max_height
 N	message
 N	migrateGrid
 N	migrated_from_framework_preferences
+N	migration_src_
 N	migration_src_db_file
 N	migration_src_workspace_size
 N	minSpanX
@@ -694,6 +703,7 @@ N	ple_focus_page
 N	ple_grid_
 N	ple_grid_set
 N	ple_grid_state
+N	ple_home_wallpaper
 N	ple_host
 N	ple_icons
 N	ple_icons_
@@ -705,6 +715,7 @@ N	ple_icons_override
 N	ple_icons_preview_pack
 N	ple_icons_reset
 N	ple_icons_state
+N	ple_layout
 N	ple_previews
 N	ple_rename
 N	prefix
@@ -724,6 +735,8 @@ N	requireContext
 N	resId
 N	resetLayout
 N	restart_launcher
+N	restore
+N	root
 N	rowSpacing
 N	rows
 N	rows_from
