@@ -19,6 +19,8 @@ import my.github.MrxSiN.pixellauncherevolved.feature.settings.RowAccessory.Tone
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.RowScope
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsKeys
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsRow
+import my.github.MrxSiN.pixellauncherevolved.focus.FocusFailure
+import my.github.MrxSiN.pixellauncherevolved.focus.FocusSnapshot
 import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
 
 /**
@@ -140,14 +142,17 @@ internal object DiagnosticsRows : SettingsRow {
      */
     private fun root(section: Section, scope: RowScope) {
         // Written and read on the main thread only.
-        var granted: Boolean? = null
+        var read: FocusSnapshot? = null
         val key = SettingsKeys.row("diagnostics_root")
         val row = scope.api.createAction(scope.context, key, scope.string(R.string.diagnostics_root), "") {}
         scope.accessory(key) {
-            when (granted) {
-                null -> RowAccessory.Status(scope.string(R.string.diagnostics_checking))
-                true -> RowAccessory.Status(scope.string(R.string.diagnostics_granted), Tone.POSITIVE)
-                false -> RowAccessory.Status(scope.string(R.string.diagnostics_not_granted), Tone.ERROR)
+            val snapshot = read
+            when {
+                snapshot == null -> RowAccessory.Status(scope.string(R.string.diagnostics_checking))
+                snapshot.isReadable -> RowAccessory.Status(scope.string(R.string.diagnostics_granted), Tone.POSITIVE)
+                snapshot.failure == FocusFailure.REFUSED -> RowAccessory.Status(scope.string(R.string.diagnostics_not_granted), Tone.ERROR)
+                // A timeout or an unreadable dump is not a refusal: root may well be granted.
+                else -> RowAccessory.Status(scope.string(R.string.diagnostics_root_unread), Tone.WARNING)
             }
         }
         scope.api.add(section.target, row)
@@ -155,9 +160,9 @@ internal object DiagnosticsRows : SettingsRow {
         val source = ProviderFocusSource(scope.context.contentResolver, scope.environment.modulePackage, scope.environment.logger)
         val main = Handler(Looper.getMainLooper())
         Thread({
-            val answer = source.isReadable()
+            val answer = source.snapshot()
             main.post {
-                granted = answer
+                read = answer
                 scope.api.refresh(row)
             }
         }, "PixelLauncherEvolved-root").start()

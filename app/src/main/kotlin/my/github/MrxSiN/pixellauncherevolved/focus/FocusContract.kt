@@ -43,6 +43,9 @@ object FocusContract {
     const val COLUMN_NAME: String = "name"
     const val COLUMN_ACTIVE: String = "active"
     const val COLUMN_GRANTED: String = "granted"
+
+    /** A [FocusFailure] name on a snapshot that could not be read; null when it was. */
+    const val COLUMN_FAILURE: String = "failure"
     const val COLUMN_ICON: String = "icon"
     const val COLUMN_ENABLED: String = "enabled"
     const val COLUMN_ACTIVATED: String = "activated_at"

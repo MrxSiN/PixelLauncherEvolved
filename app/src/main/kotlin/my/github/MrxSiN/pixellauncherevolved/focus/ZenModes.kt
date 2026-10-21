@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.focus
 
+import java.io.File
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
@@ -40,14 +41,35 @@ class ZenModes(private val user: Int, private val shell: CommandRunner = RootShe
         return snapshot().modes
     }
 
-    /** One notification-service read for a coherent access-and-Modes result. */
+    /** Serialises reads, so concurrent callers share one root shell rather than each starting their own. */
+    private val lock = Any()
+    private var last: FocusSnapshot? = null
+    private var lastStartedAt = 0L
+
+    /**
+     * One notification-service read for a coherent access-and-Modes result.
+     *
+     * A caller that waited while another read ran takes that read's answer when
+     * it began after the caller asked: it is as fresh as one of its own.
+     */
     fun snapshot(): FocusSnapshot {
-        val dump = dump()
-        return if (dump == null) {
-            FocusSnapshot(isReadable = false, modes = emptyList())
-        } else {
-            FocusSnapshot(isReadable = true, modes = parseModes(dump))
+        val askedAt = System.nanoTime()
+        synchronized(lock) {
+            last?.takeIf { lastStartedAt >= askedAt }?.let { return it }
+            lastStartedAt = System.nanoTime()
+            return read().also { last = it }
         }
+    }
+
+    /** A failure is said as one, never as an empty list of Modes. */
+    private fun read(): FocusSnapshot = when (val result = shell.run(DUMP_COMMAND)) {
+        is RootResult.Failed -> FocusSnapshot(isReadable = false, modes = emptyList(), failure = result.reason)
+        is RootResult.Output -> result.text
+            .substringBefore(CONFIG_END)
+            .let(::ownConfig)
+            ?.takeIf { RULE_START in it }
+            ?.let { FocusSnapshot(isReadable = true, modes = parseModes(it)) }
+            ?: FocusSnapshot(isReadable = false, modes = emptyList(), failure = FocusFailure.MALFORMED)
     }
 
     private fun parseModes(dump: String): List<FocusMode> = dump.split(RULE_START)
@@ -108,24 +130,6 @@ class ZenModes(private val user: Int, private val shell: CommandRunner = RootShe
     }
 
     /**
-     * The part of the dump that describes the Modes as they stand.
-     *
-     * The dump says everything more than once. It prints the configuration
-     * twice, once per user and once for the current user, and then a log of
-     * changes in which a rule that came on hours ago still reads as on. Reading
-     * the whole thing would take whichever copy came first, which is how a Mode
-     * that ended last night can look like a Mode that is running.
-     *
-     * Only the first configuration block is kept: it ends where the line naming
-     * the user begins, and everything after that is either a copy of it or
-     * history.
-     */
-    private fun dump(): String? = shell.run(DUMP_COMMAND)
-        ?.substringBefore(CONFIG_END)
-        ?.let(::ownConfig)
-        ?.takeIf { RULE_START in it }
-
-    /**
      * This user's block of the configurations, which the dump prints one per
      * user (`mConfigs[u=0]=…`, `mConfigs[u=10]=…`). Reading them all would hand
      * one user's Modes to another user's launcher, a work profile's included.
@@ -141,7 +145,16 @@ class ZenModes(private val user: Int, private val shell: CommandRunner = RootShe
     }
 
     private companion object {
-        const val DUMP_COMMAND = "dumpsys notification --zen"
+        /**
+         * `--zen` does not narrow the dump on `CP3A.261005.005`: it is the whole
+         * notification service, 1.35 MB. `sed` keeps the Zen section up to the
+         * first `mUser=` line, 15 KB, measured; the time is the dump's either way.
+         *
+         * That section prints the configuration once per user, then `mUser=`, then
+         * the current user's again, then a log of changes in which a rule that came
+         * on hours ago still reads as on. Only what comes before `mUser=` is read.
+         */
+        const val DUMP_COMMAND = "dumpsys notification --zen | sed -n '/Zen Mode:/,/mUser=/p'"
 
         /** The line that follows the first configuration block. */
         const val CONFIG_END = "mUser="
@@ -188,35 +201,58 @@ class ZenModes(private val user: Int, private val shell: CommandRunner = RootShe
 
 /** Runs one command as root and hands back what it printed. */
 fun interface CommandRunner {
-    fun run(command: String): String?
+    fun run(command: String): RootResult
+}
+
+/** What a root command came back with: everything it printed, or why there is nothing. */
+sealed interface RootResult {
+    class Output(val text: String) : RootResult
+    class Failed(val reason: FocusFailure) : RootResult
 }
 
 class RootShell : CommandRunner {
 
-    /** Null when root is unavailable, refused, or the command did not finish. */
-    override fun run(command: String): String? {
+    /**
+     * Bounded at every step. The output goes to a file rather than a pipe, so
+     * waiting is the one thing that can take time and it gives up after
+     * [TIMEOUT_SECONDS]: reading a pipe first, as this used to, waited for as
+     * long as anything held it open, timeout or not.
+     *
+     * ponytail: [Process.destroyForcibly] ends `su`; a command it already started
+     * may run on until it finishes by itself. Fine for a dump that ends on its own.
+     */
+    override fun run(command: String): RootResult {
+        val output = runCatching { File.createTempFile("root", null) }
+            .getOrElse { return RootResult.Failed(FocusFailure.REFUSED) }
         val process = runCatching {
-            ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
-        }.getOrNull() ?: return null
+            ProcessBuilder("su", "-c", command).redirectErrorStream(true).redirectOutput(output).start()
+        }.getOrElse {
+            output.delete()
+            return RootResult.Failed(FocusFailure.REFUSED)
+        }
 
         return try {
             process.outputStream.close()
-            val output = process.inputStream.bufferedReader().readText()
-            val completed = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-
-            if (!completed) {
-                process.destroy()
-                null
-            } else {
-                output.takeIf { process.exitValue() == 0 }
+            when {
+                !process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS) -> RootResult.Failed(FocusFailure.TIMEOUT)
+                // Refused by the root manager, or the command itself failed: no way to tell apart.
+                process.exitValue() != 0 -> RootResult.Failed(FocusFailure.REFUSED)
+                output.length() > MAX_BYTES -> RootResult.Failed(FocusFailure.TOO_LARGE)
+                else -> RootResult.Output(output.readText())
             }
-        } catch (_: Throwable) {
-            process.destroy()
-            null
+        } catch (error: Throwable) {
+            if (error is InterruptedException) Thread.currentThread().interrupt()
+            RootResult.Failed(FocusFailure.REFUSED)
+        } finally {
+            process.destroyForcibly()
+            output.delete()
         }
     }
 
     private companion object {
         const val TIMEOUT_SECONDS = 15L
+
+        /** Far above the 15 KB a filtered dump is, far below what a Binder answer can carry. */
+        const val MAX_BYTES = 256L * 1024
     }
 }

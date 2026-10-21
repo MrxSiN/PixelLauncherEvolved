@@ -46,16 +46,22 @@ class ProviderFocusSource(
 
     override fun snapshot(): FocusSnapshot = query(FocusContract.snapshot(modulePackage)) { cursor ->
         val granted = cursor.getColumnIndexOrThrow(FocusContract.COLUMN_GRANTED)
+        val failed = cursor.getColumnIndex(FocusContract.COLUMN_FAILURE)
         val reader = ModeReader(cursor)
         var readable = false
+        var failure: FocusFailure? = null
         val modes = buildList {
             while (cursor.moveToNext()) {
                 readable = readable || cursor.getInt(granted) != 0
+                if (failed >= 0) failure = failure ?: cursor.getString(failed)?.let(::failureOf)
                 reader.read()?.let(::add)
             }
         }
-        FocusSnapshot(readable, modes)
-    } ?: FocusSnapshot(isReadable = false, modes = emptyList())
+        FocusSnapshot(readable, modes, if (readable) null else failure ?: FocusFailure.REFUSED)
+    } ?: FocusSnapshot(isReadable = false, modes = emptyList(), failure = FocusFailure.UNREACHABLE)
+
+    private fun failureOf(name: String): FocusFailure =
+        FocusFailure.entries.firstOrNull { it.name == name } ?: FocusFailure.REFUSED
 
     override fun modes(): List<FocusMode> = query(FocusContract.modes(modulePackage)) { cursor ->
         val reader = ModeReader(cursor)
@@ -98,7 +104,21 @@ private class ModeReader(private val cursor: android.database.Cursor) {
 data class FocusSnapshot(
     val isReadable: Boolean,
     val modes: List<FocusMode>,
+    /** Why the Modes could not be read; null when they were. */
+    val failure: FocusFailure? = null,
 )
+
+/** Why a read of the Modes came back with none. Each is unknown, never "no Mode is on". */
+enum class FocusFailure {
+    /** Root was refused or the read failed: the one a person can fix, by granting root. */
+    REFUSED,
+    TIMEOUT,
+    TOO_LARGE,
+    /** The dump did not hold this user's Modes in a form this build reads. */
+    MALFORMED,
+    /** This module's app did not answer the launcher at all. */
+    UNREACHABLE,
+}
 
 /**
  * Tells the launcher when to look at the modes again.

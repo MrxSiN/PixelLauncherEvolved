@@ -10,6 +10,7 @@ import java.util.concurrent.Executors
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
+import my.github.MrxSiN.pixellauncherevolved.focus.FocusFailure
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSnapshot
@@ -80,7 +81,8 @@ internal object FocusPagesDialog {
         // A Mode switched off cannot come on, so it is not offered pages.
         val modes = snapshot.modes.filter(FocusMode::isEnabled)
         val problem = when {
-            !snapshot.isReadable -> R.string.feature_focus_needs_access
+            !snapshot.isReadable && snapshot.failure == FocusFailure.REFUSED -> R.string.feature_focus_needs_access
+            !snapshot.isReadable -> R.string.feature_focus_read_failed
             modes.isEmpty() -> R.string.feature_focus_no_modes
             FocusPages.order.isEmpty() -> R.string.feature_focus_no_pages
             else -> null

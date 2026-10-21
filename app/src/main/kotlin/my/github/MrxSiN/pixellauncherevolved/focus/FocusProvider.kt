@@ -67,12 +67,13 @@ class FocusProvider : ContentProvider() {
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = 0
 
     private fun snapshotCursor(snapshot: FocusSnapshot): MatrixCursor =
-        MatrixCursor(MODE_COLUMNS + FocusContract.COLUMN_GRANTED).apply {
+        MatrixCursor(MODE_COLUMNS + FocusContract.COLUMN_GRANTED + FocusContract.COLUMN_FAILURE).apply {
             val granted = if (snapshot.isReadable) 1 else 0
+            val failure = snapshot.failure?.name
             if (snapshot.modes.isEmpty()) {
-                addRow(arrayOf(null, null, 0, null, 0, 0L, granted))
+                addRow(arrayOf(null, null, 0, null, 0, 0L, granted, failure))
             } else {
-                for (mode in snapshot.modes) addRow(modeRow(mode) + granted)
+                for (mode in snapshot.modes) addRow(modeRow(mode) + granted + failure)
             }
         }
 

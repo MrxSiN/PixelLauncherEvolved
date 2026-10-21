@@ -119,6 +119,7 @@
     <string name="feature_focus_no_pages_assigned">No pages</string>
     <string name="feature_focus_pages_assigned">Pages %1$s</string>
     <string name="feature_focus_no_pages">The home screen pages are not known yet. Open the home screen once, then try again.</string>
+    <string name="feature_focus_read_failed">Your Modes could not be read just now. Try again in a moment.</string>
     <string name="feature_focus_needs_access">Your Modes could not be read. This needs root access, because Android only lets an app see the Modes it created itself. Grant Pixel Launcher Evolved root, then try again.</string>
     <string name="feature_focus_no_modes">This device has no Modes to assign a page to.</string>
 
@@ -157,6 +158,7 @@
     <string name="diagnostics_checking">Checking…</string>
     <string name="diagnostics_granted">Granted</string>
     <string name="diagnostics_not_granted">Not granted</string>
+    <string name="diagnostics_root_unread">No answer</string>
     <string name="diagnostics_group_features">Feature compatibility</string>
     <string name="diagnostics_compatible">✓ Compatible</string>
     <string name="diagnostics_incompatible">✗ Unavailable</string>
