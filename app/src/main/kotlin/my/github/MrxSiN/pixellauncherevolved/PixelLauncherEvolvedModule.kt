@@ -15,6 +15,7 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ApplicationStartup
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureRegistry
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherRestarter
+import my.github.MrxSiN.pixellauncherevolved.layout.LayoutCheckpoints
 import my.github.MrxSiN.pixellauncherevolved.bridge.Bridge
 import my.github.MrxSiN.pixellauncherevolved.bridge.IconsBridge
 import my.github.MrxSiN.pixellauncherevolved.bridge.WallpaperBridge
@@ -91,6 +92,8 @@ class PixelLauncherEvolvedModule : XposedModule() {
 
         val preferences = LauncherSettings.preferences(application)
         SettingsMigration(logger).apply(preferences, frameworkPreferences(logger))
+        // Before the launcher opens its layout, which a restore may replace.
+        LayoutCheckpoints.install(application, preferences, logger)
 
         val settings = SharedPreferencesStore(preferences)
         // Before any feature installs: a crash loop's tweak must not be installed again.

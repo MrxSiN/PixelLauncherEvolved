@@ -20,6 +20,7 @@ import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.LiveLayout
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
+import my.github.MrxSiN.pixellauncherevolved.layout.LayoutCheckpoints
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
 
@@ -290,6 +291,7 @@ class GridFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
             val from = src?.let { dbOf.get(it) as? String }
             val to = dest?.let { dbOf.get(it) as? String }
             if (from == to || (!GridSpec.isOwnDb(from) && !GridSpec.isOwnDb(to))) return@intercept chain.proceed()
+            LayoutCheckpoints.beforeMigration(launcher, LauncherSettings.preferences(launcher), from, to, context.logger)
             val result = try {
                 chain.proceed()
             } catch (error: Throwable) {
