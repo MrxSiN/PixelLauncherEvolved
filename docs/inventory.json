@@ -73,6 +73,12 @@
    "default": "false"
   },
   {
+   "name": "HOME_DOUBLE_TAP_ACTION",
+   "type": "Int",
+   "key": "home_double_tap_action",
+   "default": "0"
+  },
+  {
    "name": "ICONS_USE_PACK",
    "type": "Bool",
    "key": "home_icons_use_pack",

@@ -314,6 +314,7 @@ N	dockIcons
 N	dockMovesToHome
 N	dock_removal_note
 N	doubleTapToSleep
+N	double_tap_action
 N	drawable
 N	drift
 N	enabled
@@ -429,6 +430,7 @@ N	home_dock_hidden
 N	home_dock_icons
 N	home_dock_kept
 N	home_dock_move_to_home
+N	home_double_tap_action
 N	home_double_tap_to_sleep
 N	home_grid
 N	home_grid_columns

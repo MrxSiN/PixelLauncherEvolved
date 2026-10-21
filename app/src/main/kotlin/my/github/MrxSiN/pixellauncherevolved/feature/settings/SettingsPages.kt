@@ -82,6 +82,7 @@ internal object SettingsPages {
                 R.string.settings_group_gestures,
                 listOf(
                     ToggleRow(FeatureCatalog.DOUBLE_TAP_TO_SLEEP, CompatibilityFeature.DOUBLE_TAP_TO_SLEEP),
+                    DoubleTapActionRow,
                     // Watched in SystemUI, so no launcher member greys it out.
                     ToggleRow(FeatureCatalog.STATUS_BAR_DOUBLE_TAP_TO_SLEEP),
                 ),

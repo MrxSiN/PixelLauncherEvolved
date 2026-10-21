@@ -87,6 +87,10 @@ class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP)
             }
 
             if (taps.isSecond(event)) {
+                if (context.settings[Settings.HOME_DOUBLE_TAP_ACTION] == Settings.DOUBLE_TAP_MODES) {
+                    openModes(args.getOrNull(0) as? android.view.View, context)
+                    return@hookAfter
+                }
                 // Announced first: the reveal is drawn by the time root answers.
                 // Where the gesture was taken, for SystemUI's reveal. Not waited on:
                 // the root shell turning the screen off is far slower than the broadcast.
@@ -101,6 +105,20 @@ class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP)
         }
 
         context.logger.info("Home: double tap on an empty spot turns the screen off")
+    }
+
+    /** Android's own Modes list, from the launcher activity the tap landed in. */
+    private fun openModes(view: android.view.View?, context: FeatureContext) {
+        val from = view?.context ?: context.appContext
+        val intent = Intent(MODES_SETTINGS)
+        if (from === context.appContext) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { from.startActivity(intent) }
+            .onFailure { context.logger.warn("Settings → Modes could not be opened", it) }
+    }
+
+    private companion object {
+        /** `Settings.ACTION_ZEN_MODE_SETTINGS`: hidden in the SDK, the Modes list since Android 15. */
+        const val MODES_SETTINGS = "android.settings.ZEN_MODE_SETTINGS"
     }
 }
 
