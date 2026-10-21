@@ -599,7 +599,7 @@
     "getTargetPackage",
     "itemView"
    ],
-   "hooks": 3,
+   "hooks": 2,
    "threads": 0,
    "root": false,
    "binder": [],

@@ -665,7 +665,6 @@ N	onBindViewHolder
 N	onConfigChanged
 N	onCreate
 N	onCreatePreferences
-N	onCreateViewHolder
 N	onDeviceProfileChanged
 N	onDragEnd
 N	onDraw

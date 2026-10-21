@@ -1,15 +1,10 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.apps
 
-import android.util.TypedValue
-import android.view.View
-import android.view.ViewGroup
 import android.widget.TextView
 
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
-
-import kotlin.math.roundToInt
 
 import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
@@ -30,8 +25,10 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
  * launcher already filtered, so hidden apps, the profile tabs and Private space
  * stay as they are.
  *
- * The header is a view type of this module's own, created and bound here; the
- * launcher's span lookup gives an unknown type a whole row.
+ * The header is the launcher's own one-line text row (`VIEW_TYPE_EMPTY_SEARCH`)
+ * with no app in it, which the launcher creates and gives a whole row, and
+ * binds to nothing; only its text is set here. A new view type is not possible:
+ * R8 removed the holder class's own constructor in launcher 907.
  */
 class ModeDrawerSectionFeature : LauncherFeature {
 
@@ -52,13 +49,10 @@ class ModeDrawerSectionFeature : LauncherFeature {
         val newItem: Constructor<*> = itemClass.getDeclaredConstructor(Int::class.javaPrimitiveType).apply { isAccessible = true }
         val itemApp: Field = Reflect.declaredField(itemClass, "itemInfo")
         val itemType: Field = Reflect.declaredField(itemClass, "viewType")
-        val newHolder: Constructor<*> = holderClass.declaredConstructors.first { it.parameterTypes.contentEquals(arrayOf(View::class.java)) }
-            .apply { isAccessible = true }
         val packageOf: Method = requireNotNull(Reflect.method(itemInfo, "getTargetPackage"))
         val adapterApps = Reflect.declaredField(adapter, "mApps")
         // RecyclerView's own holder field; looked up once, read on every bind.
         val itemView: Field = requireNotNull(Reflect.field(holderClass, "itemView"))
-        val create = requireNotNull(Reflect.declared(adapter, "onCreateViewHolder") { it.parameterTypes.size == 2 && it.parameterTypes[1] == Int::class.javaPrimitiveType })
         val bind = requireNotNull(Reflect.declared(adapter, "onBindViewHolder") { it.parameterTypes.size == 2 && it.parameterTypes[1] == Int::class.javaPrimitiveType })
 
         context.xposed.hook(addApps).intercept { chain ->
@@ -75,45 +69,27 @@ class ModeDrawerSectionFeature : LauncherFeature {
                 if (picked.isEmpty()) return@runCatching 0
                 target += newItem.newInstance(HEADER_TYPE)
                 for (app in picked) target += newItem.newInstance(ICON_TYPE).also { itemApp.set(it, app) }
-                picked.size + 1
+                // A whole-row divider ends the section, so A–Z starts on a row of its own.
+                target += newItem.newInstance(DIVIDER_TYPE)
+                picked.size + 2
             }.onFailure { context.logger.warn("The Mode's apps could not be put at the top of the drawer", it) }.getOrDefault(0)
             if (added == 0) chain.proceed() else chain.proceed(arrayOf((chain.getArg(0) as Int) + added, chain.getArg(1)))
         }
 
-        context.xposed.hook(create).intercept { chain ->
-            if (chain.getArg(1) != HEADER_TYPE) return@intercept chain.proceed()
-            newHolder.newInstance(header(chain.getArg(0) as ViewGroup))
-        }
-
         context.xposed.hook(bind).intercept { chain ->
-            val view = chain.getArg(0)?.let(itemView::get)
-            if (view !is TextView || view.tag !== HEADER_TAG) return@intercept chain.proceed()
-            val position = chain.getArg(1) as Int
-            val type = runCatching {
-                val listed = items.get(adapterApps.get(chain.thisObject)) as List<*>
-                itemType.getInt(listed[position])
-            }.getOrDefault(-1)
-            if (type != HEADER_TYPE) return@intercept chain.proceed()
-            view.text = ModeOverrides.drawerTitle.orEmpty()
-            null
+            val result = chain.proceed()
+            // Ours: the launcher's text row with no app in it; the launcher's own always has one.
+            val view = chain.getArg(0)?.let(itemView::get) as? TextView ?: return@intercept result
+            val item = runCatching { (items.get(adapterApps.get(chain.thisObject)) as List<*>)[chain.getArg(1) as Int] }.getOrNull()
+                ?: return@intercept result
+            if (itemType.getInt(item) == HEADER_TYPE && itemApp.get(item) == null) {
+                view.text = ModeOverrides.drawerTitle.orEmpty()
+                view.isAccessibilityHeading = true
+            }
+            result
         }
 
         context.logger.info("App drawer: a Mode's own apps can head the list")
-    }
-
-    /** A section heading in the drawer's own secondary text colour, inset like its icons. */
-    private fun header(parent: ViewGroup): TextView = TextView(parent.context).apply {
-        tag = HEADER_TAG
-        val density = resources.displayMetrics.density
-        val inset = (24 * density).roundToInt()
-        setPadding(inset, (16 * density).roundToInt(), inset, (8 * density).roundToInt())
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-        val color = TypedValue()
-        if (context.theme.resolveAttribute(android.R.attr.textColorSecondary, color, true)) {
-            setTextColor(context.getColorStateList(color.resourceId.takeIf { it != 0 } ?: return@apply))
-        }
-        isAccessibilityHeading = true
-        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     private companion object {
@@ -126,9 +102,10 @@ class ModeDrawerSectionFeature : LauncherFeature {
         /** `BaseAllAppsAdapter.VIEW_TYPE_ICON`. */
         const val ICON_TYPE = 2
 
-        /** This module's own view type: far above the launcher's own (up to 512) and its search types. */
-        const val HEADER_TYPE = 1 shl 29
+        /** `VIEW_TYPE_ALL_APPS_DIVIDER`: the launcher's own divider row (`private_space_divider`). */
+        const val DIVIDER_TYPE = 8
 
-        val HEADER_TAG = Any()
+        /** `BaseAllAppsAdapter.VIEW_TYPE_EMPTY_SEARCH`: a one-line text row. */
+        const val HEADER_TYPE = 4
     }
 }
