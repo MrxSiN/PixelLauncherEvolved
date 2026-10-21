@@ -106,10 +106,33 @@ data class FocusSnapshot(
     val modes: List<FocusMode>,
     /** Why the Modes could not be read; null when they were. */
     val failure: FocusFailure? = null,
-)
+) {
+    /** The read in the terms the launcher acts on: only a valid one says which Modes are on. */
+    val status: FocusStatus
+        get() = when (failure) {
+            null -> if (isReadable && modes.isEmpty()) FocusStatus.VALID_EMPTY else if (isReadable) FocusStatus.VALID else FocusStatus.UNAVAILABLE
+            FocusFailure.PARTIAL, FocusFailure.MALFORMED, FocusFailure.TOO_LARGE -> FocusStatus.PARTIAL
+            FocusFailure.STALE -> FocusStatus.STALE
+            FocusFailure.REFUSED, FocusFailure.TIMEOUT, FocusFailure.UNREACHABLE -> FocusStatus.UNAVAILABLE
+        }
+}
+
+/**
+ * VALID: a complete list of Modes. VALID_EMPTY: a complete list with none in it.
+ * PARTIAL: something was read but not all of it. UNAVAILABLE: nothing could be read.
+ * STALE: the Modes kept changing while being read. Only the first two say which
+ * Modes are on; the launcher shows its ordinary Home screen for the rest.
+ */
+enum class FocusStatus { VALID, VALID_EMPTY, PARTIAL, UNAVAILABLE, STALE }
 
 /** Why a read of the Modes came back with none. Each is unknown, never "no Mode is on". */
 enum class FocusFailure {
+    /** The dump was cut short, or this build lays a configuration out differently: not a complete list. */
+    PARTIAL,
+
+    /** The Modes changed during every read tried. */
+    STALE,
+
     /** Root was refused or the read failed: the one a person can fix, by granting root. */
     REFUSED,
     TIMEOUT,

@@ -6,6 +6,10 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.os.Process
+import android.provider.Settings
+import android.util.Log
+
+import my.github.MrxSiN.pixellauncherevolved.core.AndroidLogger
 
 /**
  * Reports the device's Modes to the launcher.
@@ -23,7 +27,19 @@ import android.os.Process
 class FocusProvider : ContentProvider() {
 
     // A provider is not singleUser, so this process runs as the caller's user.
-    private val modes = ZenModes(Process.myUid() / PER_USER_RANGE)
+    private val modes = ZenModes(Process.myUid() / PER_USER_RANGE, etag = ::etag)
+
+    @Volatile
+    private var etagWarned = false
+
+    /** Null when unreadable, which only means a change during a read goes unnoticed; said once. */
+    private fun etag(): String? = context?.contentResolver
+        ?.let { resolver -> runCatching { Settings.Global.getString(resolver, ZEN_MODE_CONFIG_ETAG) } }
+        ?.onFailure {
+            if (!etagWarned) Log.w(AndroidLogger.TAG, "Modes: the configuration's etag is unreadable; a change during a read goes unnoticed", it)
+            etagWarned = true
+        }
+        ?.getOrNull()
 
     override fun onCreate(): Boolean = true
 
@@ -83,6 +99,9 @@ class FocusProvider : ContentProvider() {
 
     private companion object {
         const val LAUNCHER_PACKAGE = "com.google.android.apps.nexuslauncher"
+
+        /** Rewritten by the notification service on every change to the Modes; not public API. */
+        const val ZEN_MODE_CONFIG_ETAG = "zen_mode_config_etag"
 
         /** `UserHandle.PER_USER_RANGE`: a uid divided by it is its user. */
         const val PER_USER_RANGE = 100_000

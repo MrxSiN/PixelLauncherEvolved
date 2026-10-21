@@ -9,13 +9,12 @@ class ZenModesTest {
 
     @Test
     fun manualOverrideDeterminesActiveState() {
-        val dump = """
-            ZenRule[id=active,state=STATE_FALSE,enabled=TRUE,conditionOverride=OVERRIDE_ACTIVATE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android],
-            ZenRule[id=inactive,state=STATE_TRUE,enabled=TRUE,conditionOverride=OVERRIDE_DEACTIVATE,name=Sleep,zenMode=ZEN_MODE_IMPORTANT_INTERRUPTIONS,pkg=android],
-            mUser=0
-        """.trimIndent()
+        val dump = dump(
+            "ZenRule[id=active,state=STATE_FALSE,enabled=TRUE,conditionOverride=OVERRIDE_ACTIVATE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android]",
+            "ZenRule[id=inactive,state=STATE_TRUE,enabled=TRUE,conditionOverride=OVERRIDE_DEACTIVATE,name=Sleep,zenMode=ZEN_MODE_IMPORTANT_INTERRUPTIONS,pkg=android]",
+        )
 
-        val modes = ZenModes(0, CommandRunner { RootResult.Output(dump) }).modes().associateBy { it.id }
+        val modes = zen(dump).modes().associateBy { it.id }
 
         assertTrue(modes.getValue("active").isActive)
         assertFalse(modes.getValue("inactive").isActive)
@@ -23,12 +22,9 @@ class ZenModesTest {
 
     @Test
     fun aModeSwitchedOffIsReportedButNeverActive() {
-        val dump = """
-            ZenRule[id=off,state=STATE_TRUE,enabled=FALSE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android],
-            mUser=0
-        """.trimIndent()
+        val dump = dump("ZenRule[id=off,state=STATE_TRUE,enabled=FALSE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android]")
 
-        val mode = ZenModes(0, CommandRunner { RootResult.Output(dump) }).modes().single()
+        val mode = zen(dump).modes().single { it.id == "off" }
 
         assertFalse(mode.isEnabled)
         assertFalse(mode.isActive)
@@ -36,14 +32,12 @@ class ZenModesTest {
 
     @Test
     fun iconIsTheChosenOneOrTheTypeDefault() {
-        val dump = """
-            ZenRule[id=picked,state=STATE_FALSE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android,iconResName=android:drawable/ic_zen_mode_icon_work,type=0],
-            ZenRule[id=typed,state=STATE_FALSE,enabled=TRUE,name=Driving,zenMode=ZEN_MODE_OFF,pkg=android,iconResName=null,type=4],
-            ZenRule[id=MANUAL_RULE,state=STATE_FALSE,enabled=TRUE,name=null,zenMode=ZEN_MODE_OFF,pkg=android,iconResName=null,type=0],
-            mUser=0
-        """.trimIndent()
+        val dump = dump(
+            "ZenRule[id=picked,state=STATE_FALSE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android,iconResName=android:drawable/ic_zen_mode_icon_work,type=0]",
+            "ZenRule[id=typed,state=STATE_FALSE,enabled=TRUE,name=Driving,zenMode=ZEN_MODE_OFF,pkg=android,iconResName=null,type=4]",
+        )
 
-        val modes = ZenModes(0, CommandRunner { RootResult.Output(dump) }).modes().associateBy { it.id }
+        val modes = zen(dump).modes().associateBy { it.id }
 
         assertEquals("android:drawable/ic_zen_mode_icon_work", modes.getValue("picked").icon)
         assertEquals("android:drawable/ic_zen_mode_type_driving", modes.getValue("typed").icon)
@@ -52,13 +46,12 @@ class ZenModesTest {
 
     @Test
     fun theModeThatCameOnLastWins() {
-        val dump = """
-            ZenRule[id=work,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android,lastActivation=2026-10-01T08:00:00Z,lastManualActivation=null],
-            ZenRule[id=driving,state=STATE_FALSE,enabled=TRUE,conditionOverride=OVERRIDE_ACTIVATE,name=Driving,zenMode=ZEN_MODE_OFF,pkg=android,lastActivation=2026-09-30T08:00:00Z,lastManualActivation=2026-10-01T09:30:00.123Z],
-            mUser=0
-        """.trimIndent()
+        val dump = dump(
+            "ZenRule[id=work,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android,lastActivation=2026-10-01T08:00:00Z,lastManualActivation=null]",
+            "ZenRule[id=driving,state=STATE_FALSE,enabled=TRUE,conditionOverride=OVERRIDE_ACTIVATE,name=Driving,zenMode=ZEN_MODE_OFF,pkg=android,lastActivation=2026-09-30T08:00:00Z,lastManualActivation=2026-10-01T09:30:00.123Z]",
+        )
 
-        val active = ZenModes(0, CommandRunner { RootResult.Output(dump) }).modes().filter { it.isActive }.associate { it.id to it.activatedAt }
+        val active = zen(dump).modes().filter { it.isActive }.associate { it.id to it.activatedAt }
         val pages = mapOf("work" to setOf(2), "driving" to setOf(1))
 
         assertEquals(1790847000123L, active.getValue("driving"))
@@ -70,29 +63,77 @@ class ZenModesTest {
 
     @Test
     fun onlyThisUsersModesAreRead() {
-        val dump = """
-            mConfigs[u=0]=ZenModeConfig[user=0
-            ZenRule[id=mine,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android],
-            mConfigs[u=10]=ZenModeConfig[user=10
-            ZenRule[id=theirs,state=STATE_TRUE,enabled=TRUE,name=Clinic,zenMode=ZEN_MODE_OFF,pkg=android],
-            mUser=0
-        """.trimIndent()
+        val dump = config(0, "ZenRule[id=mine,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android]") +
+            config(10, "ZenRule[id=theirs,state=STATE_TRUE,enabled=TRUE,name=Clinic,zenMode=ZEN_MODE_OFF,pkg=android]") +
+            USER_LINE
 
-        assertEquals(listOf("mine"), ZenModes(0, CommandRunner { RootResult.Output(dump) }).modes().map { it.id })
-        assertEquals(listOf("theirs"), ZenModes(10, CommandRunner { RootResult.Output(dump) }).modes().map { it.id })
+        assertEquals(listOf("mine"), zen(dump, user = 0).modes().map { it.id } - MANUAL)
+        assertEquals(listOf("theirs"), zen(dump, user = 10).modes().map { it.id } - MANUAL)
         // A user with no block of its own is unknown, never another user's Modes or none.
-        assertFalse(ZenModes(1, CommandRunner { RootResult.Output(dump) }).snapshot().isReadable)
+        assertEquals(FocusFailure.MALFORMED, zen(dump, user = 1).snapshot().failure)
+    }
+
+    /** A Mode deleted in Settings is listed under deletedRules, and is not one of the Modes. */
+    @Test
+    fun deletedModesAreNotModes() {
+        val dump = config(
+            0,
+            "ZenRule[id=kept,state=STATE_FALSE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android]",
+            deleted = "ZenRule[id=gone,state=STATE_TRUE,enabled=TRUE,name=Old,zenMode=ZEN_MODE_OFF,pkg=android]",
+        ) + USER_LINE
+
+        val snapshot = zen(dump).snapshot()
+
+        assertEquals(FocusStatus.VALID, snapshot.status)
+        assertEquals(listOf("kept", MANUAL), snapshot.modes.map { it.id }.sortedBy { it == MANUAL })
+    }
+
+    /** A dump cut short, or laid out differently, is partial: never a complete list of fewer Modes. */
+    @Test
+    fun aTruncatedOrDriftedDumpIsPartial() {
+        val whole = dump("ZenRule[id=a,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android]")
+
+        // Stopped before the user line.
+        assertEquals(FocusStatus.PARTIAL, zen(whole.substringBefore("mUser=")).snapshot().status)
+        // Stopped inside the configuration, before the manual and deleted rules.
+        assertEquals(FocusStatus.PARTIAL, zen(whole.substringBefore("manualRule=") + USER_LINE).snapshot().status)
+        // A build that names the section differently.
+        assertEquals(FocusStatus.PARTIAL, zen(whole.replace("automaticRules=", "rules=")).snapshot().status)
+        assertEquals(FocusStatus.PARTIAL, zen("").snapshot().status)
+    }
+
+    /** The Modes changing during a read: read again once, then said as stale. */
+    @Test
+    fun aReadDuringAChangeIsReadAgainThenStale() {
+        val dump = dump("ZenRule[id=a,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android]")
+
+        var reads = 0
+        // Before and after each read: changed across the first, steady across the second.
+        val tags = ArrayDeque(listOf("a", "b", "b", "b"))
+        val settles = ZenModes(0, CommandRunner { reads++; RootResult.Output(dump) }) { tags.removeFirst() }
+        assertEquals(FocusStatus.VALID, settles.snapshot().status)
+        assertEquals(2, reads)
+
+        var counter = 0
+        val churning = ZenModes(0, CommandRunner { RootResult.Output(dump) }) { (counter++).toString() }
+        val stale = churning.snapshot()
+        assertEquals(FocusStatus.STALE, stale.status)
+        assertFalse(stale.isReadable)
+        assertTrue(stale.modes.isEmpty())
     }
 
     @Test
     fun aFailedReadSaysWhyAndNeverReadsAsNoModes() {
-        for (reason in listOf(FocusFailure.TIMEOUT, FocusFailure.REFUSED, FocusFailure.TOO_LARGE)) {
+        for ((reason, status) in listOf(
+            FocusFailure.TIMEOUT to FocusStatus.UNAVAILABLE,
+            FocusFailure.REFUSED to FocusStatus.UNAVAILABLE,
+            FocusFailure.TOO_LARGE to FocusStatus.PARTIAL,
+        )) {
             val snapshot = ZenModes(0, CommandRunner { RootResult.Failed(reason) }).snapshot()
             assertFalse(snapshot.isReadable)
             assertEquals(reason, snapshot.failure)
+            assertEquals(status, snapshot.status)
         }
-        // Root answered, but with nothing this build can read.
-        assertEquals(FocusFailure.MALFORMED, ZenModes(0, CommandRunner { RootResult.Output("") }).snapshot().failure)
     }
 
     @Test
@@ -100,7 +141,7 @@ class ZenModesTest {
         val started = java.util.concurrent.CountDownLatch(1)
         val release = java.util.concurrent.CountDownLatch(1)
         val runs = java.util.concurrent.atomic.AtomicInteger()
-        val dump = "ZenRule[id=a,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android], mUser=0"
+        val dump = dump("ZenRule[id=a,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android]")
         val zen = ZenModes(0, CommandRunner {
             if (runs.incrementAndGet() == 1) {
                 started.countDown()
@@ -121,5 +162,20 @@ class ZenModesTest {
 
         // Second and third began asking together, so one shell answers both.
         assertEquals(2, runs.get())
+    }
+
+    private fun zen(dump: String, user: Int = 0) = ZenModes(user, CommandRunner { RootResult.Output(dump) })
+
+    private companion object {
+        const val MANUAL = "MANUAL_RULE"
+        const val USER_LINE = "    mUser=0\n"
+
+        /** The Zen section of a one-user dump, laid out as `CP3A.261005.005` prints it. */
+        fun dump(vararg rules: String) = config(0, *rules) + USER_LINE
+
+        fun config(user: Int, vararg rules: String, deleted: String = "") =
+            "    mConfigs[u=$user]=ZenModeConfig[user=$user\nautomaticRules={\n" + rules.joinToString(",\n") + "}\n" +
+                "manualRule=ZenRule[id=MANUAL_RULE,state=STATE_FALSE,enabled=TRUE,conditionOverride=OVERRIDE_NONE,name=null,zenMode=ZEN_MODE_OFF,pkg=android,iconResName=null,type=0],\n" +
+                "deletedRules={" + (if (deleted.isEmpty()) "" else "\n$deleted") + "}]\n"
     }
 }

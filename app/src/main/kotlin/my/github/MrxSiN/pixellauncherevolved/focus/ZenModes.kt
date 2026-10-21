@@ -23,8 +23,14 @@ import java.util.concurrent.TimeUnit
 /**
  * @param user the Android user whose Modes are read: the one this process, and so
  *   the launcher asking it, runs as. Root sees every user's Modes in one dump.
+ * @param etag `Settings.Global` `zen_mode_config_etag`, which the notification
+ *   service rewrites on every change to the Modes; null where it cannot be read.
  */
-class ZenModes(private val user: Int, private val shell: CommandRunner = RootShell()) {
+class ZenModes(
+    private val user: Int,
+    private val shell: CommandRunner = RootShell(),
+    private val etag: () -> String? = { null },
+) {
 
     /** Whether Modes can be read at all, which here means whether root answers. */
     fun isGranted(): Boolean = snapshot().isReadable
@@ -61,16 +67,49 @@ class ZenModes(private val user: Int, private val shell: CommandRunner = RootShe
         }
     }
 
-    /** A failure is said as one, never as an empty list of Modes. */
-    private fun read(): FocusSnapshot = when (val result = shell.run(DUMP_COMMAND)) {
-        is RootResult.Failed -> FocusSnapshot(isReadable = false, modes = emptyList(), failure = result.reason)
-        is RootResult.Output -> result.text
-            .substringBefore(CONFIG_END)
-            .let(::ownConfig)
-            ?.takeIf { RULE_START in it }
-            ?.let { FocusSnapshot(isReadable = true, modes = parseModes(it)) }
-            ?: FocusSnapshot(isReadable = false, modes = emptyList(), failure = FocusFailure.MALFORMED)
+    /**
+     * One read whose Modes did not change while it ran: the configuration's etag
+     * is the same before and after. A change mid-read is read again once; a second
+     * one is said as [FocusFailure.STALE] rather than read again and again.
+     */
+    private fun read(): FocusSnapshot {
+        repeat(READS) {
+            val before = etag()
+            val snapshot = readOnce()
+            if (!snapshot.isReadable || before == null || before == etag()) return snapshot
+        }
+        return failed(FocusFailure.STALE)
     }
+
+    /** A failure is said as one, never as an empty list of Modes. */
+    private fun readOnce(): FocusSnapshot = when (val result = shell.run(DUMP_COMMAND)) {
+        is RootResult.Failed -> failed(result.reason)
+        is RootResult.Output -> {
+            val config = result.text.substringBefore(CONFIG_END, missingDelimiterValue = "").let(::ownConfig)
+            if (config == null || CONFIG_END !in result.text) {
+                // No block for this user, or the dump stopped before the user line ending it.
+                failed(if (config == null) FocusFailure.MALFORMED else FocusFailure.PARTIAL)
+            } else {
+                live(config)?.let { FocusSnapshot(isReadable = true, modes = parseModes(it)) } ?: failed(FocusFailure.PARTIAL)
+            }
+        }
+    }
+
+    /**
+     * The rules a configuration holds now: its automatic rules and the manual one,
+     * not the deleted rules it also lists. Null unless all three are there in that
+     * order, so a block cut short or laid out differently by another build is
+     * never read as a complete list of Modes.
+     */
+    private fun live(config: String): String? {
+        val automatic = config.indexOf(AUTOMATIC_RULES)
+        val manual = config.indexOf(MANUAL_RULE, automatic + 1)
+        val deleted = config.indexOf(DELETED_RULES, manual + 1)
+        if (automatic < 0 || manual < 0 || deleted < 0) return null
+        return config.substring(automatic, deleted)
+    }
+
+    private fun failed(reason: FocusFailure) = FocusSnapshot(isReadable = false, modes = emptyList(), failure = reason)
 
     private fun parseModes(dump: String): List<FocusMode> = dump.split(RULE_START)
             .drop(1)
@@ -159,6 +198,12 @@ class ZenModes(private val user: Int, private val shell: CommandRunner = RootShe
         /** The line that follows the first configuration block. */
         const val CONFIG_END = "mUser="
         const val RULE_START = "ZenRule["
+        const val AUTOMATIC_RULES = "automaticRules="
+        const val MANUAL_RULE = "manualRule="
+        const val DELETED_RULES = "deletedRules="
+
+        /** A read and one more when the Modes changed during it. */
+        const val READS = 2
         const val USER_CONFIG = "mConfigs[u="
         const val MANUAL_ID = "MANUAL_RULE"
         const val MANUAL_NAME = "Do Not Disturb"

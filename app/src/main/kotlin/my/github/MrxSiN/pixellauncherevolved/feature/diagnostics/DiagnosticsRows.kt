@@ -21,6 +21,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsKeys
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.SettingsRow
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusFailure
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSnapshot
+import my.github.MrxSiN.pixellauncherevolved.focus.FocusStatus
 import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureRegistry
 
@@ -161,6 +162,8 @@ internal object DiagnosticsRows : SettingsRow {
                 snapshot == null -> RowAccessory.Status(scope.string(R.string.diagnostics_checking))
                 snapshot.isReadable -> RowAccessory.Status(scope.string(R.string.diagnostics_granted), Tone.POSITIVE)
                 snapshot.failure == FocusFailure.REFUSED -> RowAccessory.Status(scope.string(R.string.diagnostics_not_granted), Tone.ERROR)
+                snapshot.status == FocusStatus.PARTIAL -> RowAccessory.Status(scope.string(R.string.diagnostics_root_partial), Tone.WARNING)
+                snapshot.status == FocusStatus.STALE -> RowAccessory.Status(scope.string(R.string.diagnostics_root_stale), Tone.WARNING)
                 // A timeout or an unreadable dump is not a refusal: root may well be granted.
                 else -> RowAccessory.Status(scope.string(R.string.diagnostics_root_unread), Tone.WARNING)
             }

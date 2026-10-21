@@ -160,6 +160,8 @@
     <string name="diagnostics_granted">Granted</string>
     <string name="diagnostics_not_granted">Not granted</string>
     <string name="diagnostics_root_unread">No answer</string>
+    <string name="diagnostics_root_partial">Modes read incompletely</string>
+    <string name="diagnostics_root_stale">Modes changing, try again</string>
     <string name="diagnostics_group_features">Feature compatibility</string>
     <string name="diagnostics_compatible">✓ Compatible</string>
     <string name="diagnostics_incompatible">✗ Unavailable</string>
