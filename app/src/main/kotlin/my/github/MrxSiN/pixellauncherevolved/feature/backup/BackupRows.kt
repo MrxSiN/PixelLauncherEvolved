@@ -104,7 +104,17 @@ internal object BackupRows : SettingsRow {
                 return@launch
             }
 
-            confirm(scope, activity, R.string.backup_import_confirm_title, R.string.backup_import_confirm_message, R.string.backup_import_confirm) {
+            // What the file holds, so the person sees it before anything is replaced.
+            val missing = snapshot.hiddenApps.count { runCatching { activity.packageManager.getPackageInfo(it, 0) }.isFailure }
+            val preview = scope.string(
+                R.string.backup_import_preview,
+                snapshot.hiddenApps.size,
+                missing,
+                snapshot.iconPack?.takeIf { snapshot.useIconPack } ?: scope.string(R.string.backup_import_preview_system),
+                snapshot.iconOverrides.size,
+                snapshot.appLabels.size,
+            )
+            confirm(scope, activity, R.string.backup_import_confirm_title, R.string.backup_import_confirm_message, R.string.backup_import_confirm, preview) {
                 tweaks.restore(snapshot.copy(dockIcons = DockIconsRow.fitted(snapshot.dockIcons), grid = GridRows.fitted(snapshot.grid, scope)))
                 offerRestart(scope, activity, R.string.backup_imported)
             }
@@ -125,10 +135,10 @@ internal object BackupRows : SettingsRow {
             String(bytes)
         }
 
-    private fun confirm(scope: RowScope, activity: Activity, title: Int, message: Int, action: Int, onConfirm: () -> Unit) {
+    private fun confirm(scope: RowScope, activity: Activity, title: Int, message: Int, action: Int, detail: String? = null, onConfirm: () -> Unit) {
         ExpressiveDialog(activity)
             .title(scope.string(title))
-            .message(scope.string(message))
+            .message(scope.string(message) + (detail?.let { "\n\n$it" } ?: ""))
             .dismiss(activity.getString(android.R.string.cancel))
             .confirm(scope.string(action), onConfirm)
             .show()

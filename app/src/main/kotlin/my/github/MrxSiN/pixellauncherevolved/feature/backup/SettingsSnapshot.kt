@@ -53,6 +53,8 @@ data class SettingsSnapshot(
      * private, clone) rather than by this device's user number.
      */
     val appLabels: List<PortableAppLabel> = emptyList(),
+    /** What a home double tap does ([Settings.HOME_DOUBLE_TAP_ACTION]). */
+    val doubleTapAction: Int = Settings.HOME_DOUBLE_TAP_ACTION.default,
 ) {
     companion object {
         /** What a fresh install has. */
@@ -100,6 +102,7 @@ class TweakStores(
         appLabels = appLabels?.labels().orEmpty().mapNotNull { label ->
             kindOf(label.userId)?.let { PortableAppLabel(it.portable, label) }
         },
+        doubleTapAction = settings[Settings.HOME_DOUBLE_TAP_ACTION],
     )
 
     /** Replaces every tweak with [snapshot]'s. */
@@ -114,6 +117,7 @@ class TweakStores(
         icons.choose(snapshot.iconPack)
         iconOverrides.replace(snapshot.iconOverrides)
         for (setting in Settings.GRID) settings.put(setting, snapshot.grid[setting] ?: setting.default)
+        settings.put(Settings.HOME_DOUBLE_TAP_ACTION, snapshot.doubleTapAction.coerceIn(Settings.HOME_DOUBLE_TAP_ACTION.range))
         // A label for a kind of profile this device does not have has nowhere to go.
         appLabels?.replace(
             snapshot.appLabels.mapNotNull { portable ->

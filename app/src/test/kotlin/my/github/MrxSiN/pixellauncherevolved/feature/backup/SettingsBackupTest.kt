@@ -48,6 +48,7 @@ class SettingsBackupTest {
         settings.put(Settings.GRID_ICON_SIZE, 115)
         settings.put(Settings.GRID_SPACING_Y, -1)
         settings.put(Settings.APP_DRAWER_COLUMNS, 5)
+        settings.put(Settings.HOME_DOUBLE_TAP_ACTION, Settings.DOUBLE_TAP_MODES)
         hidden.hide(setOf("com.example.b", "com.example.a"))
         web.choose("org.mozilla.firefox")
         settings.put(Settings.ICONS_USE_PACK, true)

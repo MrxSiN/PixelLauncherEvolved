@@ -57,8 +57,10 @@
     <string name="backup_import_not_a_backup">This file is not a Pixel Launcher Evolved settings file.</string>
     <string name="backup_import_newer">This file was made by a newer version of Pixel Launcher Evolved. Update the module, then import it again.</string>
     <string name="backup_import_confirm_title">Import settings?</string>
-    <string name="backup_import_confirm_message">Every tweak, the layout mode, hidden apps and the web results app are replaced with the ones in this file. Modes pages and the page order stay as they are.</string>
+    <string name="backup_import_confirm_message">Every tweak, the layout mode, hidden apps and the web results app are replaced with the ones in this file. Modes pages, each Mode\'s own settings and the page order stay as they are: they belong to this phone\'s pages and Modes.</string>
     <string name="backup_import_confirm">Import</string>
+    <string name="backup_import_preview">This file has %1$d hidden apps (%2$d not installed here), icons from %3$s, %4$d icons chosen app by app and %5$d app labels. Apps that are not installed are kept and apply once installed.</string>
+    <string name="backup_import_preview_system">the system</string>
     <string name="backup_imported">Settings imported. Restart Pixel Launcher so every tweak applies.</string>
     <string name="backup_reset_confirm_title">Reset all tweaks?</string>
     <string name="backup_reset_confirm_message">Every tweak, the layout mode, hidden apps and the web results app go back to their defaults. Modes pages and the page order stay as they are.</string>
