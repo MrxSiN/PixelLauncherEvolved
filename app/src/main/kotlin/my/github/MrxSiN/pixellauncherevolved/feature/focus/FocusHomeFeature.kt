@@ -10,6 +10,7 @@ import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicLong
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Host
@@ -770,12 +771,28 @@ internal class FocusHome(
      *
      * A read that succeeds also gives back the pages of Modes that no longer
      * exist, so the planning that follows never hides a page for one.
+     *
+     * Reads run on two threads: the first bind's, and the refresher's. Each
+     * takes its number before it asks, and an answer is kept only when no read
+     * asked later has been kept already; a slow first read finishing after a
+     * newer one is dropped, and gives back no pages, rather than putting an
+     * older Mode back on the home screen.
      */
     private fun read(): Map<String, Long> {
+        val ticket = requested.incrementAndGet()
         val snapshot = source.snapshot()
-        store.forgetModesMissingFrom(snapshot)
-        return snapshot.modes.filter { it.isActive }.associate { it.id to it.activatedAt }.also { activeModes = it }
+        synchronized(accept) {
+            if (ticket < accepted) return activeModes ?: emptyMap()
+            accepted = ticket
+            store.forgetModesMissingFrom(snapshot)
+            return snapshot.modes.filter { it.isActive }.associate { it.id to it.activatedAt }.also { activeModes = it }
+        }
     }
+
+    /** Numbers reads in the order they were asked for ([read]). */
+    private val requested = AtomicLong()
+    private val accept = Any()
+    private var accepted = 0L
 
     private companion object {
         /**

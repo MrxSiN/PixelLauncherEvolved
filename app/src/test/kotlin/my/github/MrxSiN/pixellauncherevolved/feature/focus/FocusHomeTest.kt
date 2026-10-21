@@ -3,6 +3,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.focus
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
+import my.github.MrxSiN.pixellauncherevolved.focus.FocusSnapshot
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
 import my.github.MrxSiN.pixellauncherevolved.focus.Orphan
@@ -332,6 +333,43 @@ class FocusHomeTest {
         val focus = focus()
 
         assertEquals(listOf(0, 5), focus.screens(listOf(0, 5)))
+    }
+
+    /**
+     * The first bind's read and the refresher's run on two threads. One asked first
+     * that finishes last, saying Work is on, must not undo a later read that says it
+     * went off meanwhile.
+     */
+    @Test
+    fun aSlowerOlderReadNeverOverwritesANewerOne() {
+        store.assign("work", setOf(2))
+        val firstAsked = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        val calls = java.util.concurrent.atomic.AtomicInteger()
+        val racing = object : FocusSource {
+            override fun snapshot(): FocusSnapshot {
+                if (calls.incrementAndGet() == 1) {
+                    firstAsked.countDown()
+                    release.await()
+                    return FocusSnapshot(true, listOf(FocusMode("work", "Work", isActive = true)))
+                }
+                return FocusSnapshot(true, listOf(FocusMode("work", "Work", isActive = false)))
+            }
+
+            override fun modes(): List<FocusMode> = emptyList()
+
+            override fun isReadable(): Boolean = true
+        }
+        val focus = FocusHome(isEnabled = { true }, store = store, source = racing, logger = SilentLogger)
+
+        val older = Thread { focus.change() }.apply { start() }
+        firstAsked.await()
+        focus.change()
+        release.countDown()
+        older.join()
+
+        // The newer read said Work is off: the ordinary home, Work's page hidden.
+        assertEquals(listOf(0, 1), focus.screens(listOf(0, 1, 2)))
     }
 
     private fun focus() = FocusHome(
