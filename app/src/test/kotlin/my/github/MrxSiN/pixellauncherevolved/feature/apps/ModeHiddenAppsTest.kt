@@ -49,6 +49,17 @@ class ModeHiddenAppsTest {
     }
 
     @Test
+    fun `search groups follow the latest Mode that hides any`() {
+        preferences.values["focus_search_hide_work"] = "app_drawer_search_hide_web"
+        preferences.values["focus_search_hide_bed"] = "app_drawer_search_hide_web,app_drawer_search_hide_play_store"
+        ModeHiddenApps.update(preferences, mapOf("work" to 10L, "bed" to 5L))
+        assertEquals(setOf("app_drawer_search_hide_web"), ModeHiddenApps.searchHidden)
+
+        ModeHiddenApps.update(preferences, emptyMap())
+        assertEquals(emptySet<String>(), ModeHiddenApps.searchHidden)
+    }
+
+    @Test
     fun `a change of winner is reported once`() {
         var told = 0
         ModeHiddenApps.onChanged = { told++ }

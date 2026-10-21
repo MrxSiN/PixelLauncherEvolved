@@ -89,9 +89,12 @@ class HiddenSearchResults(
     }
 }
 
-/** The kinds currently switched off, read fresh so a change applies at once. */
-fun hiddenSearchResults(settings: SettingsSource): Set<SearchResultKind> =
-    SearchResultKind.entries.filterTo(LinkedHashSet()) { settings[it.setting] }
+/**
+ * The kinds currently switched off, read fresh so a change applies at once,
+ * plus those the winning Mode switches off ([modeHidden], by setting key).
+ */
+fun hiddenSearchResults(settings: SettingsSource, modeHidden: Set<String> = emptySet()): Set<SearchResultKind> =
+    SearchResultKind.entries.filterTo(LinkedHashSet()) { settings[it.setting] || it.setting.key in modeHidden }
 
 /**
  * The result-type bits the launcher's search provider sets, as observed on

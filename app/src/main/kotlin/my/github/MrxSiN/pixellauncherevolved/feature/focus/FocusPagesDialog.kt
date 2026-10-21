@@ -14,7 +14,10 @@ import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
 import my.github.MrxSiN.pixellauncherevolved.R
+import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HideAppsSelection
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.ModeHiddenApps
+import my.github.MrxSiN.pixellauncherevolved.feature.search.SearchResultKind
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRole
@@ -175,10 +178,22 @@ internal object FocusPagesDialog {
         }
         lateinit var dialog: Dialog
         val hiddenApps = hiddenAppsRow(context, resources, mode) { dialog.dismiss() }
+        // Search groups this Mode turns off; one switched off everywhere stays off here.
+        val preferences = LauncherSettings.preferences(context)
+        val modeSearch = preferences.getString(ModeHiddenApps.SEARCH_KEY + mode.id, "").orEmpty().split(',').toSet()
+        val searchSwitches = FeatureCatalog.entries.filter { entry -> SearchResultKind.entries.any { it.setting == entry.setting } }
+            .map { entry ->
+                val everywhere = preferences.getBoolean(entry.setting.key, entry.setting.default)
+                entry.setting.key to switch(context, resources.getString(entry.titleRes)).apply {
+                    isChecked = !everywhere && entry.setting.key !in modeSearch
+                    isEnabled = !everywhere
+                }
+            }
         val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             addView(withOrdinary)
             addView(hiddenApps)
+            searchSwitches.forEach { addView(it.second) }
             addView(gallery)
         }
 
@@ -192,6 +207,12 @@ internal object FocusPagesDialog {
                 val chosen = grid.selectedScreens()
                 if (leavesOrdinaryPage(FocusPages.order, store.assignments(), mode.id, chosen)) {
                     store.setWithOrdinary(mode.id, withOrdinary.isChecked)
+                    val off = searchSwitches.filter { (_, it) -> it.isEnabled && !it.isChecked }.map { it.first }
+                    preferences.edit().apply {
+                        if (off.isEmpty()) remove(ModeHiddenApps.SEARCH_KEY + mode.id)
+                        else putString(ModeHiddenApps.SEARCH_KEY + mode.id, off.joinToString(","))
+                    }.apply()
+                    ModeHiddenApps.recompute(preferences)
                     apply(store, mode, chosen)
                 } else {
                     ExpressiveDialog(context)
@@ -271,6 +292,14 @@ internal object FocusPagesDialog {
                 (context as? Activity)?.finish()
             }
         }
+    }
+
+    private fun switch(context: Context, label: String) = Switch(context).apply {
+        text = label
+        ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
+        minHeight = (48f * context.resources.displayMetrics.density).roundToInt()
+        val inset = (24f * context.resources.displayMetrics.density).roundToInt()
+        setPadding(inset, 0, inset, 0)
     }
 
     /** Gives [screens] to [mode] and takes them off every other Mode. */

@@ -21,6 +21,15 @@ object ModeHiddenApps {
     var modeId: String? = null
         private set
 
+    /**
+     * Search groups the winning Mode hides on top of the everywhere switches,
+     * as those switches' keys ([SEARCH_KEY]); picked by the same rule among
+     * the Modes that hide any.
+     */
+    @Volatile
+    var searchHidden: Set<String> = emptySet()
+        private set
+
     @Volatile
     private var active: Map<String, Long> = emptyMap()
 
@@ -35,13 +44,23 @@ object ModeHiddenApps {
 
     /** After a Mode's list is saved: it may now hide something, or nothing. */
     fun recompute(preferences: SharedPreferences) {
-        val candidates = preferences.all.mapNotNullTo(HashSet()) { (key, value) ->
-            key.removePrefix(SharedPreferencesHiddenAppsStore.MODE_KEY)
-                .takeIf { it != key && (value as? String).orEmpty().isNotBlank() }
-        }
-        val next = FocusPlan.winner(candidates, SharedPreferencesFocusStore(preferences).priority(), active)
+        val all = preferences.all
+        val priority = SharedPreferencesFocusStore(preferences).priority()
+        val search = FocusPlan.winner(candidates(all, SEARCH_KEY), priority, active)
+        searchHidden = search?.let { (all[SEARCH_KEY + it] as? String).orEmpty().split(',').filterTo(HashSet()) { k -> k.isNotBlank() } }
+            ?: emptySet()
+
+        val next = FocusPlan.winner(candidates(all, SharedPreferencesHiddenAppsStore.MODE_KEY), priority, active)
         if (next == modeId) return
         modeId = next
         onChanged?.invoke()
     }
+
+    private fun candidates(all: Map<String, *>, prefix: String): Set<String> =
+        all.mapNotNullTo(HashSet()) { (key, value) ->
+            key.removePrefix(prefix).takeIf { it != key && (value as? String).orEmpty().isNotBlank() }
+        }
+
+    /** `focus_search_hide_<modeId>`: comma-separated keys of the search switches that Mode turns off. */
+    const val SEARCH_KEY = "focus_search_hide_"
 }
