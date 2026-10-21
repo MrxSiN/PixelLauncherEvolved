@@ -19,7 +19,11 @@ import java.util.concurrent.TimeUnit
  * same way. Without root there are no Modes to offer and the feature says so,
  * rather than silently offering one Mode and pretending that is all of them.
  */
-class ZenModes(private val shell: CommandRunner = RootShell()) {
+/**
+ * @param user the Android user whose Modes are read: the one this process, and so
+ *   the launcher asking it, runs as. Root sees every user's Modes in one dump.
+ */
+class ZenModes(private val user: Int, private val shell: CommandRunner = RootShell()) {
 
     /** Whether Modes can be read at all, which here means whether root answers. */
     fun isGranted(): Boolean = snapshot().isReadable
@@ -118,7 +122,23 @@ class ZenModes(private val shell: CommandRunner = RootShell()) {
      */
     private fun dump(): String? = shell.run(DUMP_COMMAND)
         ?.substringBefore(CONFIG_END)
+        ?.let(::ownConfig)
         ?.takeIf { RULE_START in it }
+
+    /**
+     * This user's block of the configurations, which the dump prints one per
+     * user (`mConfigs[u=0]=…`, `mConfigs[u=10]=…`). Reading them all would hand
+     * one user's Modes to another user's launcher, a work profile's included.
+     * Null when the dump has per-user blocks but none for this user: unknown,
+     * not empty. A dump without per-user blocks is taken whole, as before.
+     */
+    private fun ownConfig(configs: String): String? {
+        if (USER_CONFIG !in configs) return configs
+        val start = configs.indexOf("$USER_CONFIG$user]=")
+        if (start < 0) return null
+        val end = configs.indexOf(USER_CONFIG, start + 1)
+        return if (end < 0) configs.substring(start) else configs.substring(start, end)
+    }
 
     private companion object {
         const val DUMP_COMMAND = "dumpsys notification --zen"
@@ -126,6 +146,7 @@ class ZenModes(private val shell: CommandRunner = RootShell()) {
         /** The line that follows the first configuration block. */
         const val CONFIG_END = "mUser="
         const val RULE_START = "ZenRule["
+        const val USER_CONFIG = "mConfigs[u="
         const val MANUAL_ID = "MANUAL_RULE"
         const val MANUAL_NAME = "Do Not Disturb"
 

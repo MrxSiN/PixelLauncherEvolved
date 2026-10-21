@@ -15,7 +15,7 @@ class ZenModesTest {
             mUser=0
         """.trimIndent()
 
-        val modes = ZenModes(CommandRunner { dump }).modes().associateBy { it.id }
+        val modes = ZenModes(0, CommandRunner { dump }).modes().associateBy { it.id }
 
         assertTrue(modes.getValue("active").isActive)
         assertFalse(modes.getValue("inactive").isActive)
@@ -28,7 +28,7 @@ class ZenModesTest {
             mUser=0
         """.trimIndent()
 
-        val mode = ZenModes(CommandRunner { dump }).modes().single()
+        val mode = ZenModes(0, CommandRunner { dump }).modes().single()
 
         assertFalse(mode.isEnabled)
         assertFalse(mode.isActive)
@@ -43,7 +43,7 @@ class ZenModesTest {
             mUser=0
         """.trimIndent()
 
-        val modes = ZenModes(CommandRunner { dump }).modes().associateBy { it.id }
+        val modes = ZenModes(0, CommandRunner { dump }).modes().associateBy { it.id }
 
         assertEquals("android:drawable/ic_zen_mode_icon_work", modes.getValue("picked").icon)
         assertEquals("android:drawable/ic_zen_mode_type_driving", modes.getValue("typed").icon)
@@ -58,7 +58,7 @@ class ZenModesTest {
             mUser=0
         """.trimIndent()
 
-        val active = ZenModes(CommandRunner { dump }).modes().filter { it.isActive }.associate { it.id to it.activatedAt }
+        val active = ZenModes(0, CommandRunner { dump }).modes().filter { it.isActive }.associate { it.id to it.activatedAt }
         val pages = mapOf("work" to setOf(2), "driving" to setOf(1))
 
         assertEquals(1790847000123L, active.getValue("driving"))
@@ -66,5 +66,21 @@ class ZenModesTest {
         assertEquals("driving", FocusPlan.winner(pages, priority = listOf("work", "driving"), active = active))
         // Unknown times fall back on the order.
         assertEquals("work", FocusPlan.winner(pages, priority = listOf("work", "driving"), active = mapOf("work" to 0L, "driving" to 0L)))
+    }
+
+    @Test
+    fun onlyThisUsersModesAreRead() {
+        val dump = """
+            mConfigs[u=0]=ZenModeConfig[user=0
+            ZenRule[id=mine,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android],
+            mConfigs[u=10]=ZenModeConfig[user=10
+            ZenRule[id=theirs,state=STATE_TRUE,enabled=TRUE,name=Clinic,zenMode=ZEN_MODE_OFF,pkg=android],
+            mUser=0
+        """.trimIndent()
+
+        assertEquals(listOf("mine"), ZenModes(0, CommandRunner { dump }).modes().map { it.id })
+        assertEquals(listOf("theirs"), ZenModes(10, CommandRunner { dump }).modes().map { it.id })
+        // A user with no block of its own is unknown, never another user's Modes or none.
+        assertFalse(ZenModes(1, CommandRunner { dump }).snapshot().isReadable)
     }
 }

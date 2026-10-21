@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import android.os.Process
 
 /**
  * Reports the device's Modes to the launcher.
@@ -21,7 +22,8 @@ import android.net.Uri
  */
 class FocusProvider : ContentProvider() {
 
-    private val modes = ZenModes()
+    // A provider is not singleUser, so this process runs as the caller's user.
+    private val modes = ZenModes(Process.myUid() / PER_USER_RANGE)
 
     override fun onCreate(): Boolean = true
 
@@ -80,6 +82,9 @@ class FocusProvider : ContentProvider() {
 
     private companion object {
         const val LAUNCHER_PACKAGE = "com.google.android.apps.nexuslauncher"
+
+        /** `UserHandle.PER_USER_RANGE`: a uid divided by it is its user. */
+        const val PER_USER_RANGE = 100_000
 
         // The paths the reader asks by, so the two cannot drift apart.
         const val SNAPSHOT = FocusContract.SNAPSHOT_PATH
