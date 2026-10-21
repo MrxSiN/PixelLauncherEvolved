@@ -68,6 +68,8 @@ class FocusHomeTest {
         store.assign("bedtime", setOf(5))
         source.current = listOf(FocusMode("bedtime", "Bedtime", true))
         val focus = focus()
+        // The refresher reads when the launcher comes to the front, before it binds.
+        assertEquals(FocusChange.NONE, focus.change())
 
         assertEquals(listOf(5), focus.screens(listOf(0, 5)))
         assertTrue(focus.addedScreens(listOf(9)).isEmpty())
@@ -116,6 +118,8 @@ class FocusHomeTest {
         store.assign("bedtime", setOf(5))
         source.current = listOf(FocusMode("bedtime", "Bedtime", true))
         val focus = focus()
+        // The refresher reads when the launcher comes to the front, before it binds.
+        assertEquals(FocusChange.NONE, focus.change())
         assertEquals(listOf(5), focus.screens(listOf(0, 5)))
 
         source.current = listOf(FocusMode("bedtime", "Bedtime", false))
@@ -141,15 +145,32 @@ class FocusHomeTest {
         assertEquals(afterLooking, source.reads)
     }
 
-    /** Nothing has been read at the launcher's first bind, so that one reads. */
+    /**
+     * The first bind never waits on a read: with nothing read it shows the ordinary
+     * home screen, Mode pages hidden, and the read that follows corrects it.
+     */
     @Test
-    fun theFirstBindReadsTheModesItself() {
+    fun theFirstBindNeverReadsAndShowsTheOrdinaryHome() {
         store.assign("bedtime", setOf(5))
         source.current = listOf(FocusMode("bedtime", "Bedtime", true))
         val focus = focus()
 
+        assertEquals(listOf(0), focus.screens(listOf(0, 5)))
+        assertEquals(0, source.reads)
+        assertEquals(FocusChange(workspaceChanged = true, modeChanged = true), focus.change())
         assertEquals(listOf(5), focus.screens(listOf(0, 5)))
-        assertEquals(1, source.reads)
+    }
+
+    /** A read before the first bind is kept for it, and asks for no reload of its own. */
+    @Test
+    fun aReadBeforeTheFirstBindIsUsedByItWithoutAReload() {
+        store.assign("bedtime", setOf(5))
+        source.current = listOf(FocusMode("bedtime", "Bedtime", true))
+        val focus = focus()
+
+        assertEquals(FocusChange.NONE, focus.change())
+        assertEquals(listOf(5), focus.screens(listOf(0, 5)))
+        assertEquals(FocusChange.NONE, focus.change())
     }
 
     /** A drag past the last page makes an id no Mode lists yet; it is not a hidden page. */
@@ -182,6 +203,8 @@ class FocusHomeTest {
         store.assign("bedtime", setOf(5))
         source.current = listOf(FocusMode("bedtime", "Bedtime", true))
         val focus = focus()
+        // The refresher reads when the launcher comes to the front, before it binds.
+        assertEquals(FocusChange.NONE, focus.change())
         focus.screens(listOf(0, 5))
 
         focus.adopt(listOf(5, 6))
@@ -331,6 +354,8 @@ class FocusHomeTest {
         store.assign("bedtime", setOf(0, 5))
         source.current = listOf(FocusMode("bedtime", "Bedtime", true))
         val focus = focus()
+        // The refresher reads when the launcher comes to the front, before it binds.
+        assertEquals(FocusChange.NONE, focus.change())
 
         assertEquals(listOf(0, 5), focus.screens(listOf(0, 5)))
     }

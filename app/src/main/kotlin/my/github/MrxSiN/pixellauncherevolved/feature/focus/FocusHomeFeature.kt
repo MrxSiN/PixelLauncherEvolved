@@ -651,8 +651,12 @@ internal class FocusHome(
         // the unfiltered order is seen and settings numbers the pages from it.
         FocusPages.remember(all)
 
-        return apply(plan(all), all)
+        return apply(plan(all), all).also { bound = true }
     }
+
+    /** Whether the launcher has bound a workspace this module planned; until then a read only waits for it. */
+    @Volatile
+    private var bound = false
 
     /** Filters only genuinely new ids from an incremental screen callback. */
     fun addedScreens(added: List<Int>): List<Int> {
@@ -720,9 +724,14 @@ internal class FocusHome(
      *
      * This is the one place the Modes are read, and it is called from a
      * background thread before every reload it asks for. See [activeModes].
+     *
+     * Before the launcher's first bind there is nothing to change: the read is
+     * kept for that bind to plan with. Asking for a reload then cancelled the
+     * launcher's own first load part way and made it load everything again.
      */
     fun change(): FocusChange = runCatching {
         read()
+        if (!bound) return FocusChange.NONE
         val next = plan(FocusPages.order)
         val modeChanged = next.modeId != shownFor
         FocusChange(
@@ -760,10 +769,12 @@ internal class FocusHome(
     private fun winner(assignments: Map<String, Set<Int>>): String? = FocusPlan.winner(
         assignments = assignments,
         priority = store.priority(),
-        // Read here only when nothing has been read yet, which is the launcher's
-        // first bind. Showing the ordinary home screen and correcting it a
-        // moment later would be a worse first frame than one slow one.
-        active = activeModes ?: read(),
+        // Never read here: this runs while the launcher binds its workspace, and a
+        // read can take a cold start of this module's app or, at worst, a root
+        // shell's timeout. Until a read has answered, the home screen is the
+        // ordinary one, Mode pages hidden, and the refresher's read corrects it
+        // with one reload only when a Mode with pages turns out to be on.
+        active = activeModes.orEmpty(),
     )
 
     /**
@@ -772,9 +783,9 @@ internal class FocusHome(
      * A read that succeeds also gives back the pages of Modes that no longer
      * exist, so the planning that follows never hides a page for one.
      *
-     * Reads run on two threads: the first bind's, and the refresher's. Each
-     * takes its number before it asks, and an answer is kept only when no read
-     * asked later has been kept already; a slow first read finishing after a
+     * The refresher reads one at a time, but nothing stops another caller. Each
+     * read takes its number before it asks, and an answer is kept only when no
+     * read asked later has been kept already; a slow read finishing after a
      * newer one is dropped, and gives back no pages, rather than putting an
      * older Mode back on the home screen.
      */

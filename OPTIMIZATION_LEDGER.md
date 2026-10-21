@@ -535,3 +535,25 @@ entries 1–6 together as one candidate, not one change at a time.
   `TaskCardButtonDecorator` (every TaskView ever made was checked per frame), `GridPicker`'s panel
   (Wallpaper & style; one more listener per opening).
 - **Result (device):** two recreates with Recents opened between them: Activities 1.
+
+## 33. First workspace bind never waits on a Modes read — ACCEPTED (P01, latency)
+
+- **Hypothesis:** the first bind read the Modes itself when nothing had been read yet, so a slow
+  provider (the module app starting, or root up to its 15 s timeout) held the workspace back.
+  Separately, a window-focus read that finished before the first bind asked for a reload, which
+  could cancel the launcher's first load and run it again.
+- **Path:** `feature/focus/FocusHomeFeature.kt` (`FocusHome.winner`, `change`, `screens`).
+- **Mechanism:** the bind plans with the last read or, with none yet, the ordinary home (Mode pages
+  hidden). A read finishing before the first bind is kept for it and asks for no reload; one
+  finishing after reloads only when the plan differs, i.e. a Mode with pages is on.
+- **Correctness:** same home once a read has answered. Until then the home is neutral: no Mode's
+  pages shown, nothing moved. `FocusHomeTest`: first bind never reads and shows the ordinary home;
+  a read before the first bind is used by it with no reload; existing Mode tests read first.
+- **Measurement:** Pixel 8 Pro, CP3A.261005.005, release builds `54eb5c2` vs candidate, interleaved,
+  cold launcher start with the module app also stopped. Times from launcher process creation.
+  - Normal provider, n = 3 each: displayed 681/777/824 vs 528/861/738 ms; first screen bound
+    928/1109/1306 vs 803/1338/1195 ms. No difference beyond noise; module reloads 0 in both.
+  - Module app frozen for 6 s during the start (stand-in for a slow root read), n = 2 each:
+    displayed 353/432 vs 354/376 ms; first screen bound **7091/7213 vs 625/677 ms**; module-forced
+    reloads 1/1 vs 0/0.
+- **Allocation/memory:** none measured; the change removes a call, adds a boolean.
