@@ -126,16 +126,27 @@ jobs:
           if [[ "${{ steps.signing.outputs.enabled }}" == "true" ]]; then
             APKSIGNER="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
             test -n "$APKSIGNER"
-            "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
+            CERTS="$("$APKSIGNER" verify --verbose --print-certs "$APK_PATH")"
+            echo "$CERTS"
+            if grep -q "CN=Android Debug" <<< "$CERTS"; then
+              echo "The release APK is signed with the debug key, not the release key." >&2
+              exit 1
+            fi
           else
             echo "Unsigned pull-request APK built successfully."
           fi
+
+          # Published beside the APK, so a download can be checked against what CI built.
+          (cd "$(dirname "$APK_PATH")" && sha256sum "$(basename "$APK_PATH")" > "$(basename "$APK_PATH").sha256")
+          cat "$APK_PATH.sha256"
 
       - name: Upload APK to workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: PixelLauncherEvolved-v${{ steps.metadata.outputs.version }}-${{ github.run_number }}
-          path: ${{ steps.apk.outputs.path }}
+          path: |
+            ${{ steps.apk.outputs.path }}
+            ${{ steps.apk.outputs.path }}.sha256
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
@@ -147,6 +158,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Pixel Launcher Evolved v${{ steps.metadata.outputs.version }}
           body_path: RELEASE_NOTES.md
-          files: ${{ steps.apk.outputs.path }}
+          files: |
+            ${{ steps.apk.outputs.path }}
+            ${{ steps.apk.outputs.path }}.sha256
           fail_on_unmatched_files: true
           token: ${{ github.token }}
