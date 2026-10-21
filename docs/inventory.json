@@ -157,6 +157,24 @@
    "default": "false"
   },
   {
+   "name": "LABELS_HIDE_HOME",
+   "type": "Bool",
+   "key": "labels_hide_home",
+   "default": "false"
+  },
+  {
+   "name": "LABELS_HIDE_FOLDERS",
+   "type": "Bool",
+   "key": "labels_hide_folders",
+   "default": "false"
+  },
+  {
+   "name": "LABELS_HIDE_DRAWER",
+   "type": "Bool",
+   "key": "labels_hide_drawer",
+   "default": "false"
+  },
+  {
    "name": "APP_DRAWER_COLUMNS",
    "type": "Int",
    "key": "app_drawer_columns",

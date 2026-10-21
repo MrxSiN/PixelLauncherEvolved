@@ -416,6 +416,9 @@ N	hidden_apps
 N	hideDock
 N	hideDrawer
 N	hideHome
+N	hideLabelsInDrawer
+N	hideLabelsInFolders
+N	hideLabelsOnHome
 N	hidePlayStore
 N	hideScreenshot
 N	hideSearchInApps
@@ -510,6 +513,9 @@ N	key
 N	keys
 N	label
 N	labels
+N	labels_hide_drawer
+N	labels_hide_folders
+N	labels_hide_home
 N	latest
 N	launchWithAnimation
 N	launcher

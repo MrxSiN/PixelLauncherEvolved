@@ -120,6 +120,12 @@
     <string name="feature_focus_save">Save</string>
     <string name="feature_focus_with_ordinary">Also show the ordinary pages</string>
     <string name="feature_focus_hidden_apps">Apps hidden in this Mode</string>
+    <string name="labels_home_title">Labels on Home screen</string>
+    <string name="labels_home_summary">Names under app icons on the Home screen. Off leaves them out; TalkBack still says each app\'s name.</string>
+    <string name="labels_folders_title">Labels in folders</string>
+    <string name="labels_folders_summary">Names under app icons inside Home screen folders.</string>
+    <string name="labels_drawer_title">Labels in app drawer</string>
+    <string name="labels_drawer_summary">Names under app icons in All apps and its suggestions row.</string>
     <string name="feature_double_tap_action_title">Double tap does</string>
     <string name="action_refresh_icons">Refresh icons</string>
     <string name="action_refresh_icons_summary">Draw the icon pack\'s icons again, after the pack changed without an update</string>

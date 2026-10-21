@@ -113,6 +113,11 @@ object Settings {
      */
     val APP_LABELS_HOME_ONLY = BoolSetting("home_app_labels_home_only", default = false)
 
+    /** Labels left off every app on one surface; an app's name stays its accessible description. */
+    val LABELS_HIDE_HOME = BoolSetting("labels_hide_home", default = false)
+    val LABELS_HIDE_FOLDERS = BoolSetting("labels_hide_folders", default = false)
+    val LABELS_HIDE_DRAWER = BoolSetting("labels_hide_drawer", default = false)
+
     /** Columns in All apps; 0 is the launcher's own. */
     val APP_DRAWER_COLUMNS = IntSetting("app_drawer_columns", default = 0, range = 0..10)
 

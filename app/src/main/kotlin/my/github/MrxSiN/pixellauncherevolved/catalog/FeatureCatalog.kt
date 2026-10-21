@@ -66,6 +66,24 @@ object FeatureCatalog {
         titleRes = R.string.app_labels_home_only_title,
         summaryRes = R.string.app_labels_home_only_summary,
     )
+    val LABELS_HOME = CatalogEntry(
+        setting = Settings.LABELS_HIDE_HOME,
+        titleRes = R.string.labels_home_title,
+        summaryRes = R.string.labels_home_summary,
+        isInverted = true,
+    )
+    val LABELS_FOLDERS = CatalogEntry(
+        setting = Settings.LABELS_HIDE_FOLDERS,
+        titleRes = R.string.labels_folders_title,
+        summaryRes = R.string.labels_folders_summary,
+        isInverted = true,
+    )
+    val LABELS_DRAWER = CatalogEntry(
+        setting = Settings.LABELS_HIDE_DRAWER,
+        titleRes = R.string.labels_drawer_title,
+        summaryRes = R.string.labels_drawer_summary,
+        isInverted = true,
+    )
     val WEB_SEARCH = CatalogEntry(
         setting = Settings.APP_DRAWER_SEARCH_HIDE_WEB,
         titleRes = R.string.feature_app_drawer_search_web_title,
@@ -127,6 +145,9 @@ object FeatureCatalog {
         SHOW_DOCK,
         DOCK_MOVE_TO_HOME,
         APP_LABELS_HOME_ONLY,
+        LABELS_HOME,
+        LABELS_FOLDERS,
+        LABELS_DRAWER,
         WEB_SEARCH,
         PLAY_STORE,
         SEARCH_IN_APPS,

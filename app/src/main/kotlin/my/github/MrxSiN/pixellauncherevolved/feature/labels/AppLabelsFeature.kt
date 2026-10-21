@@ -59,7 +59,7 @@ class AppLabelsFeature : LauncherFeature {
         AppLabelPopup.install(context)
         val store = AppLabelStore(LauncherSettings.preferences(context.appContext))
         val labels = store.publish()
-        if (labels.isEmpty) {
+        if (labels.isEmpty && AppLabels.hiddenSurfaces() == 0) {
             AppLabelStore.onFirstLabels = { hookOnce(context) }
             context.logger.info("App labels: none chosen; nothing hooked")
         } else {
@@ -105,7 +105,18 @@ class AppLabelsFeature : LauncherFeature {
         // answer is handed to applyLabel through the thread rather than the view.
         context.xposed.hook(applyIconAndLabel).intercept { chain ->
             val labels = AppLabels.current()
-            if (labels.isEmpty) return@intercept chain.proceed()
+            if (labels.isEmpty) {
+                // Only a surface-wide hide applies; applyLabel finds this view and no entry.
+                if (AppLabels.hiddenSurfaces() == 0) return@intercept chain.proceed()
+                val slot = binding.get()!!
+                slot.at = -1
+                slot.view = chain.thisObject
+                return@intercept try {
+                    chain.proceed()
+                } finally {
+                    slot.view = null
+                }
+            }
 
             val slot = binding.get()!!
             slot.at = apps.find(labels, chain.getArg(0))
@@ -123,7 +134,17 @@ class AppLabelsFeature : LauncherFeature {
         context.xposed.hook(applyLabel).intercept { chain ->
             val slot = binding.get()!!
             val at = slot.at
-            if (at < 0 || slot.view !== chain.thisObject) return@intercept chain.proceed()
+            if (at < 0 || slot.view !== chain.thisObject) {
+                // No entry of its own: only a label hidden on this whole surface. The
+                // description argument is passed on untouched, so TalkBack keeps the name.
+                val everywhere = AppLabels.hiddenSurfaces()
+                if (everywhere == 0 || chain.getArg(TITLE) == null ||
+                    everywhere and wholeSurfaceOf(display.getInt(chain.thisObject)) == 0
+                ) {
+                    return@intercept chain.proceed()
+                }
+                return@intercept chain.proceed(arrayOf("", chain.getArg(DESCRIPTION), chain.getArg(INACTIVE_ARCHIVE), chain.getArg(DISABLED)))
+            }
             slot.at = -1
 
             val labels = slot.labels
@@ -131,7 +152,8 @@ class AppLabelsFeature : LauncherFeature {
             val description = chain.getArg(DESCRIPTION) as CharSequence?
             val surface = surfaceOf(display.getInt(chain.thisObject))
             val name = labels.name(at)?.takeIf { surface == AppLabels.HIDE_HOME || !AppLabels.homeOnly() }
-            val hidden = labels.flags(at) and surface != 0
+            val hidden = labels.flags(at) and surface != 0 ||
+                AppLabels.hiddenSurfaces() and wholeSurfaceOf(display.getInt(chain.thisObject)) != 0
 
             val shown: CharSequence? = when {
                 title == null -> null
@@ -300,6 +322,14 @@ class AppLabelsFeature : LauncherFeature {
         const val DISPLAY_ALL_APPS = 1
         const val DISPLAY_FOLDER = 2
         const val DISPLAY_PREDICTION_ROW = 8
+
+        /** Which surface-wide hide ([AppLabels.hiddenSurfaces]) applies to an icon drawn as [display]. */
+        fun wholeSurfaceOf(display: Int): Int = when (display) {
+            DISPLAY_WORKSPACE -> AppLabels.HIDE_HOME
+            DISPLAY_FOLDER -> AppLabels.HIDE_FOLDER
+            DISPLAY_ALL_APPS, DISPLAY_PREDICTION_ROW -> AppLabels.HIDE_DRAWER
+            else -> 0
+        }
 
         /** Which of an entry's hide flags applies to an icon drawn as [display]; search, taskbar and the rest have none. */
         fun surfaceOf(display: Int): Int = when (display) {

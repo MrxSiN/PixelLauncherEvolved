@@ -13,9 +13,9 @@ import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 /**
  * App labels: the per-app editor, and the way back to every app's own label.
  *
- * There is no global label switch here. Pixel Launcher shows Home screen and
- * app drawer labels on a phone and offers no setting for them, so an app's
- * label follows Pixel Launcher unless it is hidden for that app.
+ * Pixel Launcher shows Home screen, folder and app drawer labels on a phone and
+ * offers no setting for them; the three switches here leave them off a whole
+ * surface, and an app's own entry can still hide its label where they show.
  */
 internal object AppLabelRows : SettingsRow {
 
@@ -60,9 +60,26 @@ internal object AppLabelRows : SettingsRow {
                 IconReloader(scope.context, scope.environment.logger).reload("app labels", SystemClock.elapsedRealtime(), null)
             },
         )
+        // Every app's label on one surface; an app's own entry can still hide it where these show it.
+        val surfaces = listOf(FeatureCatalog.LABELS_HOME, FeatureCatalog.LABELS_FOLDERS, FeatureCatalog.LABELS_DRAWER).map { entry ->
+            scope.api.createSwitch(
+                context = scope.context,
+                key = SettingsKeys.row(entry.setting.key),
+                title = scope.string(entry.titleRes),
+                summary = scope.string(entry.summaryRes),
+                checked = scope.isOn(entry),
+                onChange = { on ->
+                    scope.switch(entry, on)
+                    store.publish()
+                    IconReloader(scope.context, scope.environment.logger).reload("labels", SystemClock.elapsedRealtime(), null)
+                },
+            )
+        }
+        surfaces.forEach { scope.api.add(group, it) }
         scope.api.add(group, edit)
         scope.api.add(group, homeOnlyRow)
         scope.api.add(group, reset)
+        surfaces.forEach { scope.requires(CompatibilityFeature.APP_LABELS, it) }
         refresh()
         scope.requires(CompatibilityFeature.APP_LABELS, edit)
         scope.requires(CompatibilityFeature.APP_LABELS, homeOnlyRow)

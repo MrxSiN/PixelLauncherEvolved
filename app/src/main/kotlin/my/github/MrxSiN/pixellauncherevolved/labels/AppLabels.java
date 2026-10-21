@@ -27,6 +27,11 @@ public final class AppLabels {
 
     private static volatile AppLabels current = NONE;
     private static volatile boolean homeOnly;
+    /** Surfaces ({@link #HIDE_HOME}, {@link #HIDE_DRAWER}, {@link #HIDE_FOLDER}) where every label is left off. */
+    private static volatile int hiddenSurfaces;
+
+    /** For {@link #hiddenSurfaces()} only: Home folders, apart from the Home screen itself. */
+    public static final int HIDE_FOLDER = 4;
 
     private final long[] keys;
     /** The chosen name, or null where only a label's visibility was chosen. */
@@ -66,6 +71,14 @@ public final class AppLabels {
      * Whether a chosen name shows on the Home screen, the dock and Home folders
      * only, leaving the app drawer, its order and search to the app's own name.
      */
+    public static int hiddenSurfaces() {
+        return hiddenSurfaces;
+    }
+
+    public static void setHiddenSurfaces(int value) {
+        hiddenSurfaces = value;
+    }
+
     public static boolean homeOnly() {
         return homeOnly;
     }

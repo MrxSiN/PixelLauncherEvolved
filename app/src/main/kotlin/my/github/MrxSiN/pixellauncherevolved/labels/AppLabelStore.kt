@@ -6,6 +6,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
+import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.icons.ComponentHash
 
@@ -210,6 +211,13 @@ class AppLabelStore(private val preferences: SharedPreferences) {
      */
     fun publish(): AppLabels {
         AppLabels.setHomeOnly(runCatching { preferences.getBoolean(Settings.APP_LABELS_HOME_ONLY.key, false) }.getOrDefault(false))
+        fun hides(setting: BoolSetting, surface: Int) =
+            if (runCatching { preferences.getBoolean(setting.key, false) }.getOrDefault(false)) surface else 0
+        val surfaces = hides(Settings.LABELS_HIDE_HOME, AppLabels.HIDE_HOME) or
+            hides(Settings.LABELS_HIDE_DRAWER, AppLabels.HIDE_DRAWER) or
+            hides(Settings.LABELS_HIDE_FOLDERS, AppLabels.HIDE_FOLDER)
+        AppLabels.setHiddenSurfaces(surfaces)
+        if (surfaces != 0) onFirstLabels?.invoke()
         val text = raw()
         val last = compiled
         if (last != null && (text === last.first || text == last.first)) return last.second
