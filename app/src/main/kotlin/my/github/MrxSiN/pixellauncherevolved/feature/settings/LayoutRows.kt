@@ -3,6 +3,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.settings
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.icons.IconPackController
 
 /**
  * The layout modes, as one radio button each.
@@ -44,6 +45,25 @@ internal object LayoutModeRows : SettingsRow {
  * Asked first: the home screen, the taskbar and the gesture navigation all go
  * away for a moment, which is not something to do on a stray tap.
  */
+/** Draws the icon pack's icons again, without restarting the launcher. */
+internal object RefreshIconsRow : SettingsRow {
+
+    override fun addTo(group: Any, scope: RowScope) {
+        lateinit var row: Any
+        row = scope.link(SettingsKeys.row("refresh_icons"), R.string.action_refresh_icons, scope.string(R.string.action_refresh_icons_summary)) {
+            val controller = IconPackController.current()
+            if (controller == null) {
+                scope.api.setSummary(row, scope.string(R.string.action_refresh_icons_unavailable))
+            } else {
+                controller.refresh()
+                scope.api.setSummary(row, scope.string(R.string.action_refresh_icons_done))
+            }
+        }
+        scope.api.add(group, row)
+        scope.requires(CompatibilityFeature.ICON_PACK, row)
+    }
+}
+
 internal object RestartRow : SettingsRow {
 
     override fun addTo(group: Any, scope: RowScope) {

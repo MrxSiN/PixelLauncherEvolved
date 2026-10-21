@@ -142,7 +142,7 @@ internal object SettingsPages {
         summaryRes = R.string.settings_page_advanced_summary,
         groups = listOf(
             SettingsGroup(R.string.settings_group_backup, listOf(BackupRows)),
-            SettingsGroup(R.string.settings_group_launcher, listOf(RestartRow)),
+            SettingsGroup(R.string.settings_group_launcher, listOf(RefreshIconsRow, RestartRow)),
             SettingsGroup(R.string.settings_group_diagnostics, listOf(PageLinkRow(DIAGNOSTICS))),
         ),
     )

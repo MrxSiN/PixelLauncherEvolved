@@ -735,6 +735,7 @@ N	recent_task_option_split_screen
 N	recents_clear_all
 N	recreatePreviewRenderer
 N	recycle
+N	refresh_icons
 N	removeExtraEmptyScreenDelayed
 N	removeOnChangeListener
 N	reorganize_pages

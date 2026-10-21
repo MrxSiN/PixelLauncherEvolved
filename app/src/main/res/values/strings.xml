@@ -121,6 +121,10 @@
     <string name="feature_focus_with_ordinary">Also show the ordinary pages</string>
     <string name="feature_focus_hidden_apps">Apps hidden in this Mode</string>
     <string name="feature_double_tap_action_title">Double tap does</string>
+    <string name="action_refresh_icons">Refresh icons</string>
+    <string name="action_refresh_icons_summary">Draw the icon pack\'s icons again, after the pack changed without an update</string>
+    <string name="action_refresh_icons_done">Icons are being drawn again</string>
+    <string name="action_refresh_icons_unavailable">Icons are not handled by this module in this launcher</string>
     <string name="feature_double_tap_action_sleep">Turn the screen off</string>
     <string name="feature_double_tap_action_modes">Open Modes</string>
     <string name="feature_focus_icon_pack">Icons in this Mode</string>

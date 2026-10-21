@@ -107,6 +107,16 @@ internal class IconPackController private constructor(
         return apply(if (pack == null) "source: system" else "pack chosen")
     }
 
+    /**
+     * Draws every icon again on request: the pack in use is indexed afresh and the
+     * generation raised, so the launcher regenerates exactly the icons this module
+     * supplies and keeps the rest, badges and themed or calendar icons included.
+     */
+    fun refresh(): Future<Unit> {
+        factory.wantedPack()?.let(indexer::forget)
+        return apply("icons refreshed")
+    }
+
     /** Compiles, on the worker, the index of every pack in [packs] that has none on disk yet. */
     fun prewarm(packs: Collection<String>) = worker.execute {
         for (pack in packs) {
