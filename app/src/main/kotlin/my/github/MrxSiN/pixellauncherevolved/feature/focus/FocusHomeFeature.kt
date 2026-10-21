@@ -609,8 +609,16 @@ internal class FocusHome(
     private val logger: Logger,
 ) {
 
+    /** Screens whose items are shown. */
     @Volatile
     private var visible: Set<Int> = emptySet()
+
+    /**
+     * Screens laid out as pages: [visible], or, when that is empty, the first
+     * screen with nothing on it, so home always has a page (see [apply]).
+     */
+    @Volatile
+    private var pages: Set<Int> = emptySet()
 
     @Volatile
     private var filtering = false
@@ -651,13 +659,13 @@ internal class FocusHome(
 
         val all = FocusPages.include(added)
         apply(plan(all), all)
-        return added.filter { it < 0 || it in visible }
+        return added.filter { it < 0 || it in pages }
     }
 
     fun isFiltering(): Boolean = filtering
 
     /** Whether [screen] is an existing page the home screen now hides; a page made just now is not. */
-    fun hides(screen: Int): Boolean = filtering && screen !in visible && screen in FocusPages.order
+    fun hides(screen: Int): Boolean = filtering && screen !in pages && screen in FocusPages.order
 
     /** Takes pages the launcher removed off the page list and out of every Mode. */
     fun forget(removed: List<Int>) {
@@ -735,6 +743,11 @@ internal class FocusHome(
 
     private fun apply(state: FocusState, all: List<Int>): List<Int> {
         visible = state.screens.toSet()
+        // Every page set aside for a Mode, and none of them on: an old setting, an
+        // imported one, or Modes that could not be read. The first page stays, as
+        // a page with nothing of any Mode's on it, so home can still be swiped up
+        // to the apps and nothing is moved. Settings no longer lets this be chosen.
+        pages = if (visible.isEmpty()) setOfNotNull(all.firstOrNull()) else visible
         filtering = state.screens.size != all.size
         shownFor = state.modeId
         shownScreens = state.screens

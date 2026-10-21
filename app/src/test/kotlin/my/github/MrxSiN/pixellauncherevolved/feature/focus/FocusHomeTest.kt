@@ -277,6 +277,41 @@ class FocusHomeTest {
         assertEquals(setOf(2), store.assignments().getValue("work"))
     }
 
+    /** Every page set aside and no Mode on: the first page stays, with nothing on it. */
+    @Test
+    fun everyPageAssignedStillLeavesAnEmptyFirstPage() {
+        store.assign("bedtime", setOf(0, 5))
+        val focus = focus()
+
+        assertTrue(focus.screens(listOf(0, 5)).isEmpty())
+        assertFalse(focus.hides(0))
+        assertTrue(focus.hides(5))
+        assertEquals(listOf(0), focus.addedScreens(listOf(0)))
+    }
+
+    /** The same when the Modes cannot be read at all, and nothing is given back. */
+    @Test
+    fun unreadableModesWithEveryPageAssignedStillLeaveAPage() {
+        store.assign("bedtime", setOf(0, 5))
+        source.readable = false
+        val focus = focus()
+        focus.change()
+
+        assertTrue(focus.screens(listOf(0, 5)).isEmpty())
+        assertFalse(focus.hides(0))
+        assertEquals(setOf(0, 5), store.assignments().getValue("bedtime"))
+    }
+
+    /** With a Mode on, its pages are shown and the fallback stands aside. */
+    @Test
+    fun anActiveModeWithEveryPageAssignedShowsItsPages() {
+        store.assign("bedtime", setOf(0, 5))
+        source.current = listOf(FocusMode("bedtime", "Bedtime", true))
+        val focus = focus()
+
+        assertEquals(listOf(0, 5), focus.screens(listOf(0, 5)))
+    }
+
     private fun focus() = FocusHome(
         isEnabled = { enabled },
         store = store,

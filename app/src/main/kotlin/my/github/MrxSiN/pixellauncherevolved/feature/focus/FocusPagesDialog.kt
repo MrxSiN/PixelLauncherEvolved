@@ -148,7 +148,16 @@ internal object FocusPagesDialog {
             .content(gallery)
             .dismiss(context.getString(android.R.string.cancel))
             .confirm(resources.getString(R.string.feature_focus_save)) {
-                apply(store, mode, grid.selectedScreens())
+                val chosen = grid.selectedScreens()
+                if (leavesOrdinaryPage(FocusPages.order, store.assignments(), mode.id, chosen)) {
+                    apply(store, mode, chosen)
+                } else {
+                    ExpressiveDialog(context)
+                        .title(mode.name)
+                        .message(resources.getString(R.string.feature_focus_keep_one_page))
+                        .dismiss(context.getString(android.R.string.ok))
+                        .show()
+                }
             }
             .show()
     }
@@ -186,4 +195,18 @@ internal fun selectablePages(
         .flatten()
         .toSet()
     return pages.filterNot(reserved::contains)
+}
+
+/**
+ * Whether giving [chosen] to [modeId] still leaves a page that is no Mode's,
+ * for the home screen to show while no Mode is on.
+ */
+internal fun leavesOrdinaryPage(
+    pages: List<Int>,
+    assignments: Map<String, Set<Int>>,
+    modeId: String,
+    chosen: Set<Int>,
+): Boolean {
+    val reserved = assignments.filterKeys { it != modeId }.values.flatten().toSet() + chosen
+    return pages.any { it !in reserved }
 }
