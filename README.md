@@ -69,8 +69,8 @@ running launcher on the next frame.
 | Dock | **Search bar** | A page of its own. **Search bar opens app search** makes the home search bar open the app drawer with its search box focused, instead of the Google app. The bar's own buttons keep their actions. | — |
 | Pages & layout | **Organize home screens** | Reorder and manage your Home screen pages. Every page on one screen, including pages a Mode hides, marked with that Mode. Touch and hold a page, then drag it into place; the order is saved when you leave. The first page keeps At a Glance, so it stays first. | — |
 | Pages & layout | **Modes home screens** | Gives home screen pages to one of the device's Modes — Bedtime, Driving, Sleeping, whatever you have. While that Mode is on, only its pages show; when it ends, the ordinary pages come back. | ✅ |
-| Pages & layout | **Modes pages** | Choose which pages each Mode shows, from previews of each page drawn by Pixel Launcher itself — your real icons, labels, folders and widgets, drawn again each time you open it — over the wallpaper as your home screen shows behind that page, blurred as home blurs it. The wallpaper comes through Wallpaper &amp; style, which must be in this module's scope; without it, or with a live wallpaper, pages show a plain backdrop. | ✅ |
-| Gestures | **Double tap to sleep** | Two taps on an empty spot turn the screen off, closing the screen around the spot you tapped. | ✅ |
+| Pages & layout | **Modes pages** | Choose which pages each Mode shows, from previews of each page drawn by Pixel Launcher itself — your real icons, labels, folders and widgets, drawn again each time you open it — over the wallpaper as your home screen shows behind that page, blurred as home blurs it. The wallpaper comes through Wallpaper &amp; style, which must be in this module's scope; without it, or with a live wallpaper, pages show a plain backdrop. Each Mode can also **show the ordinary pages** beside its own, **hide apps** from the drawer and its search, switch off **search groups**, use its own **icon pack** (or the system's) and its own **wallpaper blur**, all only while it is on. When several Modes that set the same thing are on, the one that came on last wins, as with pages. | ✅ |
+| Gestures | **Double tap to sleep** | Two taps on an empty spot turn the screen off, closing the screen around the spot you tapped. **Double tap does** can open Android's Modes list instead (no root needed for that one). | ✅ |
 | Gestures | **Double tap status bar to sleep** | The same, from two taps on the status bar. Watched in SystemUI, so it needs no root. | ✅ |
 
 <table>
@@ -200,10 +200,11 @@ so a new choice applies after **Restart Pixel Launcher**.
 
 | Group | Row | What it does |
 |---|---|---|
+|  | **Refresh icons** | Draws the icon pack's icons again without a restart, for a pack that changed without an update. |
 |  | **Restart Pixel Launcher** | Asks first, then ends the launcher process; Android brings the home app straight back. |
 |  | **Compatibility & diagnostics** | What is running, and what of the launcher each tweak found. See [Compatibility](#compatibility). |
 | Backup & restore | **Export settings** | Saves every tweak to a JSON file through the system file picker — to your phone, Drive, anywhere. |
-| Backup & restore | **Import settings** | Replaces every tweak with the ones in a file, after asking, then offers the restart a layout mode needs. |
+| Backup & restore | **Import settings** | Replaces every tweak with the ones in a file, after showing what the file holds (hidden apps and how many are not installed here, icon source, labels), then offers the restart a layout mode needs. |
 | Backup & restore | **Reset all tweaks** | Puts every tweak back to its default, after asking. |
 
 A backup is a portable, readable configuration:
@@ -272,8 +273,8 @@ does not assume they stayed put.
   ```
 
 - **Compatibility & diagnostics** shows the module and framework versions, Android, build, the
-  launcher's `versionCode`, the libxposed API, root, each feature's status, hook counts and every
-  contract — with **Copy compatibility report** for a bug report.
+  launcher's `versionCode`, the libxposed API, root, each feature's status (unavailable on this
+  launcher, failed to start, off, or running), hook counts and every contract — with **Copy compatibility report** for a bug report.
 - **Safe Mode.** Every uncaught launcher crash is written down as it happens. Three within 60
   seconds switch the experimental layout mode off before any tweak installs on the next start, and
   the home screen asks whether to restore it or keep it disabled.
