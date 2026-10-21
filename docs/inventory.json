@@ -519,7 +519,7 @@
    "threads": 0,
    "root": false,
    "binder": [],
-   "preferences": true
+   "preferences": false
   },
   "feature/apps/HiddenAppsStore.kt": {
    "host_classes": [],
@@ -553,6 +553,15 @@
     "performClick"
    ],
    "hooks": 4,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/apps/ModeHiddenApps.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
    "threads": 0,
    "root": false,
    "binder": [],
@@ -717,7 +726,7 @@
    "threads": 2,
    "root": false,
    "binder": [],
-   "preferences": false
+   "preferences": true
   },
   "feature/focus/FocusRefresh.kt": {
    "host_classes": [],
@@ -1405,7 +1414,7 @@
    "threads": 0,
    "root": false,
    "binder": [],
-   "preferences": true
+   "preferences": false
   },
   "feature/search/HomeSearchBarFeature.kt": {
    "host_classes": [

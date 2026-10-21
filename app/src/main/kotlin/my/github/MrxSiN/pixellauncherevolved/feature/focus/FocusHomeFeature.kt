@@ -28,6 +28,7 @@ import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
 import my.github.MrxSiN.pixellauncherevolved.focus.forgetOrphanPages
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.ModeHiddenApps
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 
 /**
@@ -97,6 +98,8 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
                 logger = context.logger,
             ),
             logger = context.logger,
+            // Per-Mode hidden apps follow the same reads as the pages.
+            onActive = { ModeHiddenApps.update(LauncherSettings.preferences(context.appContext), it) },
         )
         val previews = FocusPreviewRecorder(itemInfo, context.appContext, context.logger)
         FocusPageRenderer.install(context)
@@ -622,6 +625,7 @@ internal class FocusHome(
     private val store: FocusStore,
     private val source: FocusSource,
     private val logger: Logger,
+    private val onActive: (Map<String, Long>) -> Unit = {},
 ) {
 
     /** Screens whose items are shown. */
@@ -809,7 +813,8 @@ internal class FocusHome(
             if (ticket < accepted) return activeModes ?: emptyMap()
             accepted = ticket
             store.forgetModesMissingFrom(snapshot)
-            return snapshot.modes.filter { it.isActive }.associate { it.id to it.activatedAt }.also { activeModes = it }
+            return snapshot.modes.filter { it.isActive }.associate { it.id to it.activatedAt }
+                .also { activeModes = it; onActive(it) }
         }
     }
 

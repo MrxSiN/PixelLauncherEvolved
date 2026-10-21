@@ -25,10 +25,15 @@ object HideAppsSelection {
 
     val count: Int get() = chosen.size
 
-    /** Starts from what is already hidden, so the ticks open where they left off. */
-    fun begin(hidden: Set<String>) {
+    /** Where the answer is written: the everywhere list, or one Mode's. */
+    var target: HiddenAppsStore? = null
+        private set
+
+    /** Starts from what [store] already hides, so the ticks open where they left off. */
+    fun begin(store: HiddenAppsStore) {
         chosen.clear()
-        chosen.addAll(hidden)
+        chosen.addAll(store.hidden())
+        target = store
         selecting = true
     }
 

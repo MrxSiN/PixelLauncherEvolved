@@ -3,15 +3,19 @@ package my.github.MrxSiN.pixellauncherevolved.feature.focus
 import android.app.Activity
 import android.app.Dialog
 import android.content.Context
+import android.content.Intent
 import android.content.res.Resources
 import android.widget.LinearLayout
 import android.widget.Switch
+import android.widget.TextView
 
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
 import my.github.MrxSiN.pixellauncherevolved.R
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.HideAppsSelection
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRole
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveType
@@ -23,6 +27,7 @@ import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusStore
 import my.github.MrxSiN.pixellauncherevolved.focus.Orphan
 import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
+import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 
 /**
  * Asks which pages belong to which Mode, from the launcher's Home settings.
@@ -168,13 +173,16 @@ internal object FocusPagesDialog {
             val inset = (24f * context.resources.displayMetrics.density).roundToInt()
             setPadding(inset, 0, inset, 0)
         }
+        lateinit var dialog: Dialog
+        val hiddenApps = hiddenAppsRow(context, resources, mode) { dialog.dismiss() }
         val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             addView(withOrdinary)
+            addView(hiddenApps)
             addView(gallery)
         }
 
-        ExpressiveDialog(context)
+        dialog = ExpressiveDialog(context)
             .icon(FocusModeIcons.load(context, mode.icon))
             .title(mode.name)
             .message(resources.getString(R.string.feature_focus_choose_pages_summary))
@@ -232,6 +240,37 @@ internal object FocusPagesDialog {
             .confirm(resources.getString(R.string.feature_focus_orphan_forget)) { store.keepOrphan(id, orphan.copy(screens = emptySet())) }
             .dismiss(context.getString(android.R.string.cancel))
             .show()
+    }
+
+    /**
+     * Opens the drawer to tick the apps [mode] hides on top of the everywhere
+     * list, the way Hidden apps does: settings steps aside and the launcher
+     * finishes the choosing ([HideAppsSelection]).
+     */
+    private fun hiddenAppsRow(context: Context, resources: Resources, mode: FocusMode, close: () -> Unit): TextView {
+        val store = SharedPreferencesHiddenAppsStore.forMode(LauncherSettings.preferences(context), mode.id)
+        val count = store.hidden().size
+        val density = context.resources.displayMetrics.density
+        return TextView(context).apply {
+            text = resources.getString(R.string.feature_focus_hidden_apps) + "\n" +
+                if (count == 0) resources.getString(R.string.feature_hidden_apps_summary_none)
+                else resources.getQuantityString(R.plurals.feature_hidden_apps_summary, count, count)
+            ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
+            minHeight = (48f * density).roundToInt()
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            val inset = (24f * density).roundToInt()
+            setPadding(inset, 0, inset, 0)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                close()
+                HideAppsSelection.begin(store)
+                context.startActivity(
+                    Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+                (context as? Activity)?.finish()
+            }
+        }
     }
 
     /** Gives [screens] to [mode] and takes them off every other Mode. */

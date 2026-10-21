@@ -3,7 +3,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.search
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsStore
-import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
+import my.github.MrxSiN.pixellauncherevolved.feature.apps.EffectiveHiddenApps
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
@@ -57,7 +57,7 @@ class AppDrawerSearchFeature : LauncherFeature {
         }
 
         val items = SearchResultItems(targets)
-        val apps = SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(context.appContext))
+        val apps = EffectiveHiddenApps(LauncherSettings.preferences(context.appContext))
 
         context.xposed.hook(show).intercept { chain ->
             val results = chain.getArg(RESULTS_ARGUMENT) as? ArrayList<*>

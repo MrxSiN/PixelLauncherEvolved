@@ -74,12 +74,19 @@ object FocusPlan {
         assignments: Map<String, Set<Int>>,
         priority: List<String>,
         active: Map<String, Long>,
+    ): String? = winner(assignments.filterValues { it.isNotEmpty() }.keys, priority, active)
+
+    /** The same rule over Modes that have [candidates]' override of some other kind. */
+    fun winner(
+        candidates: Set<String>,
+        priority: List<String>,
+        active: Map<String, Long>,
     ): String? {
         // Latest first; then ranked, then anything active that was never ranked,
         // so a mode added since the order was last set still works. Ties break
         // on the id, so the same two modes always pick the same winner.
         return active.keys
-            .filter { assignments[it].orEmpty().isNotEmpty() }
+            .filter { it in candidates }
             .minWithOrNull(compareBy({ -active.getValue(it) }, { rank(priority, it) }, { it }))
     }
 

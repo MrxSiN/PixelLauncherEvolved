@@ -58,8 +58,22 @@ class HiddenAppsFeature : LauncherFeature {
             return
         }
 
-        val store = SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(context.appContext))
+        val store = EffectiveHiddenApps(LauncherSettings.preferences(context.appContext))
         applied = store.hidden()
+
+        // A Mode that hides apps coming on or going off rebuilds the list at once,
+        // so a hidden app does not linger in a drawer already open.
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        ModeHiddenApps.onChanged = {
+            main.post {
+                val hidden = store.hidden()
+                if (hidden != applied) {
+                    applied = hidden
+                    runCatching { AppDrawerList.rebuild() }
+                        .onFailure { context.logger.warn("Unable to rebuild the app drawer's list", it) }
+                }
+            }
+        }
 
         context.xposed.hook(setup).intercept { chain ->
             runCatching { remember(chain.thisObject, holder, appsList) }

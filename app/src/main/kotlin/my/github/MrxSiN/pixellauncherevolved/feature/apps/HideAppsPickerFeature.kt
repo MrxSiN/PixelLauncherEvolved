@@ -48,6 +48,7 @@ class HideAppsPickerFeature : LauncherFeature {
     private var launcher: WeakReference<Activity>? = null
     private var reachedDrawer = false
     private lateinit var hidden: HiddenAppsStore
+    private lateinit var preferences: android.content.SharedPreferences
     private var stateManagerOf: java.lang.reflect.Method? = null
     private var goToState: java.lang.reflect.Method? = null
 
@@ -82,7 +83,8 @@ class HideAppsPickerFeature : LauncherFeature {
         }
 
         val checkmark = AppIconCheckmark(context.appContext)
-        hidden = SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(context.appContext))
+        preferences = LauncherSettings.preferences(context.appContext)
+        hidden = SharedPreferencesHiddenAppsStore(preferences)
         val bounds = Rect()
 
         context.xposed.hook(onDraw).intercept { chain ->
@@ -205,13 +207,17 @@ class HideAppsPickerFeature : LauncherFeature {
 
     /** [keep] is the answer to write, or null when there is no answer to write. */
     private fun finish(keep: Set<String>?) {
+        val target = HideAppsSelection.target ?: hidden
         HideAppsSelection.cancel()
         reachedDrawer = false
 
         val activity = launcher?.get()
         activity?.let { dragLayerOf(it)?.let(HideAppsButton()::removeFrom) }
 
-        if (keep != null) hidden.hide(keep)
+        if (keep != null) {
+            target.hide(keep)
+            if (target !== hidden) ModeHiddenApps.recompute(preferences)
+        }
         // Either way the list is wrong: it has been showing every app, hidden
         // ones included, for as long as the choosing lasted.
         AppDrawerList.rebuild()

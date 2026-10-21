@@ -327,6 +327,7 @@ N	features_failed
 N	findSpaceForItem
 N	fixedSize
 N	float
+N	focus_hidden_apps_
 N	focus_home_screens
 N	focus_name_
 N	focus_orphan_
@@ -723,6 +724,7 @@ N	preview_count
 N	private
 N	profile
 N	query
+N	rebindCallbacks
 N	recent_task_option_split_screen
 N	recents_clear_all
 N	recreatePreviewRenderer

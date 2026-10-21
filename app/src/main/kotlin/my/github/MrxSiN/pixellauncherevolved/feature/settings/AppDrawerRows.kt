@@ -28,7 +28,7 @@ internal object HiddenAppsRow : SettingsRow {
         val store = SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(context))
 
         val row = scope.link(SettingsKeys.row("hidden_apps"), R.string.feature_hidden_apps_title, summary(scope, store)) {
-            HideAppsSelection.begin(store.hidden())
+            HideAppsSelection.begin(store)
             context.startActivity(
                 Intent(Intent.ACTION_MAIN)
                     .addCategory(Intent.CATEGORY_HOME)
