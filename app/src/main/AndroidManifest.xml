@@ -6,11 +6,10 @@
     </queries>
 
     <!--
-        The module has no screen of its own. Every tweak is in the launcher's
-        own Home settings, beside the launcher that reads it, so an activity
-        here would open on nothing to change. What remains is the part Home
-        settings cannot host: the two providers below, which run in this
-        application because this is the process that holds root.
+        Every tweak is in the launcher's own Home settings, beside the launcher
+        that reads it. What remains is what Home settings cannot host: the two
+        providers below, which run here because this is the process that holds
+        root, and the one screen that has to work when the launcher does not.
     -->
     <application
         android:allowBackup="false"
@@ -30,6 +29,27 @@
             android:name=".focus.FocusProvider"
             android:authorities="${applicationId}.focus"
             android:exported="true" />
+
+        <!--
+            Puts the Home screen layout back when the launcher cannot open Home
+            settings. Exported so Android Settings (app info, this app's settings),
+            the module manager and adb can open it; it changes nothing until a
+            change is tapped and confirmed on it.
+        -->
+        <activity
+            android:name=".recovery.RecoveryActivity"
+            android:exported="true"
+            android:label="@string/recovery_title"
+            android:theme="@android:style/Theme.DeviceDefault.DayNight">
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
+            </intent-filter>
+        </activity>
 
         <!-- Double tap is recognised by the launcher; this root-backed endpoint locks it. -->
         <provider

@@ -308,4 +308,22 @@
     <string name="app_labels_save">Save</string>
     <string name="app_labels_identity">App name: %1$s\n%2$s</string>
     <string name="app_labels_content_description">%1$s, %2$s</string>
+    <!-- Recovery, in this module’s own app -->
+    <string name="recovery_title">Layout recovery</string>
+    <string name="recovery_intro">Puts your Home screen layout back without opening Pixel Launcher, for when it keeps closing or its settings cannot be reached. Pixel Launcher keeps up to two copies of its layout while it uses a custom grid or dock; there are none to show if it never has. Needs root.</string>
+    <string name="recovery_checking">Looking for copies…</string>
+    <string name="recovery_copy_before">Before the module changed the layout</string>
+    <string name="recovery_copy_latest">Last launcher start</string>
+    <string name="recovery_copy_none">No copy</string>
+    <string name="recovery_copy_detail">%1$d items, kept %2$s</string>
+    <string name="recovery_restore_before">Restore the layout from before</string>
+    <string name="recovery_restore_latest">Restore the last launcher start’s layout</string>
+    <string name="recovery_restore">Restore</string>
+    <string name="recovery_confirm_before">Pixel Launcher closes and opens again with the layout it had before the module changed it, and the module’s grid and dock settings go back to the launcher’s own. Anything added to Home since then is not in it. The layout it replaces is kept.</string>
+    <string name="recovery_confirm_latest">Pixel Launcher closes and opens again with the layout it had when it last started with the module. The layout it replaces is kept.</string>
+    <string name="recovery_restoring">Restoring…</string>
+    <string name="recovery_done">Done. Pixel Launcher is starting again with the restored layout. A widget the launcher removed meanwhile has to be added again.</string>
+    <string name="recovery_failed">The layout could not be restored. Check that this module has root, then try again.</string>
+    <string name="recovery_no_root">The copies can only be read with root. Grant Pixel Launcher Evolved root in your root manager, then open this screen again.</string>
+    <string name="recovery_limits">Without this module installed, nothing here can run: remove it only after going back to one of Pixel Launcher’s own grids and the default dock. Copies are kept in the launcher’s own storage and go with it if its data is cleared.</string>
 </resources>

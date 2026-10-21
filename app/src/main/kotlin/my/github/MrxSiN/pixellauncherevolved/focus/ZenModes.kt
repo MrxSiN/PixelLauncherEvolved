@@ -210,7 +210,12 @@ sealed interface RootResult {
     class Failed(val reason: FocusFailure) : RootResult
 }
 
-class RootShell : CommandRunner {
+/**
+ * @param globalNamespace run in the global mount namespace (`--mount-master`, which
+ *   KernelSU and Magisk both take). From an app, root otherwise inherits the app's
+ *   own view of `/data`, in which other apps' data is hidden.
+ */
+class RootShell(private val globalNamespace: Boolean = false) : CommandRunner {
 
     /**
      * Bounded at every step. The output goes to a file rather than a pipe, so
@@ -225,7 +230,8 @@ class RootShell : CommandRunner {
         val output = runCatching { File.createTempFile("root", null) }
             .getOrElse { return RootResult.Failed(FocusFailure.REFUSED) }
         val process = runCatching {
-            ProcessBuilder("su", "-c", command).redirectErrorStream(true).redirectOutput(output).start()
+            val su = if (globalNamespace) listOf("su", "--mount-master", "-c", command) else listOf("su", "-c", command)
+            ProcessBuilder(su).redirectErrorStream(true).redirectOutput(output).start()
         }.getOrElse {
             output.delete()
             return RootResult.Failed(FocusFailure.REFUSED)
