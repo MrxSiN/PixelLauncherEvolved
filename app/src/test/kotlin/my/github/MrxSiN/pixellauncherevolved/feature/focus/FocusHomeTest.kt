@@ -397,6 +397,45 @@ class FocusHomeTest {
         assertEquals(listOf(0, 1), focus.screens(listOf(0, 1, 2)))
     }
 
+    /** Two Modes on: the later one's pages; it ends, and the other's come back with one reload. */
+    @Test
+    fun twoModesOnShowTheLaterAndRevertToTheOtherWhenItEnds() {
+        store.assign("work", setOf(2))
+        store.assign("driving", setOf(3))
+        source.current = listOf(
+            FocusMode("work", "Work", isActive = true, activatedAt = 100L),
+            FocusMode("driving", "Driving", isActive = true, activatedAt = 200L),
+        )
+        val focus = focus()
+        focus.change()
+        assertEquals(listOf(3), focus.screens(listOf(0, 2, 3)))
+
+        source.current = listOf(FocusMode("work", "Work", isActive = true, activatedAt = 100L), FocusMode("driving", "Driving", false))
+        assertEquals(FocusChange(workspaceChanged = true, modeChanged = true), focus.change())
+        assertEquals(listOf(2), focus.screens(listOf(0, 2, 3)))
+    }
+
+    /** Editing a Mode's pages while two are on changes its pages, not who wins: that stays the later one. */
+    @Test
+    fun anEditWhileTwoModesAreOnKeepsTheWinner() {
+        store.assign("work", setOf(2))
+        store.assign("driving", setOf(3))
+        source.current = listOf(
+            FocusMode("work", "Work", isActive = true, activatedAt = 100L),
+            FocusMode("driving", "Driving", isActive = true, activatedAt = 200L),
+        )
+        val focus = focus()
+        focus.change()
+        focus.screens(listOf(0, 2, 3, 4))
+
+        // Saving Work's pages puts it first in the order, which only breaks ties.
+        store.assign("work", setOf(2, 4))
+        assertEquals(FocusChange.NONE, focus.change())
+        store.assign("driving", setOf(3, 4))
+        assertEquals(FocusChange(workspaceChanged = true, modeChanged = false), focus.change())
+        assertEquals(listOf(3, 4), focus.screens(listOf(0, 2, 3, 4)))
+    }
+
     private fun focus() = FocusHome(
         isEnabled = { enabled },
         store = store,
