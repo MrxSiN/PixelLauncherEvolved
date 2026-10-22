@@ -19,7 +19,7 @@
     <string name="action_restart_launcher_confirm">Restart</string>
 
     <string name="settings_page_home_screen">Home screen</string>
-    <string name="settings_page_home_screen_summary">Wallpaper, dock, pages, gestures, and search</string>
+    <string name="settings_page_home_screen_summary">Wallpaper, dock, home screens, gestures, and search</string>
     <string name="settings_page_search_bar">Search bar</string>
     <string name="settings_page_search_bar_summary">Choose what opens when you tap the search bar</string>
     <string name="settings_page_app_drawer">App drawer</string>
@@ -34,7 +34,7 @@
     <string name="settings_page_diagnostics_summary">Check compatibility with this Pixel Launcher version</string>
 
     <string name="settings_group_appearance">Appearance</string>
-    <string name="settings_group_pages">Home screen pages</string>
+    <string name="settings_group_pages">Home screens</string>
     <string name="settings_group_gestures">Gestures</string>
     <string name="settings_group_dock">Dock</string>
     <string name="settings_group_apps">Apps</string>
@@ -57,13 +57,13 @@
     <string name="backup_import_not_a_backup">This isn\'t a valid Pixel Launcher Evolved settings file.</string>
     <string name="backup_import_newer">This backup was created by a newer version of Pixel Launcher Evolved. Update the module and try again.</string>
     <string name="backup_import_confirm_title">Import settings?</string>
-    <string name="backup_import_confirm_message">Importing will replace your customization settings, layout mode, hidden apps, and web results app. Mode-specific pages and settings, and the order of home screen pages, won\'t change.</string>
+    <string name="backup_import_confirm_message">Importing will replace your customization settings, layout mode, hidden apps, and web results app. Mode-specific home screens and settings, and the order of your home screens, won\'t change.</string>
     <string name="backup_import_confirm">Import</string>
     <string name="backup_import_preview">Hidden apps: %1$d (%2$d not installed on this device). Icon source: %3$s. Custom app icons: %4$d. App labels: %5$d. Settings for apps not installed will apply if those apps are installed later.</string>
     <string name="backup_import_preview_system">the system</string>
     <string name="backup_imported">Settings imported. Restart Pixel Launcher to apply all changes.</string>
     <string name="backup_reset_confirm_title">Reset customization settings?</string>
-    <string name="backup_reset_confirm_message">This will restore the default customization settings, layout mode, hidden apps, and web results app. Mode-specific pages and home screen page order will be kept.</string>
+    <string name="backup_reset_confirm_message">This will restore the default customization settings, layout mode, hidden apps, and web results app. Mode-specific home screens and the order of your home screens will be kept.</string>
     <string name="backup_reset_confirm">Reset</string>
     <string name="backup_reset_done">Settings reset. Restart Pixel Launcher to apply all changes.</string>
     <string name="backup_restart_later">Later</string>
@@ -103,25 +103,26 @@
     <string name="feature_status_bar_double_tap_to_sleep_summary">Double-tap the status bar to turn off the display. No root required.</string>
     <string name="feature_home_search_opens_drawer_title">Open app search from Home</string>
     <string name="feature_home_search_opens_drawer_summary">Open app drawer search instead of Google when you tap the home screen search bar.</string>
-    <string name="pages_reorganize_title">Reorder home screen pages</string>
-    <string name="pages_reorganize_summary">Change the order of your home screen pages.</string>
-    <string name="pages_reorganize_description">Touch and hold a page to move it. The first page stays in place to keep At a Glance. Changes are saved when you leave.</string>
+    <string name="pages_reorganize_title">Reorder home screens</string>
+    <string name="pages_reorganize_summary">Change the order of your home screens.</string>
+    <string name="pages_reorganize_description">Touch and hold a home screen to move it. The first home screen stays in place to keep At a Glance. Changes are saved when you leave.</string>
     <string name="pages_reorganize_move_earlier">Move earlier</string>
     <string name="pages_reorganize_move_later">Move later</string>
     <string name="action_navigate_up">Navigate up</string>
     <string name="feature_focus_home_screens_title">Use Mode-specific home screens</string>
-    <string name="feature_focus_home_screens_summary">Show only the pages assigned to an active Mode. Requires root.</string>
-    <string name="feature_focus_pages_title">Assign pages to Modes</string>
-    <string name="feature_focus_pages_summary">Choose which home screen pages appear in each Mode.</string>
-    <string name="feature_focus_choose_mode_summary">Select a Mode to manage its home screen pages.</string>
-    <string name="feature_focus_choose_pages_summary">Select one or more home screen page previews.</string>
+    <string name="feature_focus_home_screens_summary">Show only the home screens assigned to an active Mode. Requires root.</string>
+    <string name="feature_focus_pages_title">Assign home screens to Modes</string>
+    <string name="feature_focus_pages_summary">Choose which home screens appear in each Mode.</string>
+    <string name="feature_focus_choose_mode_summary">Select a Mode to manage its home screens.</string>
+    <string name="feature_focus_choose_pages_summary">Select one or more home screen previews.</string>
     <string name="feature_focus_active">Active</string>
-    <string name="feature_focus_page">Page %1$d</string>
+    <string name="feature_focus_page">Home screen %1$d</string>
     <string name="feature_focus_save">Save</string>
-    <string name="feature_focus_with_ordinary">Also show regular home screen pages</string>
-    <string name="feature_focus_hidden_apps">Hide apps in this Mode</string>
-    <string name="feature_focus_drawer_apps">Apps at top of app drawer</string>
-    <string name="feature_focus_drawer_apps_none">No apps selected. Tap to choose apps to show under this Mode\'s name at the top of the app drawer. They\'ll also remain in the alphabetical list.</string>
+    <string name="feature_focus_with_ordinary">Also show regular home screens</string>
+    <string name="feature_focus_hidden_apps">Hidden apps</string>
+    <string name="feature_focus_drawer_apps">Top of app drawer</string>
+    <string name="feature_focus_apps_none">None</string>
+    <string name="feature_focus_section_apps">Apps</string>
     <string name="labels_home_title">Show app names on Home screen</string>
     <string name="labels_home_summary">Show names beneath app icons on the Home screen. TalkBack still announces app names when this is off.</string>
     <string name="labels_folders_title">Show app names in folders</string>
@@ -137,34 +138,35 @@
     <string name="feature_double_tap_action_modes">Open Modes</string>
     <string name="feature_double_tap_action_notifications">Open notifications</string>
     <string name="feature_double_tap_action_quick_settings">Open Quick Settings</string>
-    <string name="feature_focus_icon_pack">Icon pack for this Mode</string>
-    <string name="feature_focus_search_heading">Search results in this Mode</string>
+    <string name="feature_focus_icon_pack">Icon pack</string>
+    <string name="feature_focus_search_heading">Search results</string>
+    <string name="feature_focus_search_off_everywhere">Off in App drawer settings</string>
     <string name="feature_focus_icon_pack_inherit">Use main icon setting</string>
     <string name="feature_focus_inherit">Use main setting</string>
     <string name="feature_focus_icon_pack_system">System icons</string>
-    <string name="feature_focus_blur">Wallpaper blur for this Mode</string>
+    <string name="feature_focus_blur">Wallpaper blur</string>
     <string name="feature_focus_blur_none">No blur</string>
-    <string name="feature_focus_shade">Home screen shade in this Mode</string>
+    <string name="feature_focus_shade">Home screen tint</string>
     <string name="feature_focus_shade_none">None</string>
     <string name="feature_focus_shade_dim">Dim %1$d%%</string>
     <string name="feature_focus_shade_warm">Warm tint</string>
     <string name="feature_focus_shade_cool">Cool tint</string>
-    <string name="feature_focus_labels">App labels in this Mode</string>
-    <string name="feature_focus_labels_all">All labels shown</string>
-    <string name="feature_focus_labels_off_home">Off on Home screen and folders</string>
-    <string name="feature_focus_labels_off_drawer">Off in app drawer</string>
-    <string name="feature_focus_labels_none">Off everywhere</string>
-    <string name="feature_focus_no_pages_assigned">No pages assigned · Uses regular home screen</string>
-    <string name="feature_focus_pages_assigned">Pages: %1$s</string>
-    <string name="feature_focus_no_pages">Home screen pages aren\'t available yet. Open your home screen, then try again.</string>
+    <string name="feature_focus_labels">App labels</string>
+    <string name="feature_focus_labels_all">Show all</string>
+    <string name="feature_focus_labels_off_home">Hide on Home screen and in folders</string>
+    <string name="feature_focus_labels_off_drawer">Hide in app drawer</string>
+    <string name="feature_focus_labels_none">Hide everywhere</string>
+    <string name="feature_focus_no_pages_assigned">No home screens assigned</string>
+    <string name="feature_focus_pages_assigned">Home screens: %1$s</string>
+    <string name="feature_focus_no_pages">Home screens aren\'t available yet. Open your home screen, then try again.</string>
     <string name="feature_focus_orphan">%1$s (deleted)</string>
     <string name="feature_focus_orphan_unnamed">Deleted Mode</string>
-    <string name="feature_focus_orphan_summary">This Mode was deleted. Its pages are now on your regular home screen. Assign them to another Mode or remove this deleted Mode\'s saved settings.</string>
+    <string name="feature_focus_orphan_summary">This Mode was deleted. Its home screens are now with your regular home screens. Assign them to another Mode or remove this deleted Mode\'s saved settings.</string>
     <string name="feature_focus_orphan_forget">Remove saved Mode</string>
-    <string name="feature_focus_keep_one_page">Keep at least one page outside all Modes so the home screen has a page to show when no Mode is active.</string>
+    <string name="feature_focus_keep_one_page">Keep at least one home screen outside all Modes so there\'s one to show when no Mode is active.</string>
     <string name="feature_focus_read_failed">Couldn\'t load your Modes. Try again.</string>
     <string name="feature_focus_needs_access">Couldn\'t load your Modes. Pixel Launcher Evolved needs root access to read them. Grant root access and try again.</string>
-    <string name="feature_focus_no_modes">No Modes available. Create a Mode in Android Settings to assign pages.</string>
+    <string name="feature_focus_no_modes">No Modes available. Create a Mode in Android Settings to assign home screens.</string>
 
     <string name="feature_hidden_apps_title">Hidden apps</string>
     <string name="feature_hidden_apps_summary_none">No hidden apps. Tap to select apps to hide.</string>
@@ -265,8 +267,13 @@
     </plurals>
 
     <plurals name="feature_focus_drawer_apps_summary">
-        <item quantity="one">%1$d app shown under this Mode\'s name. Tap to change.</item>
-        <item quantity="other">%1$d apps shown under this Mode\'s name. Tap to change.</item>
+        <item quantity="one">%1$d app under this Mode\'s name</item>
+        <item quantity="other">%1$d apps under this Mode\'s name</item>
+    </plurals>
+
+    <plurals name="feature_focus_hidden_apps_count">
+        <item quantity="one">%1$d app hidden</item>
+        <item quantity="other">%1$d apps hidden</item>
     </plurals>
 
     <plurals name="feature_hidden_apps_summary">
@@ -358,6 +365,7 @@
     <string name="app_labels_show_drawer">Show label in app drawer</string>
     <string name="app_labels_reset_app">Restore defaults</string>
     <string name="app_labels_rename">Rename</string>
+    <string name="app_labels_change_icon">Change icon</string>
     <string name="app_labels_save">Save</string>
     <string name="app_labels_identity">Original app: %1$s\n%2$s</string>
     <string name="app_labels_content_description">%1$s, %2$s</string>

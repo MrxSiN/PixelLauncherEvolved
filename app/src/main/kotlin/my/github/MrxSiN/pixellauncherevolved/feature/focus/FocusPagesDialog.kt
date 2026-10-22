@@ -5,6 +5,11 @@ import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
+import android.view.Gravity
+import android.view.HapticFeedbackConstants
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.TextView
@@ -20,8 +25,11 @@ import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.labels.AppLabels
 import my.github.MrxSiN.pixellauncherevolved.feature.search.SearchResultKind
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveCardList
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRadio
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRole
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveShapes
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveType
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusFailure
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
@@ -168,53 +176,24 @@ internal object FocusPagesDialog {
             selected = assignments[mode.id].orEmpty(),
         )
 
-        // Off keeps the Mode to its own pages, as before; on keeps the ordinary pages beside them.
-        val withOrdinary = Switch(context).apply {
-            text = resources.getString(R.string.feature_focus_with_ordinary)
-            isChecked = store.withOrdinary(mode.id)
-            ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
-            minHeight = (48f * context.resources.displayMetrics.density).roundToInt()
-            // In line with the page grid under it, which keeps the dialog's inset.
-            val inset = (24f * context.resources.displayMetrics.density).roundToInt()
-            setPadding(inset, 0, inset, 0)
-        }
         lateinit var dialog: Dialog
-        val hiddenApps = hiddenAppsRow(context, resources, mode) { dialog.dismiss() }
-        val drawerApps = pickAppsRow(
-            context, resources, mode,
-            SharedPreferencesHiddenAppsStore(LauncherSettings.preferences(context), ModeOverrides.DRAWER_APPS_KEY + mode.id),
-            R.string.feature_focus_drawer_apps, R.string.feature_focus_drawer_apps_none, R.plurals.feature_focus_drawer_apps_summary,
-        ) { dialog.dismiss() }
-        // Search groups this Mode turns off; one switched off everywhere stays off here.
         val preferences = LauncherSettings.preferences(context)
-        val modeSearch = preferences.getString(ModeOverrides.SEARCH_KEY + mode.id, "").orEmpty().split(',').toSet()
-        val searchSwitches = FeatureCatalog.entries.filter { entry -> SearchResultKind.entries.any { it.setting == entry.setting } }
-            .map { entry ->
-                val everywhere = preferences.getBoolean(entry.setting.key, entry.setting.default)
-                entry.setting.key to switch(context, resources.getString(entry.titleRes)).apply {
-                    isChecked = !everywhere && entry.setting.key !in modeSearch
-                    isEnabled = !everywhere
-                }
-            }
-        // Null follows the everywhere choice; saved with the pages.
+
+        // Off keeps the Mode to its own home screens, as before; on keeps the regular ones beside them.
+        val withOrdinary = toggle(context, store.withOrdinary(mode.id))
+        val ordinary = CardRow(context, resources, R.drawable.ic_mode_home, resources.getString(R.string.feature_focus_with_ordinary), withOrdinary)
+
+        val hiddenStore = SharedPreferencesHiddenAppsStore.forMode(preferences, mode.id)
+        val hiddenApps = CardRow(context, resources, R.drawable.ic_mode_hidden_apps, resources.getString(R.string.feature_focus_hidden_apps))
+        hiddenApps.value(appCount(resources, hiddenStore, R.plurals.feature_focus_hidden_apps_count))
+        val drawerStore = SharedPreferencesHiddenAppsStore(preferences, ModeOverrides.DRAWER_APPS_KEY + mode.id)
+        val drawerApps = CardRow(context, resources, R.drawable.ic_mode_drawer_top, resources.getString(R.string.feature_focus_drawer_apps))
+        drawerApps.value(appCount(resources, drawerStore, R.plurals.feature_focus_drawer_apps_summary))
+
+        // Null follows the everywhere choice; saved with the home screens.
         var iconPack: String? = preferences.getString(ModeOverrides.ICON_PACK_KEY + mode.id, null)
-        val iconRow = textRow(context, "")
-        fun showIconPack(label: CharSequence) {
-            iconRow.text = resources.getString(R.string.feature_focus_icon_pack) + "\n" + label
-        }
-        showIconPack(iconPackLabel(context, resources, iconPack))
-        iconRow.setOnClickListener {
-            readThen(context, { IconPacks.installed(context) }) { packs ->
-                val choices = listOf<Pair<String?, CharSequence>>(
-                    null to resources.getString(R.string.feature_focus_icon_pack_inherit),
-                    ModeOverrides.SYSTEM_ICONS to resources.getString(R.string.feature_focus_icon_pack_system),
-                ) + packs.map { it.packageName to it.label }
-                choose(context, resources.getString(R.string.feature_focus_icon_pack), choices) { value, label ->
-                    iconPack = value
-                    showIconPack(label)
-                }
-            }
-        }
+        val iconRow = CardRow(context, resources, R.drawable.ic_mode_icon_pack, resources.getString(R.string.feature_focus_icon_pack))
+        iconRow.value(iconPackLabel(context, resources, iconPack))
 
         // Null follows Home settings' blur; "0" is none.
         var blurValue: String? = preferences.getString(ModeOverrides.BLUR_KEY + mode.id, null)
@@ -222,17 +201,9 @@ internal object FocusPagesDialog {
             null to resources.getString(R.string.feature_focus_inherit),
             "0" to resources.getString(R.string.feature_focus_blur_none),
         ) + listOf(25, 50, 75, 100).map { it.toString() to "$it%" }
-        val blurRow = textRow(context, "")
-        fun showBlur(label: CharSequence) {
-            blurRow.text = resources.getString(R.string.feature_focus_blur) + "\n" + label
-        }
-        showBlur(blurChoices.firstOrNull { it.first == blurValue }?.second ?: "$blurValue%")
-        blurRow.setOnClickListener {
-            choose(context, resources.getString(R.string.feature_focus_blur), blurChoices) { value, label ->
-                blurValue = value
-                showBlur(label)
-            }
-        }
+        val blurRow = CardRow(context, resources, R.drawable.ic_mode_blur, resources.getString(R.string.feature_focus_blur))
+        blurRow.value(blurChoices.firstOrNull { it.first == blurValue }?.second ?: "$blurValue%")
+
         // Null is none: there is no everywhere shade to follow.
         var shadeValue: String? = preferences.getString(ModeOverrides.SHADE_KEY + mode.id, null)
         val shadeChoices = listOf<Pair<String?, CharSequence>>(
@@ -243,17 +214,9 @@ internal object FocusPagesDialog {
             "40FF8A00" to resources.getString(R.string.feature_focus_shade_warm),
             "40005CFF" to resources.getString(R.string.feature_focus_shade_cool),
         )
-        val shadeRow = textRow(context, "")
-        fun showShade(label: CharSequence) {
-            shadeRow.text = resources.getString(R.string.feature_focus_shade) + "\n" + label
-        }
-        showShade(shadeChoices.firstOrNull { it.first == shadeValue }?.second ?: "#$shadeValue")
-        shadeRow.setOnClickListener {
-            choose(context, resources.getString(R.string.feature_focus_shade), shadeChoices) { value, label ->
-                shadeValue = value
-                showShade(label)
-            }
-        }
+        val shadeRow = CardRow(context, resources, R.drawable.ic_mode_tint, resources.getString(R.string.feature_focus_shade))
+        shadeRow.value(shadeChoices.firstOrNull { it.first == shadeValue }?.second ?: "#$shadeValue")
+
         // Null follows the App labels switches; any other value replaces them while this Mode wins.
         var labelsValue: String? = preferences.getString(ModeOverrides.LABELS_KEY + mode.id, null)
         val labelsChoices = listOf<Pair<String?, CharSequence>>(
@@ -264,34 +227,66 @@ internal object FocusPagesDialog {
             (AppLabels.HIDE_HOME or AppLabels.HIDE_FOLDER or AppLabels.HIDE_DRAWER).toString() to
                 resources.getString(R.string.feature_focus_labels_none),
         )
-        val labelsRow = textRow(context, "")
-        fun showLabels(label: CharSequence) {
-            labelsRow.text = resources.getString(R.string.feature_focus_labels) + "\n" + label
-        }
-        showLabels(labelsChoices.firstOrNull { it.first == labelsValue }?.second ?: labelsValue.orEmpty())
-        labelsRow.setOnClickListener {
-            choose(context, resources.getString(R.string.feature_focus_labels), labelsChoices) { value, label ->
-                labelsValue = value
-                showLabels(label)
+        val labelsRow = CardRow(context, resources, R.drawable.ic_mode_labels, resources.getString(R.string.feature_focus_labels))
+        labelsRow.value(labelsChoices.firstOrNull { it.first == labelsValue }?.second ?: labelsValue.orEmpty())
+
+        // Search groups this Mode turns off; one switched off everywhere stays off here.
+        val modeSearch = preferences.getString(ModeOverrides.SEARCH_KEY + mode.id, "").orEmpty().split(',').toSet()
+        val searchSwitches = FeatureCatalog.entries.filter { entry -> SearchResultKind.entries.any { it.setting == entry.setting } }
+            .map { entry ->
+                val everywhere = preferences.getBoolean(entry.setting.key, entry.setting.default)
+                val switch = toggle(context, !everywhere && entry.setting.key !in modeSearch).apply { isEnabled = !everywhere }
+                entry.setting.key to CardRow(context, resources, null, resources.getString(entry.titleRes), switch).apply {
+                    view.isEnabled = !everywhere
+                    if (everywhere) {
+                        view.alpha = DISABLED_ALPHA
+                        value(resources.getString(R.string.feature_focus_search_off_everywhere))
+                    }
+                }
             }
-        }
+
         val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            addView(withOrdinary)
-            addView(hiddenApps)
-            addView(drawerApps)
-            addView(iconRow)
-            addView(blurRow)
-            addView(shadeRow)
-            addView(labelsRow)
-            addView(textRow(context, resources.getString(R.string.feature_focus_search_heading)).apply {
-                isClickable = false
-                isFocusable = false
-                ExpressiveType.LABEL_LARGE.applyTo(this, ExpressiveRole.PRIMARY)
-                isAccessibilityHeading = true
-            })
-            searchSwitches.forEach { addView(it.second) }
+            // The home screens first: choosing them is what this page is for.
             addView(gallery)
+            addView(card(context, listOf(ordinary)) { withOrdinary.toggle() }, gap(context, 16f))
+            addView(heading(context, resources.getString(R.string.feature_focus_section_apps)))
+            addView(card(context, listOf(hiddenApps, drawerApps)) { index ->
+                dialog.dismiss()
+                pickApps(context, if (index == 0) hiddenStore else drawerStore)
+            })
+            addView(heading(context, resources.getString(R.string.settings_group_appearance)))
+            addView(card(context, listOf(iconRow, blurRow, shadeRow, labelsRow)) { index ->
+                when (index) {
+                    0 -> readThen(context, { IconPacks.installed(context) }) { packs ->
+                        val choices = listOf<Pair<String?, CharSequence>>(
+                            null to resources.getString(R.string.feature_focus_icon_pack_inherit),
+                            ModeOverrides.SYSTEM_ICONS to resources.getString(R.string.feature_focus_icon_pack_system),
+                        ) + packs.map { it.packageName to it.label }
+                        choose(context, resources, resources.getString(R.string.feature_focus_icon_pack), choices, iconPack) { value, label ->
+                            iconPack = value
+                            iconRow.value(label)
+                        }
+                    }
+                    1 -> choose(context, resources, resources.getString(R.string.feature_focus_blur), blurChoices, blurValue) { value, label ->
+                        blurValue = value
+                        blurRow.value(label)
+                    }
+                    2 -> choose(context, resources, resources.getString(R.string.feature_focus_shade), shadeChoices, shadeValue) { value, label ->
+                        shadeValue = value
+                        shadeRow.value(label)
+                    }
+                    else -> choose(context, resources, resources.getString(R.string.feature_focus_labels), labelsChoices, labelsValue) { value, label ->
+                        labelsValue = value
+                        labelsRow.value(label)
+                    }
+                }
+            })
+            addView(heading(context, resources.getString(R.string.feature_focus_search_heading)))
+            addView(card(context, searchSwitches.map { it.second }) { index ->
+                val switch = searchSwitches[index].second.end as Switch
+                if (switch.isEnabled) switch.toggle()
+            })
         }
 
         dialog = ExpressiveDialog(context)
@@ -304,7 +299,7 @@ internal object FocusPagesDialog {
                 val chosen = grid.selectedScreens()
                 if (leavesOrdinaryPage(FocusPages.order, store.assignments(), mode.id, chosen)) {
                     store.setWithOrdinary(mode.id, withOrdinary.isChecked)
-                    val off = searchSwitches.filter { (_, it) -> it.isEnabled && !it.isChecked }.map { it.first }
+                    val off = searchSwitches.filter { (_, row) -> (row.end as Switch).let { it.isEnabled && !it.isChecked } }.map { it.first }
                     preferences.edit().apply {
                         if (off.isEmpty()) remove(ModeOverrides.SEARCH_KEY + mode.id)
                         else putString(ModeOverrides.SEARCH_KEY + mode.id, off.joinToString(","))
@@ -373,72 +368,44 @@ internal object FocusPagesDialog {
     }
 
     /**
-     * Opens the drawer to tick the apps [mode] hides on top of the everywhere
-     * list, the way Hidden apps does: settings steps aside and the launcher
-     * finishes the choosing ([HideAppsSelection]).
+     * Opens the drawer to tick apps for [store], the way Hidden apps does:
+     * settings steps aside and the launcher finishes the choosing
+     * ([HideAppsSelection]). [store] is the Mode's hidden apps, or the apps it
+     * puts at the top of the drawer.
      */
-    private fun hiddenAppsRow(context: Context, resources: Resources, mode: FocusMode, close: () -> Unit): TextView =
-        pickAppsRow(
-            context, resources, mode,
-            SharedPreferencesHiddenAppsStore.forMode(LauncherSettings.preferences(context), mode.id),
-            R.string.feature_focus_hidden_apps, R.string.feature_hidden_apps_summary_none, R.plurals.feature_hidden_apps_summary,
-            close,
+    private fun pickApps(context: Context, store: SharedPreferencesHiddenAppsStore) {
+        HideAppsSelection.begin(store)
+        context.startActivity(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
         )
-
-    /**
-     * A row that opens the drawer to tick apps for [store]: the Mode's hidden
-     * apps, or the apps it puts at the top of the drawer.
-     */
-    private fun pickAppsRow(
-        context: Context,
-        resources: Resources,
-        mode: FocusMode,
-        store: SharedPreferencesHiddenAppsStore,
-        title: Int,
-        none: Int,
-        some: Int,
-        close: () -> Unit,
-    ): TextView {
-        val count = store.hidden().size
-        val density = context.resources.displayMetrics.density
-        return TextView(context).apply {
-            text = resources.getString(title) + "\n" +
-                if (count == 0) resources.getString(none)
-                else resources.getQuantityString(some, count, count)
-            ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
-            minHeight = (48f * density).roundToInt()
-            gravity = android.view.Gravity.CENTER_VERTICAL
-            val inset = (24f * density).roundToInt()
-            setPadding(inset, 0, inset, 0)
-            isClickable = true
-            isFocusable = true
-            setOnClickListener {
-                close()
-                HideAppsSelection.begin(store)
-                context.startActivity(
-                    Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                )
-                (context as? Activity)?.finish()
-            }
-        }
+        (context as? Activity)?.finish()
     }
 
-    /** One choice out of [choices], as a list of rows in a dialog of its own. */
+    private fun appCount(resources: Resources, store: SharedPreferencesHiddenAppsStore, some: Int): String {
+        val count = store.hidden().size
+        return if (count == 0) resources.getString(R.string.feature_focus_apps_none) else resources.getQuantityString(some, count, count)
+    }
+
+    /**
+     * One choice out of [choices], as a grouped card of radio rows with
+     * [current] already chosen. A tap is the choice; the dialog closes once the
+     * radio has had a moment to answer, as the web results picker does.
+     */
     private fun choose(
         context: Context,
+        resources: Resources,
         title: CharSequence,
         choices: List<Pair<String?, CharSequence>>,
+        current: String?,
         onPick: (String?, CharSequence) -> Unit,
     ) {
         lateinit var picker: Dialog
-        val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        for ((value, label) in choices) {
-            list.addView(textRow(context, label).apply {
-                setOnClickListener {
-                    onPick(value, label)
-                    picker.dismiss()
-                }
-            })
+        val radios = choices.map { (value, _) -> ExpressiveRadio(context).apply { setChecked(value == current, animate = false) } }
+        val rows = choices.mapIndexed { index, (_, label) -> CardRow(context, resources, null, label, radios[index]) }
+        val list = ExpressiveCardList.build(context, rows.map { it.view }) { index ->
+            radios.forEachIndexed { other, radio -> radio.setChecked(other == index, animate = true) }
+            onPick(choices[index].first, choices[index].second)
+            rows[index].view.postDelayed({ picker.dismiss() }, CLOSE_DELAY_MILLIS)
         }
         picker = ExpressiveDialog(context)
             .title(title)
@@ -453,25 +420,78 @@ internal object FocusPagesDialog {
         else -> IconPacks.labelOf(context.packageManager, pack) ?: pack
     }
 
-    private fun textRow(context: Context, label: CharSequence) = TextView(context).apply {
-        text = label
-        ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
+    /** [rows] as one grouped card; a tap on a row runs [onClick] with its place. */
+    private fun card(context: Context, rows: List<CardRow>, onClick: (Int) -> Unit): View =
+        ExpressiveCardList.build(context, rows.map { it.view }, onClick)
+
+    /** A section's name over its card, in line with the text inside the card. */
+    private fun heading(context: Context, text: CharSequence) = TextView(context).apply {
+        this.text = text
+        ExpressiveType.LABEL_LARGE.applyTo(this, ExpressiveRole.PRIMARY)
+        isAccessibilityHeading = true
         val density = context.resources.displayMetrics.density
-        minHeight = (48f * density).roundToInt()
-        gravity = android.view.Gravity.CENTER_VERTICAL
-        val inset = (24f * density).roundToInt()
-        setPadding(inset, 0, inset, 0)
-        isClickable = true
-        isFocusable = true
+        setPadding((32f * density).roundToInt(), (24f * density).roundToInt(), 0, (8f * density).roundToInt())
     }
 
-    private fun switch(context: Context, label: String) = Switch(context).apply {
-        text = label
-        ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
-        minHeight = (48f * context.resources.displayMetrics.density).roundToInt()
-        val inset = (24f * context.resources.displayMetrics.density).roundToInt()
-        setPadding(inset, 0, inset, 0)
+    private fun gap(context: Context, top: Float) = LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.WRAP_CONTENT,
+    ).apply { topMargin = (top * context.resources.displayMetrics.density).roundToInt() }
+
+    /** A switch the row it ends answers for: the row takes the tap and TalkBack reads them as one. */
+    private fun toggle(context: Context, checked: Boolean) = Switch(context).apply {
+        isChecked = checked
+        isClickable = false
+        isFocusable = false
+        setOnCheckedChangeListener { view, on ->
+            view.performHapticFeedback(if (on) HapticFeedbackConstants.TOGGLE_ON else HapticFeedbackConstants.TOGGLE_OFF)
+        }
     }
+
+    /**
+     * One row of a grouped card, as Android 17 settings draws it: a tinted
+     * icon in a tonal circle, the title, the current value under it, and
+     * [end] (a switch or a radio) at the far side.
+     */
+    private class CardRow(context: Context, resources: Resources, icon: Int?, title: CharSequence, val end: View? = null) {
+
+        private val summary = TextView(context).apply {
+            ExpressiveType.BODY_MEDIUM.applyTo(this, ExpressiveRole.ON_SURFACE_VARIANT)
+            visibility = View.GONE
+        }
+
+        val view = LinearLayout(context).apply {
+            fun dp(value: Float): Int = (value * context.resources.displayMetrics.density).roundToInt()
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(16f), dp(12f), dp(20f), dp(12f))
+            if (icon != null) {
+                addView(ImageView(context).apply {
+                    // This module's own drawable, from its own resources: the context's are the launcher's.
+                    setImageDrawable(resources.getDrawable(icon, null).mutate().apply { setTint(ExpressiveRole.ON_PRIMARY_CONTAINER.of(context)) })
+                    scaleType = ImageView.ScaleType.CENTER
+                    background = ExpressiveShapes.rounded(ExpressiveRole.PRIMARY_CONTAINER.of(context), dp(20f).toFloat())
+                }, LinearLayout.LayoutParams(dp(40f), dp(40f)).apply { marginEnd = dp(16f) })
+            }
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(TextView(context).apply {
+                    text = title
+                    ExpressiveType.TITLE_MEDIUM.applyTo(this, ExpressiveRole.ON_SURFACE)
+                })
+                addView(summary)
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            end?.let { addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginStart = dp(16f) }) }
+        }
+
+        fun value(text: CharSequence) {
+            summary.text = text
+            summary.visibility = View.VISIBLE
+        }
+    }
+
+    private const val DISABLED_ALPHA = 0.38f
+    private const val CLOSE_DELAY_MILLIS = 250L
 
     /** Gives [screens] to [mode] and takes them off every other Mode. */
     private fun apply(store: FocusStore, mode: FocusMode, screens: Set<Int>) {

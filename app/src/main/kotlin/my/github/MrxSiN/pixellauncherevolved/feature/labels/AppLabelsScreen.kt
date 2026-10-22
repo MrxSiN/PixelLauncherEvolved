@@ -235,7 +235,7 @@ internal class AppLabelsScreen(
 
     private fun dp(value: Float): Int = (value * context.resources.displayMetrics.density).roundToInt()
 
-    private companion object {
+    internal companion object {
         const val EDGE_DP = 24f
         const val CARD_INSET_DP = 16f
         const val SEARCH_HEIGHT_DP = 56f
