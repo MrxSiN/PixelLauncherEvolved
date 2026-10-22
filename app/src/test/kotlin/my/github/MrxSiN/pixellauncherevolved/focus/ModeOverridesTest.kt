@@ -76,6 +76,25 @@ class ModeOverridesTest {
     }
 
     @Test
+    fun `a Mode's shade applies while it is on, is told once and ignores bad text`() {
+        var told = 0
+        ModeOverrides.onShadeChanged = { told++ }
+        preferences.values["focus_shade_work"] = "66000000"
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
+        assertEquals(0x66000000, ModeOverrides.shade)
+
+        preferences.values["focus_shade_work"] = "nope"
+        ModeOverrides.recompute(preferences)
+        assertEquals(0, ModeOverrides.shade)
+
+        ModeOverrides.update(preferences, emptyMap())
+        ModeOverrides.onShadeChanged = null
+        assertEquals(0, ModeOverrides.shade)
+        assertEquals(2, told)
+    }
+
+    @Test
     fun `the drawer section follows the winning Mode and its name`() {
         var told = 0
         ModeOverrides.onChanged = { told++ }

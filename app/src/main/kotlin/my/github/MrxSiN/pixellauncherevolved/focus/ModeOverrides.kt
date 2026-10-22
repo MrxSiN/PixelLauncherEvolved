@@ -48,8 +48,17 @@ object ModeOverrides {
     var blur: Int? = null
         private set
 
+    /** The colour the winning Mode lays over the home screen ([SHADE_KEY]), as ARGB; 0 for none. */
+    @Volatile
+    var shade: Int = 0
+        private set
+
     @Volatile
     private var active: Map<String, Long> = emptyMap()
+
+    /** Told on any thread when [shade] changes, so the home state can be applied again. */
+    @Volatile
+    var onShadeChanged: (() -> Unit)? = null
 
     /** Told on any thread when [modeId] or the drawer section changes, so the drawer can be rebuilt. */
     @Volatile
@@ -89,6 +98,12 @@ object ModeOverrides {
             onBlurChanged?.invoke()
         }
 
+        val shadeNow = winner(SHADE_KEY)?.let { (all[SHADE_KEY + it] as? String)?.toLongOrNull(16)?.toInt() } ?: 0
+        if (shadeNow != shade) {
+            shade = shadeNow
+            onShadeChanged?.invoke()
+        }
+
         val drawerMode = winner(DRAWER_APPS_KEY)
         val apps = drawerMode?.let { (all[DRAWER_APPS_KEY + it] as? String).orEmpty().split(',').filterTo(HashSet()) { p -> p.isNotBlank() } }
             ?: emptySet()
@@ -122,6 +137,9 @@ object ModeOverrides {
 
     /** `focus_blur_<modeId>`: the wallpaper blur in percent while that Mode wins, as text; 0 for none. */
     const val BLUR_KEY = "focus_blur_"
+
+    /** `focus_shade_<modeId>`: ARGB in hex laid over the home screen while that Mode wins (dim or tint). */
+    const val SHADE_KEY = "focus_shade_"
 
     /** A Mode's icon pack value meaning the system's own icons. */
     const val SYSTEM_ICONS = ":system"

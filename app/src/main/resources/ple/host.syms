@@ -347,6 +347,7 @@ N	focus_pages
 N	focus_pages_
 N	focus_priority
 N	focus_search_hide_
+N	focus_shade_
 N	focus_with_ordinary_
 N	folderIconOffsetYPx
 N	folderProfile
@@ -401,6 +402,7 @@ N	getTaskbarOffsetY
 N	getThumbnailBounds
 N	getUserHandle
 N	getViewRootImpl
+N	getWorkspaceScrimColor
 N	get_preview_bitmap
 N	goToSleep
 N	goToState
@@ -747,6 +749,7 @@ N	preview_count
 N	private
 N	profile
 N	query
+N	reapplyState
 N	rebindCallbacks
 N	recent_task_option_split_screen
 N	recents_clear_all

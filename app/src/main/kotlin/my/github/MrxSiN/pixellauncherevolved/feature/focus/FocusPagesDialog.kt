@@ -232,6 +232,27 @@ internal object FocusPagesDialog {
                 showBlur(label)
             }
         }
+        // Null is none: there is no everywhere shade to follow.
+        var shadeValue: String? = preferences.getString(ModeOverrides.SHADE_KEY + mode.id, null)
+        val shadeChoices = listOf<Pair<String?, CharSequence>>(
+            null to resources.getString(R.string.feature_focus_shade_none),
+            "33000000" to resources.getString(R.string.feature_focus_shade_dim, 20),
+            "66000000" to resources.getString(R.string.feature_focus_shade_dim, 40),
+            "99000000" to resources.getString(R.string.feature_focus_shade_dim, 60),
+            "40FF8A00" to resources.getString(R.string.feature_focus_shade_warm),
+            "40005CFF" to resources.getString(R.string.feature_focus_shade_cool),
+        )
+        val shadeRow = textRow(context, "")
+        fun showShade(label: CharSequence) {
+            shadeRow.text = resources.getString(R.string.feature_focus_shade) + "\n" + label
+        }
+        showShade(shadeChoices.firstOrNull { it.first == shadeValue }?.second ?: "#$shadeValue")
+        shadeRow.setOnClickListener {
+            choose(context, resources.getString(R.string.feature_focus_shade), shadeChoices) { value, label ->
+                shadeValue = value
+                showShade(label)
+            }
+        }
         val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             addView(withOrdinary)
@@ -239,6 +260,7 @@ internal object FocusPagesDialog {
             addView(drawerApps)
             addView(iconRow)
             addView(blurRow)
+            addView(shadeRow)
             addView(textRow(context, resources.getString(R.string.feature_focus_search_heading)).apply {
                 isClickable = false
                 isFocusable = false
@@ -269,6 +291,9 @@ internal object FocusPagesDialog {
                         val blur = blurValue
                         if (blur == null) remove(ModeOverrides.BLUR_KEY + mode.id)
                         else putString(ModeOverrides.BLUR_KEY + mode.id, blur)
+                        val shade = shadeValue
+                        if (shade == null) remove(ModeOverrides.SHADE_KEY + mode.id)
+                        else putString(ModeOverrides.SHADE_KEY + mode.id, shade)
                     }.apply()
                     ModeOverrides.recompute(preferences)
                     apply(store, mode, chosen)

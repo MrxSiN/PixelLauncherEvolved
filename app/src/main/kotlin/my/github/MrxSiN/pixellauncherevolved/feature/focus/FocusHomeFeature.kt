@@ -116,8 +116,51 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         keepNewAppsOffModePages(context, focus)
         revealAfterBinding(context, workspace, reveal)
         watch(context, workspace, toArray, focus, previews, reveal)
+        shadeHome(context)
 
         context.logger.info("Focus home screens ready")
+    }
+
+    /**
+     * Lays the winning Mode's dim or tint ([ModeOverrides.shade]) over the home
+     * screen, through the scrim the launcher already animates between states.
+     *
+     * ```
+     * com.android.launcher3.LauncherState
+     *   getWorkspaceScrimColor(Launcher)   // 0 for NORMAL, which does not override it
+     * ```
+     *
+     * Only the home state's answer changes, so Overview and the app drawer keep
+     * their own scrims and the launcher animates into and out of them. The
+     * wallpaper itself is never written. Missing on a host, only the shade is
+     * left out.
+     */
+    private fun shadeHome(context: FeatureContext) {
+        val launcher = context.findClass(LAUNCHER)
+        val state = context.findClass(LAUNCHER_STATE)
+        val scrimColor = if (launcher != null && state != null) Reflect.method(state, WORKSPACE_SCRIM_COLOR, launcher) else null
+        val home = state?.let { runCatching { Reflect.field(it, NORMAL)?.get(null) }.getOrNull() }
+        val stateManager = launcher?.let { Reflect.method(it, GET_STATE_MANAGER) }
+        val reapply = stateManager?.returnType?.let { Reflect.method(it, REAPPLY_STATE, Boolean::class.javaPrimitiveType!!) }
+        if (scrimColor == null || home == null || stateManager == null || reapply == null) {
+            context.logger.warn("The launcher's home scrim is unavailable; Modes cannot dim or tint the home screen")
+            return
+        }
+
+        context.xposed.hook(scrimColor).intercept { chain ->
+            val shade = ModeOverrides.shade
+            if (shade == 0 || chain.thisObject !== home) chain.proceed() else shade
+        }
+
+        // Applied again at once, without animation, so the shade follows the Mode while home is showing.
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        ModeOverrides.onShadeChanged = {
+            main.post {
+                val activity = current?.get() ?: return@post
+                runCatching { reapply.invoke(stateManager.invoke(activity), false) }
+                    .onFailure { context.logger.warn("Unable to apply the Mode's home shade", it) }
+            }
+        }
     }
 
     /**
@@ -610,6 +653,11 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         const val FORCE_RELOAD = "forceReload"
         const val REBIND = "rebindCallbacks"
         const val RELOAD_REASON = "pixel_launcher_evolved_focus"
+        const val LAUNCHER_STATE = "com.android.launcher3.LauncherState"
+        const val WORKSPACE_SCRIM_COLOR = "getWorkspaceScrimColor"
+        const val NORMAL = "NORMAL"
+        const val GET_STATE_MANAGER = "getStateManager"
+        const val REAPPLY_STATE = "reapplyState"
     }
 }
 

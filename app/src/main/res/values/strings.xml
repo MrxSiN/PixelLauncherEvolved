@@ -141,6 +141,11 @@
     <string name="feature_focus_icon_pack_system">System icons</string>
     <string name="feature_focus_blur">Wallpaper blur in this Mode</string>
     <string name="feature_focus_blur_none">No blur</string>
+    <string name="feature_focus_shade">Home screen shade in this Mode</string>
+    <string name="feature_focus_shade_none">None</string>
+    <string name="feature_focus_shade_dim">Dim %1$d%%</string>
+    <string name="feature_focus_shade_warm">Warm tint</string>
+    <string name="feature_focus_shade_cool">Cool tint</string>
     <string name="feature_focus_no_pages_assigned">No pages · shows the ordinary home screen</string>
     <string name="feature_focus_pages_assigned">Pages %1$s</string>
     <string name="feature_focus_no_pages">The home screen pages are not known yet. Open the home screen once, then try again.</string>
