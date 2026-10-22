@@ -384,6 +384,20 @@
   }
  ],
  "files": {
+  "PixelLauncherEvolvedModule.kt": {
+   "host_classes": [
+    "com.android.launcher3.LauncherApplication",
+    "com.android.systemui.application.impl.SystemUIApplicationImpl",
+    "com.google.android.apps.nexuslauncher",
+    "com.google.android.apps.wallpaper.picker.WallpapersApplication"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
   "bridge/Bridge.kt": {
    "host_classes": [
     "com.android.systemui",
@@ -1271,33 +1285,6 @@
    "binder": [],
    "preferences": false
   },
-  "feature/overview/bubble/SystemUiProxyBubbleLauncher.kt": {
-   "host_classes": [
-    "com.android.launcher3.util.DaggerSingletonObject",
-    "com.android.quickstep.SystemUiProxy",
-    "com.android.wm.shell.shared.bubbles.BubbleBarLocation",
-    "com.android.wm.shell.shared.bubbles.logging.EntryPoint"
-   ],
-   "host_members": [],
-   "hooks": 0,
-   "threads": 0,
-   "root": false,
-   "binder": [],
-   "preferences": false
-  },
-  "feature/overview/card/TaskCardHooks.kt": {
-   "host_classes": [],
-   "host_members": [
-    "onFinishInflate",
-    "onLayout",
-    "setFullscreenProgress"
-   ],
-   "hooks": 0,
-   "threads": 0,
-   "root": false,
-   "binder": [],
-   "preferences": false
-  },
   "feature/overview/ClearAllAction.kt": {
    "host_classes": [
     "com.android.quickstep.views.RecentsViewContainer"
@@ -1373,24 +1360,6 @@
    "binder": [],
    "preferences": false
   },
-  "feature/overview/split/SplitScreenAction.kt": {
-   "host_classes": [
-    "com.android.launcher3.logging.StatsLogManager\\$LauncherEvent",
-    "com.android.quickstep.views.RecentsViewContainer"
-   ],
-   "host_members": [
-    "getDeviceProfile",
-    "getPagedOrientationHandler",
-    "getRecentsView",
-    "getSplitPositionOption",
-    "getTaskContainers"
-   ],
-   "hooks": 0,
-   "threads": 0,
-   "root": false,
-   "binder": [],
-   "preferences": false
-  },
   "feature/overview/TaskTargetResolver.kt": {
    "host_classes": [],
    "host_members": [
@@ -1406,6 +1375,51 @@
    "host_classes": [],
    "host_members": [
     "getThumbnailBounds"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/bubble/SystemUiProxyBubbleLauncher.kt": {
+   "host_classes": [
+    "com.android.launcher3.util.DaggerSingletonObject",
+    "com.android.quickstep.SystemUiProxy",
+    "com.android.wm.shell.shared.bubbles.BubbleBarLocation",
+    "com.android.wm.shell.shared.bubbles.logging.EntryPoint"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/card/TaskCardHooks.kt": {
+   "host_classes": [],
+   "host_members": [
+    "onFinishInflate",
+    "onLayout",
+    "setFullscreenProgress"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/overview/split/SplitScreenAction.kt": {
+   "host_classes": [
+    "com.android.launcher3.logging.StatsLogManager\\$LauncherEvent",
+    "com.android.quickstep.views.RecentsViewContainer"
+   ],
+   "host_members": [
+    "getDeviceProfile",
+    "getPagedOrientationHandler",
+    "getRecentsView",
+    "getSplitPositionOption",
+    "getTaskContainers"
    ],
    "hooks": 0,
    "threads": 0,
@@ -1813,15 +1827,6 @@
    ],
    "preferences": false
   },
-  "lock/ScreenLocker.kt": {
-   "host_classes": [],
-   "host_members": [],
-   "hooks": 0,
-   "threads": 0,
-   "root": true,
-   "binder": [],
-   "preferences": false
-  },
   "lock/ScreenLockProvider.kt": {
    "host_classes": [
     "com.google.android.apps.nexuslauncher"
@@ -1830,6 +1835,15 @@
    "hooks": 0,
    "threads": 0,
    "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "lock/ScreenLocker.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": true,
    "binder": [],
    "preferences": false
   },
@@ -1923,20 +1937,6 @@
    "root": false,
    "binder": [],
    "preferences": false
-  },
-  "PixelLauncherEvolvedModule.kt": {
-   "host_classes": [
-    "com.android.launcher3.LauncherApplication",
-    "com.android.systemui.application.impl.SystemUIApplicationImpl",
-    "com.google.android.apps.nexuslauncher",
-    "com.google.android.apps.wallpaper.picker.WallpapersApplication"
-   ],
-   "host_members": [],
-   "hooks": 0,
-   "threads": 0,
-   "root": false,
-   "binder": [],
-   "preferences": true
   },
   "recovery/RecoveryActivity.kt": {
    "host_classes": [

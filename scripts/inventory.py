@@ -34,7 +34,8 @@ for m in re.finditer(r'<(provider|service|receiver|activity)\b(.*?)/?>', MANIFES
 for m in SETTING.finditer((SRC / 'catalog/Settings.kt').read_text(encoding='utf-8')):
     inventory['settings'].append({'name': m.group(1), 'type': m.group(2), 'key': m.group(3), 'default': m.group(4)})
 
-for path in sorted(list(SRC.rglob('*.kt')) + list(SRC.rglob('*.java'))):
+# Case-sensitive POSIX order, as on CI: Windows paths sort without case, which reorders the output.
+for path in sorted(list(SRC.rglob('*.kt')) + list(SRC.rglob('*.java')), key=lambda p: p.as_posix()):
     text = path.read_text(encoding='utf-8')
     rel = str(path.relative_to(SRC)).replace('\\', '/')
     consts = dict(CONST.findall(text))
