@@ -70,11 +70,21 @@ class AppLabelsFeature : LauncherFeature {
         }
 
         // A Mode with its own label switches coming on or going off binds the icons
-        // again through the same reload the everywhere switches use.
+        // again: the loaded workspace and the drawer's list, with nothing read from
+        // the database (ledger 36); the full reload the everywhere switches use is
+        // the fallback.
         val reloader = IconReloader(context.appContext, context.logger)
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
         ModeOverrides.onLabelsChanged = {
             if (AppLabels.hiddenSurfaces() != 0) hookOnce(context)
-            if (hooked) reloader.reload("Mode labels", SystemClock.elapsedRealtime(), null)
+            if (hooked) main.post {
+                if (ModeOverrides.rebindWorkspace?.invoke() == true) {
+                    runCatching { my.github.MrxSiN.pixellauncherevolved.feature.apps.AppDrawerList.rebuild() }
+                        .onFailure { context.logger.warn("App labels: the app drawer keeps its labels until it is rebuilt", it) }
+                } else {
+                    reloader.reload("Mode labels", SystemClock.elapsedRealtime(), null)
+                }
+            }
         }
     }
 

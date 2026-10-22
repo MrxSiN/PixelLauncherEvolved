@@ -471,6 +471,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         }
 
         val handler = Handler(Looper.getMainLooper())
+        ModeOverrides.rebindWorkspace = { rebuild(model, context) }
 
         // Reading the Modes is slow enough to be seen, so it is never done on
         // the thread that is drawing. See FocusRefresher for what that cost is.

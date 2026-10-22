@@ -589,3 +589,19 @@ entries 1–6 together as one candidate, not one change at a time.
   launcher's preview surfaces are owned by its own renderer); the pictures are bounded by page count
   and redrawn per model generation already.
 - **Decision:** reverted. Do not retry without first finding who owns the stray surface.
+
+## 36. A Mode's label switches rebind the loaded model instead of reloading it — ACCEPTED (P02, latency)
+
+- **Hypothesis:** a Mode that changes which surfaces show labels only changes what an icon bind
+  writes, yet it went through `IconReloader`'s `forceReload`, which reads the whole database again.
+- **Path:** `feature/labels/AppLabelsFeature.kt` (`ModeOverrides.onLabelsChanged`),
+  `feature/focus/FocusHomeFeature.kt` (`ModeOverrides.rebindWorkspace`).
+- **Mechanism:** the same `rebindCallbacks` call as entry 34 for Home, the dock and folders, then
+  the drawer list's own `notifyUpdate` (`AppDrawerList.rebuild`), which also hands the predictions
+  row its last list again. `forceReload` stays as the fallback when no launcher is bound yet.
+- **Correctness (device, Pixel 8 Pro, CP3A.261005.005):** DND set to hide labels everywhere:
+  Home, the predictions row and All apps lost their labels with DND on and had them back with it
+  off; no `Icons: launcher reloaded` and no loader-completed line in the log for either change.
+- **Measurement:** not measured separately; the call replaced is the one entry 34 measured
+  (`forceReload` median 170.5 ms vs `rebindCallbacks` 38.5 ms to bound, n = 12).
+- **Allocation/memory:** no database cursor or new item objects per change.

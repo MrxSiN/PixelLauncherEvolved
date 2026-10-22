@@ -64,6 +64,13 @@ object ModeOverrides {
     @Volatile
     var onLabelsChanged: (() -> Unit)? = null
 
+    /**
+     * Binds the loaded workspace again (`rebindCallbacks`), on the main thread; false when it
+     * could not. Set by the Mode pages feature, for overrides applied when an icon is bound.
+     */
+    @Volatile
+    var rebindWorkspace: (() -> Boolean)? = null
+
     @Volatile
     private var active: Map<String, Long> = emptyMap()
 
