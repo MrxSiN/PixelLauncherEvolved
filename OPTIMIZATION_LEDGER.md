@@ -605,3 +605,26 @@ entries 1–6 together as one candidate, not one change at a time.
 - **Measurement:** not measured separately; the call replaced is the one entry 34 measured
   (`forceReload` median 170.5 ms vs `rebindCallbacks` 38.5 ms to bound, n = 12).
 - **Allocation/memory:** no database cursor or new item objects per change.
+
+## 37. Drop Modes page pictures once no preview is on screen — REJECTED (P03, memory)
+
+- **Hypothesis:** the launcher's `get_preview_bitmap` answers software bitmaps (540 × 1202, about
+  2.6 MB each, one per page), kept by `RenderBook` for the launcher's life. Every opening draws the
+  pages again anyway, so dropping them 2 s after the last preview view detaches should give that
+  native memory back. Unlike entry 35 (trim callback), this only drops when no view listens.
+- **Stray surface (entry 35):** not seen in four reopenings into a Mode's grid. SurfaceFlinger lists
+  `SurfaceControlViewHost[com.google.android.apps.nexuslauncher]` layers per opening (the launcher's
+  preview renderer); old ones go away, so they are released on collection, not leaked.
+- **Leak check:** after an opening, `Activities` reads 2–3 until the settings activity is collected
+  (15–60 s); with trims it returns to 1 in both builds. Not a leak.
+- **Measurement:** Pixel 8 Pro, CP3A.261005.005, release builds HEAD (`18db845`) vs candidate,
+  interleaved n = 3 each; launcher restarted, Home settings → Modes pages opened and closed, then
+  waited (15 s steps with `RUNNING_CRITICAL` trims) until `AppContexts` was back to 13.
+  - Native Heap PSS (KB): base 53802 54729 54121; candidate 44005 44913 44337.
+  - Bitmap (malloced): base 12853 12852 12852 KB; candidate 2710 2710 2711 KB.
+  - Graphics (KB): base 141520 141620 141524; candidate 151612 151456 151612.
+  - TOTAL PSS (KB): base 236749 239083 238427; candidate 238632 240171 240099 (+0.7 %).
+  - An earlier single-build run split the same way (2.7 vs 16 MB bitmaps) by collection timing
+    alone, which is why each run waits for the contexts to be collected.
+- **Decision:** reverted: the native memory moves to graphics with no total saving, and every
+  reopening loses the instant pictures (each page then takes 0.53–0.63 s to draw, one after another).
