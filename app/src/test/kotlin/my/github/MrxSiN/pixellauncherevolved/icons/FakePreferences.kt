@@ -19,8 +19,16 @@ class FakePreferences : SharedPreferences {
     override fun getFloat(key: String, defValue: Float): Float = values[key] as? Float ?: defValue
     override fun getBoolean(key: String, defValue: Boolean): Boolean = values[key] as? Boolean ?: defValue
     override fun contains(key: String): Boolean = key in values
-    override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
-    override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
+    /** Told of each key a commit changes, and of a null key for a clear, as the platform's are. */
+    private val listeners = ArrayList<SharedPreferences.OnSharedPreferenceChangeListener>()
+
+    override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) {
+        if (listener != null && listener !in listeners) listeners += listener
+    }
+
+    override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) {
+        listeners -= listener ?: return
+    }
 
     override fun edit(): SharedPreferences.Editor = object : SharedPreferences.Editor {
         private val pending = HashMap<String, Any?>()
@@ -40,6 +48,8 @@ class FakePreferences : SharedPreferences {
             if (clear) values.clear()
             removed.forEach(values::remove)
             values.putAll(pending)
+            val changed = if (clear) listOf(null) + removed + pending.keys else removed + pending.keys
+            for (key in changed) for (listener in listeners.toList()) listener.onSharedPreferenceChanged(this@FakePreferences, key)
             return true
         }
 

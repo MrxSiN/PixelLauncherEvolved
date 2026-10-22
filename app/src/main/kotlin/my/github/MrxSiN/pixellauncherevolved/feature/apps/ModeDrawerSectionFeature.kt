@@ -55,11 +55,20 @@ class ModeDrawerSectionFeature : LauncherFeature {
         val itemView: Field = requireNotNull(Reflect.field(holderClass, "itemView"))
         val bind = requireNotNull(Reflect.declared(adapter, "onBindViewHolder") { it.parameterTypes.size == 2 && it.parameterTypes[1] == Int::class.javaPrimitiveType })
 
+        // Whether any list built since the section last went away carries it. Both hooks run
+        // on the main thread; with none, a bind (every row the drawer draws) reads nothing more.
+        // Cleared only when no list can carry it: other lists (a work tab) never do.
+        var shown = false
+
         context.xposed.hook(addApps).intercept { chain ->
             val section = ModeOverrides.drawerApps
             val title = ModeOverrides.drawerTitle
+            if (section.isEmpty() || title == null) {
+                shown = false
+                return@intercept chain.proceed()
+            }
             // While apps are being ticked every app has to be in its own place, once.
-            if (section.isEmpty() || title == null || HideAppsSelection.isSelecting || chain.getArg(1) !== apps.get(chain.thisObject)) {
+            if (HideAppsSelection.isSelecting || chain.getArg(1) !== apps.get(chain.thisObject)) {
                 return@intercept chain.proceed()
             }
             val added = runCatching {
@@ -73,11 +82,13 @@ class ModeDrawerSectionFeature : LauncherFeature {
                 target += newItem.newInstance(DIVIDER_TYPE)
                 picked.size + 2
             }.onFailure { context.logger.warn("The Mode's apps could not be put at the top of the drawer", it) }.getOrDefault(0)
+            if (added != 0) shown = true
             if (added == 0) chain.proceed() else chain.proceed(arrayOf((chain.getArg(0) as Int) + added, chain.getArg(1)))
         }
 
         context.xposed.hook(bind).intercept { chain ->
             val result = chain.proceed()
+            if (!shown) return@intercept result
             // Ours: the launcher's text row with no app in it; the launcher's own always has one.
             val view = chain.getArg(0)?.let(itemView::get) as? TextView ?: return@intercept result
             val item = runCatching { (items.get(adapterApps.get(chain.thisObject)) as List<*>)[chain.getArg(1) as Int] }.getOrNull()

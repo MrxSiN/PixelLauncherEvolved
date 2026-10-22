@@ -62,7 +62,13 @@ object LayoutCheckpoints : SharedPreferences.OnSharedPreferenceChangeListener {
             .onFailure { logger.warn("Layout: the copy asked for could not be put back; the layout is as it was", it) }
 
         dependent = dependsOnModule(liveDb(launcher), settings.getBoolean(Settings.DOCK_HIDDEN.key, false), settings.getInt(Settings.DOCK_ICONS.key, 0))
-        if (dependent) Thread({ take(launcher, settings, Slot.LATEST, logger) }, "PixelLauncherEvolved-layout").start()
+        // Copied while the launcher loads its first screen, so behind it rather than beside it.
+        if (dependent) {
+            Thread({
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+                take(launcher, settings, Slot.LATEST, logger)
+            }, "PixelLauncherEvolved-layout").start()
+        }
 
         this.launcher = launcher
         this.logger = logger

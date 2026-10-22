@@ -628,3 +628,74 @@ entries 1–6 together as one candidate, not one change at a time.
     alone, which is why each run waits for the contexts to be collected.
 - **Decision:** reverted: the native memory moves to graphics with no total saving, and every
   reopening loses the instant pictures (each page then takes 0.53–0.63 s to draw, one after another).
+
+## 38. Hidden apps read from preferences per app since Modes could hide apps — ACCEPTED
+
+- **Hypothesis:** v0.1.5 → `dc3fb1c` replaced the drawer and search store with `EffectiveHiddenApps`
+  (everywhere list plus the winning Mode's), whose `hidden()` called `SharedPreferences.getString`
+  once per list (twice with a Mode on) and wrote a volatile field, on every app the drawer predicate
+  tests and every search result. CLAUDE.md: hot hooks read compact state, not preferences.
+- **Path:** `feature/apps/HiddenAppsStore.kt` (`EffectiveHiddenApps`), used by
+  `HiddenAppsFeature` (drawer predicate, predictions row) and `AppDrawerSearchFeature`.
+- **Mechanism:** the store is its own `OnSharedPreferenceChangeListener` (held strongly by the
+  hooks; preferences keep listeners weakly) and counts writes to the everywhere key or any Mode
+  key; `hidden()` is two volatile reads while neither the count nor the winning Mode changed. An
+  answer worked out while a write lands keeps the count it was worked out for, so the next call
+  works it out again.
+- **Correctness:** `ModeOverridesTest` (new case: an unwritten change is not seen, a write through
+  the editor and a Mode's own list are), all 33 test classes pass; `FakePreferences` now notifies
+  listeners as the platform's does. Device (release candidate): Calculator hidden through Home
+  settings → Hidden apps left the drawer and the search results at once, and came back when
+  unhidden.
+- **Measurement (instrumentation builds, `Probe.wrap` on the drawer predicate; Pixel 8 Pro,
+  CP3A.261005.005, battery, thermal 0; base `dc3fb1c` vs candidate, 4 interleaved rounds, 40
+  rebuilds each, batches of 2000 calls, ns, includes the launcher's own predicate and the probe):**
+  - base p50 per batch: 2563 1790 1912 1871 1831 1872 2116 2075 2075 1872 2035 2645
+    (median 1974, IQR 1871–2106, MAD 102; p95 4659, p99 6917, mean 2901).
+  - candidate: 1628 1140 1587 1302 1709 1180 1627 1180 1628 1343 1587
+    (median 1587, IQR 1180–1628, MAD 122; p95 3377, p99 5697, mean 1880).
+  - p50 −19.6 %, mean −35.2 %, p99 −17.6 %. No Mode with hidden apps was on (the common case).
+- **Allocation/memory:** 0 counted per call in both (thread allocation counter); one listener and
+  one small object per store.
+
+## 39. Drawer section bind hook read four fields per row with no section — ACCEPTED
+
+- **Hypothesis:** `ModeDrawerSectionFeature`'s `onBindViewHolder` hook (new since v0.1.5) ran on
+  every drawer row: app icons are `TextView`s, so it read `itemView`, `mApps`, `mAdapterItems` and
+  the item by reflection inside `runCatching` even when no Mode heads the drawer.
+- **Path:** `feature/apps/ModeDrawerSectionFeature.kt`.
+- **Mechanism:** a main-thread flag set when a list is built with the section and cleared only when
+  no list can carry one (no section apps or no title); the bind returns after one boolean read
+  while it is clear. Other lists (a work tab) never clear it, so a section still shown keeps its
+  title.
+- **Correctness:** with a section, the same work runs; between a Mode going off and the rebuild it
+  posts, the flag is still set and the header reads `""` as before. DEX: `proceed()` then
+  `iget-boolean` and return.
+- **Measurement (same builds and rounds, drawer flung down and up 15 times, batches of 500 binds,
+  ns of the hook's own work after `proceed()`, probe included):**
+  - base p50: 4028 4924 5127 5046 4069 5086 4558 4801 3987 5168 5005 5371 4680 4843 5005 4842
+    (median 4884, IQR 4588–5076, MAD 203; p95 12227, p99 16602, mean 5878).
+  - candidate: 1872 2157 2075 2523 1953 1953 2320 2360 1709 1791 2035 2198 1587 2563 2563 2563 2889
+    (median 2157, IQR 1912–2543, MAD 285; p95 7731, p99 10254, mean 3035).
+  - p50 −55.8 %, p99 −38.2 %. The candidate's figure is mostly the probe's own timer and counter.
+- **Allocation/memory:** 0 counted in both; one `Ref.BooleanRef`.
+
+## 40. Mode home tint boxed per scrim ask — ACCEPTED (not measured)
+
+- **Path:** `feature/focus/FocusHomeFeature.kt` (`getWorkspaceScrimColor` hook).
+- **Mechanism:** while a Mode tint is on, the colour (outside the `Integer` cache) was boxed on every
+  ask; now boxed once per tint change. Main thread only. Asked per state change, not per frame, so
+  not measured; it removes an allocation per ask and changes nothing else.
+
+## 41. Layout copy at launcher start on a background-priority thread — ACCEPTED (not measured)
+
+- **Path:** `layout/LayoutCheckpoints.kt` (`install`).
+- **Mechanism:** the `VACUUM INTO` copy taken at each start while the layout depends on the module
+  ran at default priority beside the first workspace load; it now runs at
+  `THREAD_PRIORITY_BACKGROUND`. Same copy, same file. The owner's layout does not depend on the
+  module, so this start path does not run on the test phone and was not measured.
+
+| Artifact (release, R8) | `dc3fb1c` | Candidate | Change |
+|---|---|---|---|
+| APK | 1,202,324 B | 1,202,324 B | 0 (page-aligned) |
+| classes.dex | 614,784 B | 614,880 B | +96 B |

@@ -51,6 +51,24 @@ class ModeOverridesTest {
     }
 
     @Test
+    fun `a written list is read again, an unwritten one is not`() {
+        preferences.values["app_drawer_hidden_apps"] = "com.a"
+        val first = effective.hidden()
+        // Not written through the file: the cached answer stands, as on device.
+        preferences.values["app_drawer_hidden_apps"] = "com.z"
+        assertSame(first, effective.hidden())
+
+        effective.hide(setOf("com.a", "com.b"))
+        assertEquals(setOf("com.a", "com.b"), effective.hidden())
+
+        preferences.values["focus_hidden_apps_work"] = "com.c"
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
+        assertEquals(setOf("com.a", "com.b", "com.c"), effective.hidden())
+        preferences.edit().putString("focus_hidden_apps_work", "com.d").apply()
+        assertEquals(setOf("com.a", "com.b", "com.d"), effective.hidden())
+    }
+
+    @Test
     fun `search groups follow the latest Mode that hides any`() {
         preferences.values["focus_search_hide_work"] = "app_drawer_search_hide_web"
         preferences.values["focus_search_hide_bed"] = "app_drawer_search_hide_web,app_drawer_search_hide_play_store"

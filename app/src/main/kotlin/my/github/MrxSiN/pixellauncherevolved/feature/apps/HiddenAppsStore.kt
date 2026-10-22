@@ -63,7 +63,7 @@ class SharedPreferencesHiddenAppsStore(
     private class Parsed(val raw: String, val names: Set<String>)
 
     companion object {
-        private const val KEY = "app_drawer_hidden_apps"
+        const val KEY = "app_drawer_hidden_apps"
         private const val SEPARATOR = ","
 
         /** Apps a Mode hides on top of [KEY] while it is the Mode that wins ([ModeOverrides]). */
@@ -79,35 +79,49 @@ class SharedPreferencesHiddenAppsStore(
  * ones the winning Mode hides ([ModeOverrides]). One answer for every surface,
  * so the drawer and search never disagree.
  *
- * Asked once per app on every rebuild: both parts are cached sets handed back
- * by identity until written, so the union is built only when one changes.
+ * Asked once per app on every rebuild, so the answer is two volatile reads: the
+ * stored lists are read again only after one of them is written (this store is
+ * its own preference listener, called on the main thread as the write is made)
+ * or another Mode wins. A write landing while an answer is worked out leaves the
+ * count it was worked out for behind, so the next call works it out again.
  */
-class EffectiveHiddenApps(private val preferences: SharedPreferences) : HiddenAppsStore {
+class EffectiveHiddenApps(private val preferences: SharedPreferences) :
+    HiddenAppsStore, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private val global = SharedPreferencesHiddenAppsStore(preferences)
 
+    /** Writes to any hidden-apps list so far; written on the main thread only. */
     @Volatile
-    private var mode: SharedPreferencesHiddenAppsStore? = null
+    private var writes = 0
 
     @Volatile
-    private var union = Union(null, emptySet(), emptySet(), emptySet())
+    private var union = Union(-1, null, emptySet())
+
+    init {
+        // This object, not a lambda: preferences hold listeners weakly, and the
+        // hooks that ask this store keep it alive as long as they are installed.
+        preferences.registerOnSharedPreferenceChangeListener(this)
+    }
+
+    override fun onSharedPreferenceChanged(preferences: SharedPreferences, key: String?) {
+        if (key == null || key == SharedPreferencesHiddenAppsStore.KEY || key.startsWith(SharedPreferencesHiddenAppsStore.MODE_KEY)) writes++
+    }
 
     override fun hidden(): Set<String> {
         val id = ModeOverrides.modeId
-        val store = mode.takeIf { union.modeId == id }
-            ?: id?.let { SharedPreferencesHiddenAppsStore.forMode(preferences, it) }.also { mode = it }
-        val everywhere = global.hidden()
-        val forMode = store?.hidden() ?: emptySet()
+        val seen = writes
         val last = union
-        if (last.modeId == id && everywhere === last.everywhere && forMode === last.forMode) return last.names
+        if (last.writes == seen && last.modeId == id) return last.names
 
+        val everywhere = global.hidden()
+        val forMode = id?.let { SharedPreferencesHiddenAppsStore.forMode(preferences, it).hidden() } ?: emptySet()
         val names = if (forMode.isEmpty()) everywhere else everywhere + forMode
-        union = Union(id, everywhere, forMode, names)
+        union = Union(seen, id, names)
         return names
     }
 
     /** Writes the everywhere list; a Mode's own is written through [SharedPreferencesHiddenAppsStore.forMode]. */
     override fun hide(packageNames: Set<String>) = global.hide(packageNames)
 
-    private class Union(val modeId: String?, val everywhere: Set<String>, val forMode: Set<String>, val names: Set<String>)
+    private class Union(val writes: Int, val modeId: String?, val names: Set<String>)
 }

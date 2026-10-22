@@ -160,9 +160,17 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             return
         }
 
+        // The colour boxed once per tint, not once per ask; asked on the main thread only.
+        var boxedShade = 0
+        var boxed: Any = 0
         context.xposed.hook(scrimColor).intercept { chain ->
             val shade = ModeOverrides.shade
-            if (shade == 0 || chain.thisObject !== home) chain.proceed() else shade
+            if (shade == 0 || chain.thisObject !== home) return@intercept chain.proceed()
+            if (shade != boxedShade) {
+                boxedShade = shade
+                boxed = shade
+            }
+            boxed
         }
 
         // Applied again at once, without animation, so the shade follows the Mode while home is showing.
