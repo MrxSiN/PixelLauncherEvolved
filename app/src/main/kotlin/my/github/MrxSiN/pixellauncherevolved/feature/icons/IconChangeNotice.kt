@@ -15,7 +15,7 @@ import my.github.MrxSiN.pixellauncherevolved.core.Logger
  * and then that they have changed.
  *
  * Posted by the launcher, whose home screen it is, on a silent channel of its
- * own ("Icons pack") that a person can turn off like any other: the change is
+ * own ("Icon pack") that a person can turn off like any other: the change is
  * made from Wallpaper & style, and the home screen is where it lands, so the
  * notice is what connects the two. "Changing" shows an indeterminate progress
  * bar; "changed" replaces it without alerting again and goes away on its own.
@@ -31,18 +31,18 @@ internal class IconChangeNotice(
 
     /** The icons are being changed to [pack]'s, or to the system's when it is null. */
     fun changing(pack: String?) = post(
-        title = string(R.string.feature_icon_notice_changing, "Changing icons pack"),
+        title = string(R.string.feature_icon_notice_changing, "Applying icon pack…"),
         body = pack ?: string(R.string.feature_icon_notice_system, "System icons"),
         ongoing = true,
     )
 
     /** The icons are now [pack]'s, or the system's when it is null. */
     fun changed(pack: String?) = post(
-        title = string(R.string.feature_icon_notice_changed, "Icons pack changed"),
+        title = string(R.string.feature_icon_notice_changed, "Icon pack changed"),
         body = if (pack == null) {
-            string(R.string.feature_icon_notice_changed_system, "Your home screen uses system icons")
+            string(R.string.feature_icon_notice_changed_system, "Now using system icons")
         } else {
-            text?.getString(R.string.feature_icon_notice_changed_pack, pack) ?: "Your home screen uses $pack"
+            text?.getString(R.string.feature_icon_notice_changed_pack, pack) ?: "Now using $pack icons"
         },
         ongoing = false,
     )
@@ -52,7 +52,7 @@ internal class IconChangeNotice(
         runCatching {
             // Created, or renamed when the title changed: the platform keeps the person's own settings.
             notifications.createNotificationChannel(
-                NotificationChannel(CHANNEL, string(R.string.feature_icon_pack_title, "Icons pack"), NotificationManager.IMPORTANCE_HIGH).apply {
+                NotificationChannel(CHANNEL, string(R.string.feature_icon_pack_title, "Icon pack"), NotificationManager.IMPORTANCE_HIGH).apply {
                     setSound(null, null)
                     enableVibration(false)
                     setShowBadge(false)

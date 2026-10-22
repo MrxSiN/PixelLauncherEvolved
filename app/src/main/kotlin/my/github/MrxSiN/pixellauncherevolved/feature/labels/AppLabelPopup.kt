@@ -6,6 +6,7 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
 
+import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.labels.AppLabel
@@ -26,8 +27,8 @@ import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
  * the list it is given, built the way the launcher builds its own: its icon and
  * its text ("Edit Name", the launcher's own folder-name hint, translated with
  * the rest) are the launcher's resources, and its category is Pause app's. The
- * menu draws only resource-backed text, so the row cannot carry this module's
- * own string. The same menu opens on the Home screen, the dock,
+ * menu draws only resource-backed text, so in English the row's own label
+ * answers getText with "Rename" instead. The same menu opens on the Home screen, the dock,
  * folders and the app drawer, so the row is there in all of them; it is offered
  * for apps only, not for shortcuts, widgets or folders.
  *
@@ -75,6 +76,18 @@ internal object AppLabelPopup {
 
         val apps = AppIdentity(context, itemInfo)
         val store = AppLabelStore(LauncherSettings.preferences(launcher))
+        // One label for every menu: the launcher's text unless renamed below.
+        val label = newText.newInstance(editName)
+        // "Rename" in English, set as each menu opens; other languages keep the
+        // launcher's translated "Edit Name", since this module is English only.
+        var renameText: String? = null
+        runCatching {
+            val composer = requireNotNull(context.findClass("androidx.compose.runtime.Composer"))
+            context.xposed.hook(Reflect.declaredMethod(resourceString, "getText", composer)).intercept { chain ->
+                val text = renameText
+                if (text != null && chain.thisObject === label) text else chain.proceed()
+            }
+        }.onFailure { context.logger.warn("App labels: the long-press row keeps the launcher's Edit Name", it) }
 
         context.xposed.hook(show).intercept { chain ->
             val items = chain.getArg(1) as? List<*>
@@ -85,10 +98,11 @@ internal object AppLabelPopup {
             }
             val app = apps.targetOf(item) ?: return@intercept chain.proceed()
 
+            renameText = if (popup.resources.configuration.locales[0].language == "en") strings.getString(R.string.app_labels_rename) else null
             val after = items.indexOfFirst { resourceString.isInstance(labelOf.get(it)) && resId.getInt(labelOf.get(it)) == pause }
             val rename = newItem.newInstance(
                 icon,
-                newText.newInstance(editName),
+                label,
                 Proxy.newProxyInstance(actionType.classLoader, arrayOf(actionType), action {
                     close(popup)
                     val own = (title.get(item) as CharSequence?)?.toString().orEmpty()

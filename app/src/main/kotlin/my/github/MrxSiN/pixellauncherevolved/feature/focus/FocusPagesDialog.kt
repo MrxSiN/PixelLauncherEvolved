@@ -219,7 +219,7 @@ internal object FocusPagesDialog {
         // Null follows Home settings' blur; "0" is none.
         var blurValue: String? = preferences.getString(ModeOverrides.BLUR_KEY + mode.id, null)
         val blurChoices = listOf<Pair<String?, CharSequence>>(
-            null to resources.getString(R.string.feature_focus_icon_pack_inherit),
+            null to resources.getString(R.string.feature_focus_inherit),
             "0" to resources.getString(R.string.feature_focus_blur_none),
         ) + listOf(25, 50, 75, 100).map { it.toString() to "$it%" }
         val blurRow = textRow(context, "")
@@ -257,7 +257,7 @@ internal object FocusPagesDialog {
         // Null follows the App labels switches; any other value replaces them while this Mode wins.
         var labelsValue: String? = preferences.getString(ModeOverrides.LABELS_KEY + mode.id, null)
         val labelsChoices = listOf<Pair<String?, CharSequence>>(
-            null to resources.getString(R.string.feature_focus_icon_pack_inherit),
+            null to resources.getString(R.string.feature_focus_inherit),
             "0" to resources.getString(R.string.feature_focus_labels_all),
             (AppLabels.HIDE_HOME or AppLabels.HIDE_FOLDER).toString() to resources.getString(R.string.feature_focus_labels_off_home),
             AppLabels.HIDE_DRAWER.toString() to resources.getString(R.string.feature_focus_labels_off_drawer),

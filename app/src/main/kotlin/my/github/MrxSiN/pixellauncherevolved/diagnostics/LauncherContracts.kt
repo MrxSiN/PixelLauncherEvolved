@@ -233,6 +233,12 @@ object LauncherContracts {
         optional("com.android.launcher3.popup.ui.PopupItem", Member.Field("label"), APP_LABELS),
         optional("com.android.launcher3.popup.ui.PopupItem", Member.Field("category"), APP_LABELS),
         optional("com.android.launcher3.popup.ui.StringContainer\$ResourceString", Member.Field("resId"), APP_LABELS),
+        // Without this the row reads the launcher's "Edit Name".
+        optional(
+            "com.android.launcher3.popup.ui.StringContainer\$ResourceString",
+            method("getText", "androidx.compose.runtime.Composer"),
+            APP_LABELS,
+        ),
         // Without these search finds a renamed app by its own label only.
         optional(
             "com.android.launcher3.search.StringMatcherUtility",
