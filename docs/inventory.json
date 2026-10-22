@@ -551,14 +551,16 @@
     "com.android.launcher3.Launcher",
     "com.android.launcher3.allapps.ActivityAllAppsContainerView\\$AdapterHolder",
     "com.android.launcher3.allapps.AlphabeticalAppsList",
+    "com.android.launcher3.appprediction.PredictionRowView",
     "com.android.launcher3.model.data.ItemInfo"
    ],
    "host_members": [
+    "applyPredictedApps",
     "getTargetPackage",
     "onResume",
     "setup"
    ],
-   "hooks": 2,
+   "hooks": 3,
    "threads": 0,
    "root": false,
    "binder": [],

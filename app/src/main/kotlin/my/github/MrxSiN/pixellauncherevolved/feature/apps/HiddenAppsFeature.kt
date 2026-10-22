@@ -84,6 +84,8 @@ class HiddenAppsFeature : LauncherFeature {
             )
         }
 
+        hidePredictions(context, store, packageOf)
+
         // Returning from Home settings resumes the launcher, which is where a
         // change made there becomes a change on screen.
         context.hookAfter(launcher, ON_RESUME) { _, _ ->
@@ -125,6 +127,29 @@ class HiddenAppsFeature : LauncherFeature {
         })
     }
 
+    /**
+     * Takes the same apps out of the prediction row at the top of the drawer.
+     * Fewer apps leave the row's last places empty, as the launcher does itself
+     * when it has fewer predictions. Missing on a host, only this row is left
+     * unfiltered.
+     */
+    private fun hidePredictions(context: FeatureContext, store: HiddenAppsStore, packageOf: java.lang.reflect.Method) {
+        val apply = context.findClass(PREDICTION_ROW)?.let { Reflect.method(it, APPLY_PREDICTED, List::class.java) }
+        if (apply == null) {
+            context.logger.warn("The app drawer's predictions cannot be filtered in this launcher")
+            return
+        }
+        context.xposed.hook(apply).intercept { chain ->
+            val apps = chain.getArg(0) as? List<*> ?: return@intercept chain.proceed()
+            AppDrawerList.rememberPredictions(chain.thisObject, apps, apply)
+            val hidden = store.hidden()
+            if (hidden.isEmpty()) return@intercept chain.proceed()
+            chain.proceed(arrayOf(apps.filter { info ->
+                runCatching { Invoke.noArgs(packageOf, info) as? String }.getOrNull() !in hidden
+            }))
+        }
+    }
+
     private fun remember(adapterHolder: Any?, holder: Class<*>, appsList: Class<*>) {
         val list = adapterHolder?.let { Reflect.field(holder, APPS_LIST_FIELD)?.get(it) } ?: return
         Reflect.field(appsList, STORE_FIELD)?.get(list)?.let(AppDrawerList::remember)
@@ -136,6 +161,8 @@ class HiddenAppsFeature : LauncherFeature {
         const val APPS_LIST = "com.android.launcher3.allapps.AlphabeticalAppsList"
         const val ITEM_INFO = "com.android.launcher3.model.data.ItemInfo"
         const val LAUNCHER = "com.android.launcher3.Launcher"
+        const val PREDICTION_ROW = "com.android.launcher3.appprediction.PredictionRowView"
+        const val APPLY_PREDICTED = "applyPredictedApps"
 
         const val APPS_LIST_FIELD = "mAppsList"
         const val STORE_FIELD = "mAllAppsStore"

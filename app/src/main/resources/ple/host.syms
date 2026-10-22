@@ -34,6 +34,7 @@ S	com.android.launcher3.allapps.BaseAllAppsAdapter$AdapterItem
 S	com.android.launcher3.allapps.BaseAllAppsAdapter$ViewHolder
 S	com.android.launcher3.allapps.SearchUiManager
 S	com.android.launcher3.anim.PendingAnimation
+S	com.android.launcher3.appprediction.PredictionRowView
 S	com.android.launcher3.compat.AlphabeticIndexCompat
 S	com.android.launcher3.dagger.LauncherBaseAppComponent
 S	com.android.launcher3.dagger.LauncherComponentProvider
@@ -229,6 +230,7 @@ N	apply
 N	applyDotState
 N	applyIconAndLabel
 N	applyLabel
+N	applyPredictedApps
 N	applyState
 N	applyTo
 N	apps
