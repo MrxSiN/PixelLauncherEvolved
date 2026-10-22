@@ -72,7 +72,15 @@ public final class AppLabels {
      * only, leaving the app drawer, its order and search to the app's own name.
      */
     public static int hiddenSurfaces() {
-        return hiddenSurfaces;
+        int mode = modeSurfaces;
+        return mode >= 0 ? mode : hiddenSurfaces;
+    }
+
+    /** The winning Mode's surfaces, replacing the everywhere switches while it is on; -1 to follow them. */
+    private static volatile int modeSurfaces = -1;
+
+    public static void setModeSurfaces(int value) {
+        modeSurfaces = value;
     }
 
     public static void setHiddenSurfaces(int value) {

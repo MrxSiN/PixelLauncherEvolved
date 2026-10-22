@@ -17,6 +17,7 @@ import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HideAppsSelection
 import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
+import my.github.MrxSiN.pixellauncherevolved.labels.AppLabels
 import my.github.MrxSiN.pixellauncherevolved.feature.search.SearchResultKind
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
@@ -253,6 +254,27 @@ internal object FocusPagesDialog {
                 showShade(label)
             }
         }
+        // Null follows the App labels switches; any other value replaces them while this Mode wins.
+        var labelsValue: String? = preferences.getString(ModeOverrides.LABELS_KEY + mode.id, null)
+        val labelsChoices = listOf<Pair<String?, CharSequence>>(
+            null to resources.getString(R.string.feature_focus_icon_pack_inherit),
+            "0" to resources.getString(R.string.feature_focus_labels_all),
+            (AppLabels.HIDE_HOME or AppLabels.HIDE_FOLDER).toString() to resources.getString(R.string.feature_focus_labels_off_home),
+            AppLabels.HIDE_DRAWER.toString() to resources.getString(R.string.feature_focus_labels_off_drawer),
+            (AppLabels.HIDE_HOME or AppLabels.HIDE_FOLDER or AppLabels.HIDE_DRAWER).toString() to
+                resources.getString(R.string.feature_focus_labels_none),
+        )
+        val labelsRow = textRow(context, "")
+        fun showLabels(label: CharSequence) {
+            labelsRow.text = resources.getString(R.string.feature_focus_labels) + "\n" + label
+        }
+        showLabels(labelsChoices.firstOrNull { it.first == labelsValue }?.second ?: labelsValue.orEmpty())
+        labelsRow.setOnClickListener {
+            choose(context, resources.getString(R.string.feature_focus_labels), labelsChoices) { value, label ->
+                labelsValue = value
+                showLabels(label)
+            }
+        }
         val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             addView(withOrdinary)
@@ -261,6 +283,7 @@ internal object FocusPagesDialog {
             addView(iconRow)
             addView(blurRow)
             addView(shadeRow)
+            addView(labelsRow)
             addView(textRow(context, resources.getString(R.string.feature_focus_search_heading)).apply {
                 isClickable = false
                 isFocusable = false
@@ -294,6 +317,9 @@ internal object FocusPagesDialog {
                         val shade = shadeValue
                         if (shade == null) remove(ModeOverrides.SHADE_KEY + mode.id)
                         else putString(ModeOverrides.SHADE_KEY + mode.id, shade)
+                        val labels = labelsValue
+                        if (labels == null) remove(ModeOverrides.LABELS_KEY + mode.id)
+                        else putString(ModeOverrides.LABELS_KEY + mode.id, labels)
                     }.apply()
                     ModeOverrides.recompute(preferences)
                     apply(store, mode, chosen)

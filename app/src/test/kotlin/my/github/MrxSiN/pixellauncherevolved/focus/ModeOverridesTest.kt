@@ -8,6 +8,7 @@ import org.junit.Test
 
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.EffectiveHiddenApps
 import my.github.MrxSiN.pixellauncherevolved.icons.FakePreferences
+import my.github.MrxSiN.pixellauncherevolved.labels.AppLabels
 
 class ModeOverridesTest {
 
@@ -92,6 +93,26 @@ class ModeOverridesTest {
         ModeOverrides.onShadeChanged = null
         assertEquals(0, ModeOverrides.shade)
         assertEquals(2, told)
+    }
+
+    @Test
+    fun `a Mode's label surfaces replace the everywhere switches while it is on`() {
+        var told = 0
+        ModeOverrides.onLabelsChanged = { told++ }
+        AppLabels.setHiddenSurfaces(AppLabels.HIDE_DRAWER)
+        preferences.values["focus_labels_work"] = "0"
+        ModeOverrides.update(preferences, mapOf("work" to 1L))
+        assertEquals(0, AppLabels.hiddenSurfaces())
+
+        preferences.values["focus_labels_work"] = "13"
+        ModeOverrides.recompute(preferences)
+        assertEquals(AppLabels.HIDE_HOME or AppLabels.HIDE_FOLDER, AppLabels.hiddenSurfaces())
+
+        ModeOverrides.update(preferences, emptyMap())
+        ModeOverrides.onLabelsChanged = null
+        assertEquals(AppLabels.HIDE_DRAWER, AppLabels.hiddenSurfaces())
+        AppLabels.setHiddenSurfaces(0)
+        assertEquals(3, told)
     }
 
     @Test

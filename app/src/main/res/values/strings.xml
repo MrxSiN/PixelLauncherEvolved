@@ -146,6 +146,11 @@
     <string name="feature_focus_shade_dim">Dim %1$d%%</string>
     <string name="feature_focus_shade_warm">Warm tint</string>
     <string name="feature_focus_shade_cool">Cool tint</string>
+    <string name="feature_focus_labels">App labels in this Mode</string>
+    <string name="feature_focus_labels_all">All labels shown</string>
+    <string name="feature_focus_labels_off_home">Off on Home screen and folders</string>
+    <string name="feature_focus_labels_off_drawer">Off in app drawer</string>
+    <string name="feature_focus_labels_none">Off everywhere</string>
     <string name="feature_focus_no_pages_assigned">No pages · shows the ordinary home screen</string>
     <string name="feature_focus_pages_assigned">Pages %1$s</string>
     <string name="feature_focus_no_pages">The home screen pages are not known yet. Open the home screen once, then try again.</string>

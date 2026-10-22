@@ -2,6 +2,8 @@ package my.github.MrxSiN.pixellauncherevolved.focus
 
 import android.content.SharedPreferences
 
+import my.github.MrxSiN.pixellauncherevolved.labels.AppLabels
+
 /**
  * What the Modes that are on change besides their pages: hidden apps, search
  * groups and the icon pack.
@@ -52,6 +54,15 @@ object ModeOverrides {
     @Volatile
     var shade: Int = 0
         private set
+
+    /** Surfaces ([AppLabels.HIDE_HOME] and the rest) whose labels the winning Mode leaves off ([LABELS_KEY]); -1 to follow the everywhere switches. */
+    @Volatile
+    var labels: Int = -1
+        private set
+
+    /** Told on any thread when [labels] changes, so icons can be bound again. */
+    @Volatile
+    var onLabelsChanged: (() -> Unit)? = null
 
     @Volatile
     private var active: Map<String, Long> = emptyMap()
@@ -104,6 +115,13 @@ object ModeOverrides {
             onShadeChanged?.invoke()
         }
 
+        val labelsNow = winner(LABELS_KEY)?.let { (all[LABELS_KEY + it] as? String)?.toIntOrNull()?.and(LABEL_SURFACES) } ?: -1
+        if (labelsNow != labels) {
+            labels = labelsNow
+            AppLabels.setModeSurfaces(labelsNow)
+            onLabelsChanged?.invoke()
+        }
+
         val drawerMode = winner(DRAWER_APPS_KEY)
         val apps = drawerMode?.let { (all[DRAWER_APPS_KEY + it] as? String).orEmpty().split(',').filterTo(HashSet()) { p -> p.isNotBlank() } }
             ?: emptySet()
@@ -140,6 +158,11 @@ object ModeOverrides {
 
     /** `focus_shade_<modeId>`: ARGB in hex laid over the home screen while that Mode wins (dim or tint). */
     const val SHADE_KEY = "focus_shade_"
+
+    /** `focus_labels_<modeId>`: the surfaces whose labels that Mode leaves off, as a decimal bit set; "0" shows them all. */
+    const val LABELS_KEY = "focus_labels_"
+
+    private const val LABEL_SURFACES = AppLabels.HIDE_HOME or AppLabels.HIDE_DRAWER or AppLabels.HIDE_FOLDER
 
     /** A Mode's icon pack value meaning the system's own icons. */
     const val SYSTEM_ICONS = ":system"

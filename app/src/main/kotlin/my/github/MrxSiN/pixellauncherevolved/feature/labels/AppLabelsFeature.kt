@@ -3,6 +3,7 @@ package my.github.MrxSiN.pixellauncherevolved.feature.labels
 import android.content.ComponentName
 import android.content.Intent
 import android.os.LocaleList
+import android.os.SystemClock
 import android.view.View
 
 import java.lang.reflect.Field
@@ -12,6 +13,8 @@ import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.icons.IconReloader
+import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
 import my.github.MrxSiN.pixellauncherevolved.labels.AppLabelStore
@@ -64,6 +67,14 @@ class AppLabelsFeature : LauncherFeature {
             context.logger.info("App labels: none chosen; nothing hooked")
         } else {
             hookOnce(context)
+        }
+
+        // A Mode with its own label switches coming on or going off binds the icons
+        // again through the same reload the everywhere switches use.
+        val reloader = IconReloader(context.appContext, context.logger)
+        ModeOverrides.onLabelsChanged = {
+            if (AppLabels.hiddenSurfaces() != 0) hookOnce(context)
+            if (hooked) reloader.reload("Mode labels", SystemClock.elapsedRealtime(), null)
         }
     }
 
