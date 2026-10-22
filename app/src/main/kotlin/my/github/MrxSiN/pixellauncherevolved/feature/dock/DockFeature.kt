@@ -227,8 +227,13 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
                 val own = !Grid.isPreview(profile)
                 if (own) Dock.stockRows = rows
                 // Landscape mode puts the search bar in the dock's row, so
-                // there is no row to give; the icons are only hidden.
-                val give = context.settings[Settings.DOCK_HIDDEN] && fixedLandscapeOf?.getBoolean(profile) != true &&
+                // there is no row to give; the icons are only hidden. A taskbar
+                // keeps the dock shown ([apply]), so it gets no row either.
+                // ponytail: only this module's Taskbar only is known here (the
+                // profiles that report a taskbar are built after); a stock
+                // large-screen taskbar still gets the row.
+                val give = context.settings[Settings.DOCK_HIDDEN] && !context.settings[Settings.TASKBAR_ONLY] &&
+                    fixedLandscapeOf?.getBoolean(profile) != true &&
                     recordsColumnsAndRows(context, profile, columnsOf, rows)
                 rowsOf.setInt(profile, DockIcons.rows(rows, give))
 
