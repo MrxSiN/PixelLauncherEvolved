@@ -9,6 +9,7 @@ import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Switch
@@ -27,6 +28,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.search.SearchResultKind
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHiddenAppsStore
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveCardList
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressivePage
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRadio
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRole
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveShapes
@@ -128,27 +130,31 @@ internal object FocusPagesDialog {
                 summary = { screens -> summary(resources, screens) },
             ),
         )
-        lateinit var dialog: Dialog
-        // A deleted Mode's pages follow the Modes as one more row, under the name it had.
-        val orphans = store.orphans()
-        val orphanRows = orphans.map { (id, orphan) ->
-            FocusMode(ORPHAN_ROW + id, resources.getString(R.string.feature_focus_orphan, orphan.name ?: resources.getString(R.string.feature_focus_orphan_unnamed)), false)
-        }
-        val owned = store.assignments() + orphans.map { (id, orphan) -> ORPHAN_ROW + id to orphan.screens }
-        val rows = list.build(modes + orphanRows, owned, previews) { mode ->
-            dialog.dismiss()
-            val orphan = orphans[mode.id.removePrefix(ORPHAN_ROW)]
-            if (mode.id.startsWith(ORPHAN_ROW) && orphan != null) {
-                giveOrphan(context, resources, store, mode.id.removePrefix(ORPHAN_ROW), orphan, modes, list, previews)
-            } else {
-                choosePages(context, resources, store, mode, previews)
+        // The list stays open under a Mode's page and is drawn again when that page closes.
+        val rows = FrameLayout(context)
+        fun refill() {
+            // A deleted Mode's pages follow the Modes as one more row, under the name it had.
+            val orphans = store.orphans()
+            val orphanRows = orphans.map { (id, orphan) ->
+                FocusMode(ORPHAN_ROW + id, resources.getString(R.string.feature_focus_orphan, orphan.name ?: resources.getString(R.string.feature_focus_orphan_unnamed)), false)
             }
+            val owned = store.assignments() + orphans.map { (id, orphan) -> ORPHAN_ROW + id to orphan.screens }
+            rows.removeAllViews()
+            rows.addView(list.build(modes + orphanRows, owned, previews) { mode ->
+                val orphan = orphans[mode.id.removePrefix(ORPHAN_ROW)]
+                if (mode.id.startsWith(ORPHAN_ROW) && orphan != null) {
+                    giveOrphan(context, resources, store, mode.id.removePrefix(ORPHAN_ROW), orphan, modes, list, previews, ::refill)
+                } else {
+                    choosePages(context, resources, store, mode, previews, ::refill)
+                }
+            })
         }
-        dialog = ExpressiveDialog(context)
+        refill()
+        ExpressivePage(context)
             .title(resources.getString(R.string.feature_focus_pages_title))
-            .message(resources.getString(R.string.feature_focus_choose_mode_summary))
+            .description(resources.getString(R.string.feature_focus_choose_mode_summary))
+            .backLabel(resources.getString(R.string.action_navigate_up))
             .content(rows)
-            .dismiss(context.getString(android.R.string.cancel))
             .show()
     }
 
@@ -158,6 +164,10 @@ internal object FocusPagesDialog {
      * A page belongs to one Mode at a time, so pages owned by another Mode are
      * not offered here. Ticking nothing gives the Mode's pages back to the
      * ordinary home screen, which is how an assignment is undone.
+     *
+     * A full page, saved as it is left, as a Settings page is. Home screens
+     * that would leave none for while no Mode is on are not saved; the rest is,
+     * and a dialog says why. [onSaved] redraws the Mode list under it.
      */
     private fun choosePages(
         context: Context,
@@ -165,6 +175,7 @@ internal object FocusPagesDialog {
         store: FocusStore,
         mode: FocusMode,
         previews: Map<Int, FocusPagePreview>,
+        onSaved: () -> Unit,
     ) {
         val assignments = store.assignments()
         val grid = FocusPageGrid(context) { screen ->
@@ -176,7 +187,7 @@ internal object FocusPagesDialog {
             selected = assignments[mode.id].orEmpty(),
         )
 
-        lateinit var dialog: Dialog
+        lateinit var page: Dialog
         val preferences = LauncherSettings.preferences(context)
 
         // Off keeps the Mode to its own home screens, as before; on keeps the regular ones beside them.
@@ -252,7 +263,7 @@ internal object FocusPagesDialog {
             addView(card(context, listOf(ordinary)) { withOrdinary.toggle() }, gap(context, 16f))
             addView(heading(context, resources.getString(R.string.feature_focus_section_apps)))
             addView(card(context, listOf(hiddenApps, drawerApps)) { index ->
-                dialog.dismiss()
+                page.dismiss()
                 pickApps(context, if (index == 0) hiddenStore else drawerStore)
             })
             addView(heading(context, resources.getString(R.string.settings_group_appearance)))
@@ -289,42 +300,46 @@ internal object FocusPagesDialog {
             })
         }
 
-        dialog = ExpressiveDialog(context)
-            .icon(FocusModeIcons.load(context, mode.icon))
+        page = ExpressivePage(context)
             .title(mode.name)
-            .message(resources.getString(R.string.feature_focus_choose_pages_summary))
+            .description(resources.getString(R.string.feature_focus_choose_pages_summary))
+            .backLabel(resources.getString(R.string.action_navigate_up))
             .content(content)
-            .dismiss(context.getString(android.R.string.cancel))
-            .confirm(resources.getString(R.string.feature_focus_save)) {
+            .onClose {
+                store.setWithOrdinary(mode.id, withOrdinary.isChecked)
+                val off = searchSwitches.filter { (_, row) -> (row.end as Switch).let { it.isEnabled && !it.isChecked } }.map { it.first }
+                preferences.edit().apply {
+                    if (off.isEmpty()) remove(ModeOverrides.SEARCH_KEY + mode.id)
+                    else putString(ModeOverrides.SEARCH_KEY + mode.id, off.joinToString(","))
+                    val pack = iconPack
+                    if (pack == null) remove(ModeOverrides.ICON_PACK_KEY + mode.id)
+                    else putString(ModeOverrides.ICON_PACK_KEY + mode.id, pack)
+                    val blur = blurValue
+                    if (blur == null) remove(ModeOverrides.BLUR_KEY + mode.id)
+                    else putString(ModeOverrides.BLUR_KEY + mode.id, blur)
+                    val shade = shadeValue
+                    if (shade == null) remove(ModeOverrides.SHADE_KEY + mode.id)
+                    else putString(ModeOverrides.SHADE_KEY + mode.id, shade)
+                    val labels = labelsValue
+                    if (labels == null) remove(ModeOverrides.LABELS_KEY + mode.id)
+                    else putString(ModeOverrides.LABELS_KEY + mode.id, labels)
+                }.apply()
+                ModeOverrides.recompute(preferences)
                 val chosen = grid.selectedScreens()
-                if (leavesOrdinaryPage(FocusPages.order, store.assignments(), mode.id, chosen)) {
-                    store.setWithOrdinary(mode.id, withOrdinary.isChecked)
-                    val off = searchSwitches.filter { (_, row) -> (row.end as Switch).let { it.isEnabled && !it.isChecked } }.map { it.first }
-                    preferences.edit().apply {
-                        if (off.isEmpty()) remove(ModeOverrides.SEARCH_KEY + mode.id)
-                        else putString(ModeOverrides.SEARCH_KEY + mode.id, off.joinToString(","))
-                        val pack = iconPack
-                        if (pack == null) remove(ModeOverrides.ICON_PACK_KEY + mode.id)
-                        else putString(ModeOverrides.ICON_PACK_KEY + mode.id, pack)
-                        val blur = blurValue
-                        if (blur == null) remove(ModeOverrides.BLUR_KEY + mode.id)
-                        else putString(ModeOverrides.BLUR_KEY + mode.id, blur)
-                        val shade = shadeValue
-                        if (shade == null) remove(ModeOverrides.SHADE_KEY + mode.id)
-                        else putString(ModeOverrides.SHADE_KEY + mode.id, shade)
-                        val labels = labelsValue
-                        if (labels == null) remove(ModeOverrides.LABELS_KEY + mode.id)
-                        else putString(ModeOverrides.LABELS_KEY + mode.id, labels)
-                    }.apply()
-                    ModeOverrides.recompute(preferences)
+                // Assigning puts the Mode first in priority, so only a real change is assigned.
+                if (chosen == store.assignments()[mode.id].orEmpty()) {
+                    // Unchanged.
+                } else if (leavesOrdinaryPage(FocusPages.order, store.assignments(), mode.id, chosen)) {
                     apply(store, mode, chosen)
-                } else {
+                } else if ((context as? Activity)?.isFinishing != true) {
+                    // Not after Hidden apps or Top of app drawer has left settings for the drawer.
                     ExpressiveDialog(context)
                         .title(mode.name)
                         .message(resources.getString(R.string.feature_focus_keep_one_page))
                         .dismiss(context.getString(android.R.string.ok))
                         .show()
                 }
+                onSaved()
             }
             .show()
     }
@@ -342,6 +357,7 @@ internal object FocusPagesDialog {
         modes: List<FocusMode>,
         list: FocusModeList,
         previews: Map<Int, FocusPagePreview>,
+        onDone: () -> Unit,
     ) {
         lateinit var dialog: Dialog
         val rows = list.build(modes, store.assignments(), previews) { mode ->
@@ -350,6 +366,7 @@ internal object FocusPagesDialog {
             if (leavesOrdinaryPage(FocusPages.order, store.assignments(), mode.id, chosen)) {
                 apply(store, mode, chosen)
                 store.keepOrphan(id, orphan.copy(screens = emptySet()))
+                onDone()
             } else {
                 ExpressiveDialog(context)
                     .title(mode.name)
@@ -362,7 +379,10 @@ internal object FocusPagesDialog {
             .title(resources.getString(R.string.feature_focus_orphan, orphan.name ?: resources.getString(R.string.feature_focus_orphan_unnamed)))
             .message(resources.getString(R.string.feature_focus_orphan_summary))
             .content(rows)
-            .confirm(resources.getString(R.string.feature_focus_orphan_forget)) { store.keepOrphan(id, orphan.copy(screens = emptySet())) }
+            .confirm(resources.getString(R.string.feature_focus_orphan_forget)) {
+                store.keepOrphan(id, orphan.copy(screens = emptySet()))
+                onDone()
+            }
             .dismiss(context.getString(android.R.string.cancel))
             .show()
     }

@@ -80,7 +80,6 @@ object SettingsBackupFormat {
     private const val KEY_ICON_OVERRIDES = "iconOverrides"
     private const val KEY_GRID = "grid"
     private const val KEY_APP_LABELS = "appLabels"
-    private const val KEY_DOUBLE_TAP_ACTION = "doubleTapAction"
     private const val KEY_LABEL_PROFILE = "profile"
     private const val KEY_LABEL_NAME = "name"
     private const val KEY_LABEL_HIDE_HOME = "hideHome"
@@ -115,7 +114,6 @@ object SettingsBackupFormat {
         put(KEY_ICON_OVERRIDES, writeOverrides(snapshot.iconOverrides))
         put(KEY_GRID, JSONObject().apply { for ((name, setting) in GRID) put(name, snapshot.grid[setting] ?: setting.default) })
         put(KEY_APP_LABELS, writeLabels(snapshot.appLabels))
-        put(KEY_DOUBLE_TAP_ACTION, snapshot.doubleTapAction)
     }.toString(INDENT)
 
     /** Labels by component and kind of profile; the user number stays on the device that wrote it. */
@@ -242,7 +240,6 @@ object SettingsBackupFormat {
                 GRID.entries.associate { (name, setting) -> setting to (grid?.optInt(name, setting.default) ?: setting.default).coerceIn(setting.range) }
             },
             appLabels = readLabels(json.optJSONArray(KEY_APP_LABELS)),
-            doubleTapAction = json.optInt(KEY_DOUBLE_TAP_ACTION, defaults.doubleTapAction).coerceIn(Settings.HOME_DOUBLE_TAP_ACTION.range),
         )
     }
 

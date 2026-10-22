@@ -117,7 +117,6 @@
     <string name="feature_focus_choose_pages_summary">Select one or more home screen previews.</string>
     <string name="feature_focus_active">Active</string>
     <string name="feature_focus_page">Home screen %1$d</string>
-    <string name="feature_focus_save">Save</string>
     <string name="feature_focus_with_ordinary">Also show regular home screens</string>
     <string name="feature_focus_hidden_apps">Hidden apps</string>
     <string name="feature_focus_drawer_apps">Top of app drawer</string>
@@ -129,15 +128,10 @@
     <string name="labels_folders_summary">Show names beneath app icons in folders.</string>
     <string name="labels_drawer_title">Show app names in app drawer</string>
     <string name="labels_drawer_summary">Show names beneath app icons in the app drawer and suggested apps row.</string>
-    <string name="feature_double_tap_action_title">Double-tap action</string>
     <string name="action_refresh_icons">Refresh icons</string>
     <string name="action_refresh_icons_summary">Refresh icons if your icon pack\'s changes aren\'t showing</string>
     <string name="action_refresh_icons_done">Refreshing icons…</string>
     <string name="action_refresh_icons_unavailable">Icon refresh isn\'t available on this Pixel Launcher version</string>
-    <string name="feature_double_tap_action_sleep">Turn the screen off</string>
-    <string name="feature_double_tap_action_modes">Open Modes</string>
-    <string name="feature_double_tap_action_notifications">Open notifications</string>
-    <string name="feature_double_tap_action_quick_settings">Open Quick Settings</string>
     <string name="feature_focus_icon_pack">Icon pack</string>
     <string name="feature_focus_search_heading">Search results</string>
     <string name="feature_focus_search_off_everywhere">Off in App drawer settings</string>

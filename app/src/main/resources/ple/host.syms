@@ -1,3 +1,4 @@
+S	androidx.compose.runtime.Composer
 S	androidx.preference.Preference
 S	androidx.preference.PreferenceCategory
 S	androidx.preference.PreferenceFragmentCompat
@@ -181,6 +182,7 @@ N	OVERVIEW
 N	OVERVIEW_MODAL_TASK
 N	OVERVIEW_SPLIT_SELECT
 N	PixelLauncherEvolved
+N	Rename
 N	STATE_TRUE
 N	STATE_UNKNOWN
 N	TASKBAR_UI_THREAD
@@ -319,17 +321,14 @@ N	dock
 N	dockIcons
 N	dockMovesToHome
 N	dock_removal_note
-N	doubleTapAction
 N	doubleTapToSleep
-N	double_tap_action
 N	drawable
 N	drift
+N	en
 N	enabled
 N	endPadding
 N	equals
 N	executeAllAndDestroy
-N	expandNotificationsPanel
-N	expandSettingsPanel
 N	extraItemsProvider
 N	failure
 N	feature_
@@ -402,6 +401,7 @@ N	getTargetComponent
 N	getTargetPackage
 N	getTaskContainers
 N	getTaskbarOffsetY
+N	getText
 N	getThumbnailBounds
 N	getUserHandle
 N	getViewRootImpl
@@ -447,7 +447,6 @@ N	home_dock_hidden
 N	home_dock_icons
 N	home_dock_kept
 N	home_dock_move_to_home
-N	home_double_tap_action
 N	home_double_tap_to_sleep
 N	home_grid
 N	home_grid_columns

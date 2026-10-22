@@ -32,18 +32,6 @@ object Settings {
     val HOME_DOUBLE_TAP_TO_SLEEP = BoolSetting("home_double_tap_to_sleep", default = false)
 
     /**
-     * What that double tap does: [DOUBLE_TAP_SLEEP] (the default, as before) or
-     * [DOUBLE_TAP_MODES], which opens Settings → Modes (Android's own list; this
-     * module never switches a Mode itself), [DOUBLE_TAP_NOTIFICATIONS] or
-     * [DOUBLE_TAP_QUICK_SETTINGS], which pull the shade down.
-     */
-    val HOME_DOUBLE_TAP_ACTION = IntSetting("home_double_tap_action", default = 0, range = 0..3)
-    const val DOUBLE_TAP_SLEEP = 0
-    const val DOUBLE_TAP_MODES = 1
-    const val DOUBLE_TAP_NOTIFICATIONS = 2
-    const val DOUBLE_TAP_QUICK_SETTINGS = 3
-
-    /**
      * Whether app icons come from an installed icon pack rather than from
      * Google's own icon pipeline.
      *
