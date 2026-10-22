@@ -216,6 +216,7 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
         val rowsOf = Reflect.declaredField(grid, "numRows")
         val capacityOf = Reflect.declaredField(grid, "numDatabaseHotseatIcons")
         val fixedLandscapeOf = Reflect.field(grid, "isFixedLandscape")
+        val columnsOf = Reflect.declaredField(grid, "numColumns")
 
         fun adjust(profile: Any) {
             if (stockRowsOf.containsKey(profile)) return
@@ -227,7 +228,8 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
                 if (own) Dock.stockRows = rows
                 // Landscape mode puts the search bar in the dock's row, so
                 // there is no row to give; the icons are only hidden.
-                val give = context.settings[Settings.DOCK_HIDDEN] && fixedLandscapeOf?.getBoolean(profile) != true
+                val give = context.settings[Settings.DOCK_HIDDEN] && fixedLandscapeOf?.getBoolean(profile) != true &&
+                    recordsColumnsAndRows(context, profile, columnsOf, rows)
                 rowsOf.setInt(profile, DockIcons.rows(rows, give))
 
                 if (icons) {
@@ -253,6 +255,26 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
         }
     }
 
+    /** The launcher's own grid record for a profile ([installGridState]); null until resolved. */
+    private var gridRecord: ((Any) -> String?)? = null
+
+    /**
+     * Whether the launcher still writes a grid down as `"columns,rows"`, the
+     * form [installGridState] puts the grid's own rows back into. Names
+     * resolving proves nothing about that, and a wrong guess makes the launcher
+     * migrate a grid it thinks grew: Home screen items move down a row. So the
+     * record is built once per grid build, before the row is added (the hook
+     * leaves a profile it has not seen alone), and a record in any other form
+     * keeps the dock's row from being given; the icons are still hidden.
+     */
+    private fun recordsColumnsAndRows(context: FeatureContext, profile: Any, columnsOf: java.lang.reflect.Field, rows: Int): Boolean {
+        val recorded = runCatching { gridRecord?.invoke(profile) }.getOrNull()
+        val expected = "${columnsOf.getInt(profile)},$rows"
+        if (recorded == expected) return true
+        context.logger.warn("Dock: the launcher records this grid as $recorded, not $expected; the hidden dock's row is not given")
+        return false
+    }
+
     /**
      * Keeps the grid state the launcher compares for a migration on the grid's
      * own rows.
@@ -269,7 +291,10 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
         val columnsOf = Reflect.declaredField(grid, "numColumns")
         val rowsOf = Reflect.declaredField(grid, "numRows")
 
-        context.xposed.hook(state.getDeclaredConstructor(grid)).intercept { chain ->
+        val record = state.getDeclaredConstructor(grid)
+        gridRecord = { profile -> sizeOf.get(record.newInstance(profile)) as? String }
+
+        context.xposed.hook(record).intercept { chain ->
             chain.proceed().also {
                 runCatching {
                     val profile = chain.args[0] ?: return@runCatching
