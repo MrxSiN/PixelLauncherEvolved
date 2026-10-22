@@ -81,6 +81,19 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             return
         }
 
+        // Pages are handed back to the launcher in the order they are kept, so
+        // the host's IntArray has to wrap and unwrap without sorting, deduping
+        // or copying a prefix; names resolving does not prove that.
+        val probe = intArrayOf(7, 0, 3, 0)
+        val roundTrip = runCatching { toArray.invoke(wrap.invoke(null, probe)) as? IntArray }.getOrNull()
+        if (roundTrip == null || !roundTrip.contentEquals(probe)) {
+            context.logger.warn(
+                "The launcher's IntArray answered ${roundTrip?.contentToString()} for ${probe.contentToString()}; " +
+                    "focus home screens are not installed",
+            )
+            return
+        }
+
         val workspace = context.findClass(WORKSPACE)
         if (workspace == null) {
             context.logger.warn("The launcher's workspace is unavailable; focus home screens are not installed")
