@@ -17,6 +17,8 @@ internal object DoubleTapActionRow : SettingsRow {
     private val CHOICES = listOf(
         Settings.DOUBLE_TAP_SLEEP to R.string.feature_double_tap_action_sleep,
         Settings.DOUBLE_TAP_MODES to R.string.feature_double_tap_action_modes,
+        Settings.DOUBLE_TAP_NOTIFICATIONS to R.string.feature_double_tap_action_notifications,
+        Settings.DOUBLE_TAP_QUICK_SETTINGS to R.string.feature_double_tap_action_quick_settings,
     )
 
     override fun addTo(group: Any, scope: RowScope) {

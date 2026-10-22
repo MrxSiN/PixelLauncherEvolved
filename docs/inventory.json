@@ -818,6 +818,7 @@
    "threads": 2,
    "root": false,
    "binder": [
+    "getSystemService",
     "resolver.call"
    ],
    "preferences": false

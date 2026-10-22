@@ -328,6 +328,8 @@ N	enabled
 N	endPadding
 N	equals
 N	executeAllAndDestroy
+N	expandNotificationsPanel
+N	expandSettingsPanel
 N	extraItemsProvider
 N	failure
 N	feature_

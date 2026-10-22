@@ -87,9 +87,10 @@ class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP)
             }
 
             if (taps.isSecond(event)) {
-                if (context.settings[Settings.HOME_DOUBLE_TAP_ACTION] == Settings.DOUBLE_TAP_MODES) {
-                    openModes(args.getOrNull(0) as? android.view.View, context)
-                    return@hookAfter
+                when (context.settings[Settings.HOME_DOUBLE_TAP_ACTION]) {
+                    Settings.DOUBLE_TAP_MODES -> return@hookAfter openModes(args.getOrNull(0) as? android.view.View, context)
+                    Settings.DOUBLE_TAP_NOTIFICATIONS -> return@hookAfter expand(EXPAND_NOTIFICATIONS, context)
+                    Settings.DOUBLE_TAP_QUICK_SETTINGS -> return@hookAfter expand(EXPAND_SETTINGS, context)
                 }
                 // Announced first: the reveal is drawn by the time root answers.
                 // Where the gesture was taken, for SystemUI's reveal. Not waited on:
@@ -116,9 +117,23 @@ class DoubleTapToSleepFeature : ToggleFeature(Settings.HOME_DOUBLE_TAP_TO_SLEEP)
             .onFailure { context.logger.warn("Settings → Modes could not be opened", it) }
     }
 
+    /**
+     * Pulls down the notification shade or Quick Settings, as the launcher's own
+     * swipe down does: `StatusBarManager` under the launcher's
+     * `EXPAND_STATUS_BAR`, hidden in the SDK but called by the launcher itself.
+     */
+    private fun expand(method: String, context: FeatureContext) {
+        runCatching {
+            val bar = requireNotNull(context.appContext.getSystemService(android.app.StatusBarManager::class.java))
+            requireNotNull(Reflect.method(bar.javaClass, method)).invoke(bar)
+        }.onFailure { context.logger.warn("The shade could not be pulled down", it) }
+    }
+
     private companion object {
         /** `Settings.ACTION_ZEN_MODE_SETTINGS`: hidden in the SDK, the Modes list since Android 15. */
         const val MODES_SETTINGS = "android.settings.ZEN_MODE_SETTINGS"
+        const val EXPAND_NOTIFICATIONS = "expandNotificationsPanel"
+        const val EXPAND_SETTINGS = "expandSettingsPanel"
     }
 }
 
