@@ -73,12 +73,6 @@
    "default": "false"
   },
   {
-   "name": "HOME_DOUBLE_TAP_ACTION",
-   "type": "Int",
-   "key": "home_double_tap_action",
-   "default": "0"
-  },
-  {
    "name": "ICONS_USE_PACK",
    "type": "Bool",
    "key": "home_icons_use_pack",
@@ -203,6 +197,36 @@
    "type": "Bool",
    "key": "focus_home_screens",
    "default": "false"
+  },
+  {
+   "name": "WIDGET_STACKS",
+   "type": "Bool",
+   "key": "home_widget_stacks",
+   "default": "false"
+  },
+  {
+   "name": "WIDGET_STACKS_SIDEWAYS",
+   "type": "Bool",
+   "key": "home_widget_stacks_sideways",
+   "default": "false"
+  },
+  {
+   "name": "WIDGET_STACKS_REMEMBER",
+   "type": "Bool",
+   "key": "home_widget_stacks_remember",
+   "default": "true"
+  },
+  {
+   "name": "WIDGET_STACKS_SMART_ROTATE",
+   "type": "Bool",
+   "key": "home_widget_stacks_smart_rotate",
+   "default": "false"
+  },
+  {
+   "name": "WIDGET_STACKS_INDICATOR",
+   "type": "Int",
+   "key": "home_widget_stacks_indicator",
+   "default": "0"
   },
   {
    "name": "OVERVIEW_HIDE_TASKBAR_ALL_APPS",
@@ -373,6 +397,11 @@
    "compatibility": null
   },
   {
+   "id": "home_widget_stacks",
+   "file": "feature/stacks/WidgetStacksFeature.kt",
+   "compatibility": "WIDGET_STACKS"
+  },
+  {
    "id": "status_bar_double_tap_to_sleep",
    "file": "feature/statusbar/StatusBarSleepFeature.kt",
    "compatibility": null
@@ -445,9 +474,11 @@
   },
   "diagnostics/LauncherContracts.kt": {
    "host_classes": [
+    "com.android.launcher3.AbstractFloatingView",
     "com.android.launcher3.BubbleTextView",
     "com.android.launcher3.CellLayout",
     "com.android.launcher3.DeviceProfile",
+    "com.android.launcher3.DropTarget\\$DragObject",
     "com.android.launcher3.Hotseat",
     "com.android.launcher3.InvariantDeviceProfile",
     "com.android.launcher3.Launcher",
@@ -456,8 +487,10 @@
     "com.android.launcher3.LauncherState",
     "com.android.launcher3.ModelCallbacks",
     "com.android.launcher3.Workspace",
+    "com.android.launcher3.WorkspaceLayoutManager",
     "com.android.launcher3.allapps.ActivityAllAppsContainerView",
     "com.android.launcher3.allapps.AppInfoComparator",
+    "com.android.launcher3.celllayout.CellLayoutLayoutParams",
     "com.android.launcher3.compat.AlphabeticIndexCompat",
     "com.android.launcher3.dagger.LauncherBaseAppComponent",
     "com.android.launcher3.dagger.LauncherComponentProvider",
@@ -472,6 +505,9 @@
     "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec",
     "com.android.launcher3.deviceprofile.parser.GridOption",
     "com.android.launcher3.display.LauncherDisplayInfo",
+    "com.android.launcher3.dragndrop.DragLayer",
+    "com.android.launcher3.dragndrop.DragView",
+    "com.android.launcher3.dragndrop.ItemDeleteHandler",
     "com.android.launcher3.folder.FolderIcon",
     "com.android.launcher3.icons.BaseIconFactory",
     "com.android.launcher3.icons.BitmapInfo",
@@ -493,8 +529,10 @@
     "com.android.launcher3.model.data.ItemInfo",
     "com.android.launcher3.model.data.ItemInfoWithIcon",
     "com.android.launcher3.model.data.WorkspaceData\\$MutableWorkspaceData",
+    "com.android.launcher3.popup.PopupCategory",
     "com.android.launcher3.popup.PopupContainer",
     "com.android.launcher3.popup.PopupContainerWithArrow",
+    "com.android.launcher3.popup.WorkspaceLongPressOptions",
     "com.android.launcher3.popup.ui.PopupItem",
     "com.android.launcher3.popup.ui.StringContainer\\$ResourceString",
     "com.android.launcher3.preview.PreviewSurfaceRenderer",
@@ -519,6 +557,7 @@
     "com.android.launcher3.util.ContentProviderProxy",
     "com.android.launcher3.util.DaggerSingletonObject",
     "com.android.launcher3.util.Executors",
+    "com.android.launcher3.util.ItemInflater",
     "com.android.launcher3.util.LabelComparator",
     "com.android.launcher3.util.MultiPropertyFactory",
     "com.android.launcher3.util.MultiValueAlpha",
@@ -528,6 +567,10 @@
     "com.android.launcher3.views.PredictedAppIcon",
     "com.android.launcher3.views.Snackbar",
     "com.android.launcher3.widget.LauncherAppWidgetHostView",
+    "com.android.launcher3.widget.LauncherWidgetHolder",
+    "com.android.launcher3.widget.resize.ResizeManager",
+    "com.android.launcher3.widget.resize.ResizeManager\\$ResizeConstraints",
+    "com.android.launcher3.widget.util.WidgetSizeHandler",
     "com.android.quickstep.BaseContainerInterface",
     "com.android.quickstep.SystemUiProxy",
     "com.android.quickstep.util.BaseDepthControllerImpl",
@@ -818,7 +861,6 @@
    "threads": 2,
    "root": false,
    "binder": [
-    "getSystemService",
     "resolver.call"
    ],
    "preferences": false
@@ -1028,6 +1070,17 @@
    "binder": [],
    "preferences": false
   },
+  "feature/labels/AppLabelEditor.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
   "feature/labels/AppLabelPopup.kt": {
    "host_classes": [
     "com.android.launcher3.model.data.ItemInfo",
@@ -1039,7 +1092,7 @@
    "host_members": [
     "close"
    ],
-   "hooks": 1,
+   "hooks": 2,
    "threads": 0,
    "root": false,
    "binder": [],
@@ -1643,6 +1696,125 @@
    "root": false,
    "binder": [],
    "preferences": false
+  },
+  "feature/stacks/StackActions.kt": {
+   "host_classes": [
+    "com.android.launcher3.popup.WorkspaceLongPressOptions"
+   ],
+   "host_members": [
+    "getActivityComponent",
+    "getItemDeleteHandler",
+    "getScreenIdForPageIndex",
+    "getWidgetForAppWidgetId",
+    "mCountX",
+    "mCountY",
+    "snapToPage",
+    "stripEmptyScreens"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/stacks/StackDialogs.kt": {
+   "host_classes": [],
+   "host_members": [
+    "appWidgetId",
+    "getAppWidgetHolder"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/stacks/StackDrop.kt": {
+   "host_classes": [
+    "com.android.launcher3.CellLayout",
+    "com.android.launcher3.DropTarget\\$DragObject",
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.LauncherState",
+    "com.android.launcher3.Workspace",
+    "com.android.launcher3.celllayout.CellInfo",
+    "com.android.launcher3.dragndrop.DragLayer",
+    "com.android.launcher3.dragndrop.DragOptions",
+    "com.android.launcher3.dragndrop.DragView",
+    "com.android.launcher3.statemanager.BaseState",
+    "com.android.launcher3.statemanager.StateManager"
+   ],
+   "host_members": [
+    "getDragLayer"
+   ],
+   "hooks": 4,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/stacks/StackHost.kt": {
+   "host_classes": [
+    "com.android.launcher3.AbstractFloatingView",
+    "com.android.launcher3.CellLayout",
+    "com.android.launcher3.Workspace",
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.util.ItemInflater",
+    "com.android.launcher3.widget.LauncherAppWidgetHostView",
+    "com.android.launcher3.widget.util.WidgetSizeHandler"
+   ],
+   "host_members": [
+    "getModelWriter"
+   ],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/stacks/StackSwipe.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "feature/stacks/WidgetStacks.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/stacks/WidgetStacksFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.CellLayout",
+    "com.android.launcher3.Launcher",
+    "com.android.launcher3.dragndrop.ItemDeleteHandler",
+    "com.android.launcher3.popup.PopupCategory",
+    "com.android.launcher3.popup.PopupContainer",
+    "com.android.launcher3.popup.ui.PopupItem",
+    "com.android.launcher3.popup.ui.StringContainer\\$ResourceString",
+    "com.android.launcher3.widget.LauncherAppWidgetHostView",
+    "com.android.launcher3.widget.resize.ResizeManager",
+    "com.android.launcher3.widget.resize.ResizeManager\\$ResizeConstraints"
+   ],
+   "host_members": [
+    "close",
+    "minSpanX",
+    "minSpanY",
+    "onResume"
+   ],
+   "hooks": 12,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
   },
   "feature/statusbar/StatusBarSleepFeature.kt": {
    "host_classes": [],

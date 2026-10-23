@@ -1,5 +1,118 @@
 # Changelog
 
+## 0.1.6
+
+### Added
+
+- **Widget stacks**, in Home settings → Pixel Launcher Evolved → Home screen → Widgets → Widget
+  stacks (off by default). Several home screen widgets share one place and stay real, working
+  widgets.
+  - **Creating:** drop a widget onto another and hold it there a moment (the widget under it
+    shrinks inside a frame in the theme colour, with a light tick); **Create stack** in a widget's
+    long-press menu offers the launcher's own widget picker or a widget already on the home screen.
+    A widget that joins takes the stack's size when its app allows; one that cannot, or a full stack
+    (10 widgets), shows a red frame and a refusal tick, and the drop moves the widget as usual.
+  - **Switching:** swipe up or down (or sideways, a setting; right-to-left layouts reversed). The
+    widget follows the finger, the next one slides in already loaded with rounded edges and a slight
+    depth, and a spring takes over from the finger's speed; a touch catches it mid-settle. Stacks
+    stop at either end with a little give instead of wrapping, sideways too (the page turns from
+    outside the stack). Lists keep their own scrolling. Dots beside the stack show where you are (Automatic,
+    Always show, or Only while swiping).
+  - **Managing:** **Add widget** and **Edit stack** in a stack's menu. Edit stack lists each widget
+    with its preview, Move up/Move down buttons, and Show, Widget settings, Show at (a time of day),
+    Move to Home screen and Remove widget; plus Unstack and Remove stack (asked first, deleted the
+    launcher's own way). The launcher's own Remove deletes the widget on show and the next one takes
+    its place. Resizing a stack keeps to sizes every widget in it allows and resizes them all.
+  - **Smart rotate widgets** (off by default): as you come back to the home screen, a stack shows
+    the widget you set for the time of day, with a quiet cross-fade, unless you chose one in the
+    last two hours. **Remember last widget** (on by default): off, stacks go back to their first
+    widget as you come back. Nothing runs on a timer.
+  - **TalkBack:** "Widget stack. Calendar. 2 of 4.", with Next widget, Previous widget and Edit
+    stack actions. With animations off every change is immediate.
+  - **Restore standalone widgets** puts every stacked widget back on the home screen, in free space
+    where there is room. Each widget stays an ordinary widget in Pixel Launcher's own database;
+    turned off, or without the module, each waiting widget shows on a home screen of its own and
+    nothing is lost. Stacks are kept by launcher item id in `widget_stacks` and are not part of a
+    backup; the switches and the dots choice are.
+- **Per-Mode choices.** Each Mode's page (Home screen → Assign home screens to Modes → a Mode) now
+  holds, under Apps, Appearance and Search results, what changes only while that Mode is on:
+  **Also show regular home screens** beside its own; **Hidden apps** left out of the drawer and its
+  search; **Top of app drawer**, chosen apps under the Mode's name at the top of All apps (headed with
+  the launcher's own text row, closed with its divider; they stay in A–Z too); its own **Icon pack**
+  (or System icons); its own **Wallpaper blur**; a **Home screen tint** (Dim, Warm or Cool, through
+  the launcher's own scrim); **App labels** (show all, hide on Home screen and in folders, hide in
+  the app drawer, or hide everywhere); and which **Search results** groups show. Each starts on
+  "Use main setting". When several Modes that set the same thing are on, the one that came on last
+  wins, as with pages.
+- **Deleted Modes keep their home screens.** A Mode deleted in Settings gives its home screens back
+  to the regular home screen and is listed as "<name> (deleted)": tap it to give those home screens
+  to another Mode, or remove it.
+- **Hide app names everywhere**, in App drawer → App labels: **Show app names on Home screen**,
+  **in folders** and **in app drawer** (the suggested apps row follows the drawer). TalkBack still
+  reads each app's name. In the settings backup.
+- **Rename** (in an app's long-press menu, on the Home screen and in the drawer) leads with a live
+  preview of the app's icon and name. Tapping the icon picks another drawable from the main icon
+  pack (its default, the system icon, search), stored as Wallpaper & style stores a per-app icon.
+  **Restore defaults** is dimmed while nothing differs.
+- **Refresh icons**, in Advanced: draws the icon pack's icons again without a restart, for a pack
+  that changed without an update.
+- **Layout recovery**, a screen in the module's own app (Android Settings → Apps → Pixel Launcher
+  Evolved → its settings, or the module manager), for when Pixel Launcher cannot open its own
+  settings. While the layout depends on the module (a custom grid, a hidden dock's row, more dock
+  icons than the grid's own), the launcher keeps two copies of it: one from before it first came to
+  depend on the module, and one from its last start. Recovery lists them and puts one back after you
+  confirm; the launcher restores it as it next starts, before it opens its layout, and keeps the
+  replaced one beside the copies. Needs root.
+- **Compatibility & diagnostics** tells apart a feature unavailable on this launcher, one that
+  failed to start, one that is off and one that is running, and lists the features that failed to
+  start; the copied report says why.
+
+### Changed
+
+- **Assign home screens to Modes** (was Modes pages) opens as a full Settings-style page, and each
+  Mode as its own page that saves as you leave it, like **Reorder home screens** (was Organize home
+  screens). A Mode with no home screens says it uses the regular home screen. Home screens are
+  reassigned only when the choice changed.
+- Settings, dialogs, notifications and the recovery screen are written in sentence case with the
+  same terms throughout (home screen, app drawer, icon pack, Mode). The long-press row reads
+  **Rename** in English; other languages keep the launcher's own translated "Edit Name".
+- The double-tap action added during this cycle was removed before release: a home double tap turns
+  the screen off, as before. Older backup files that name it still import.
+- A Mode change, or a Mode's label choice, rebinds the launcher's loaded home screen instead of
+  reading its database again (ledger 34, 36).
+- Hidden apps and the drawer section are read from cached state on the drawer and search paths
+  (ledger 38–40); the layout copy at launcher start runs at background priority (41). Widget stacks
+  allocate nothing per drag move and keep launcher lookups once found (42).
+- The release workflow publishes a SHA-256 beside the APK and refuses a debug-signed release. CI
+  runs the unit tests and fails when a generated file drifts.
+
+### Fixed
+
+- **Modes on a phone with a work profile or a second user:** the launcher was given every user's
+  Modes; it now reads only its own user's.
+- **Deleted Modes came back:** a Mode deleted in Settings was still read as one. Only live Modes
+  are read, and a read that was cut short or changed while reading says so instead of showing fewer
+  Modes.
+- **A slow Modes read** could block the provider for as long as the command kept running: it is now
+  bounded (15 seconds), refused past 256 KB, and says why it failed (refused, timed out, too large,
+  malformed, unreachable) instead of always asking for root. The dump is cut to the Zen section
+  (1.35 MB to 15 KB).
+- **An older Modes read finishing last** could put a Mode that had already gone off back on screen.
+- **The first home screen waited on the Modes read:** with the module's app slow to start, the home
+  screen appeared after 7.1 s; it now binds at once with the last read (0.63–0.68 s measured), and
+  one forced reload fewer.
+- **Every home screen given to a Mode** with no Mode on left home with no page at all: home now keeps
+  an empty first page with the dock and search bar, and settings no longer let the last regular home
+  screen go to a Mode.
+- **A feature that failed while installing** left the hooks it had set running half of it; they are
+  now taken back, and the rest of the module installs as before.
+- **Hidden apps** showed in the drawer's suggested apps row.
+- **A hidden dock with Taskbar only** gave the home screen a row the taskbar kept; it no longer does.
+- **Widget stacks** (found while testing this release): a stack swipe up or down could turn the home
+  screen page, and sideways a swipe could open the long-press menu; a widget added from the picker
+  left an empty home screen behind and could be drawn over other icons.
+- **Layout recovery** drew its first lines under its title bar.
+
 ## 0.1.5
 
 ### Added

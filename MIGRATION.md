@@ -1,7 +1,7 @@
 # Migration
 
-Nothing in this pass changes identity or stored state, so upgrading from any earlier release keeps
-everything.
+Upgrading to 0.1.6 from any earlier release keeps everything: identity is unchanged, and the state
+this release adds lives under new keys whose absence reads as the old behaviour.
 
 - **Package and module identity:** `applicationId` `io.github.mrxsin.pixellauncherevolved`, namespace,
   entry class `my.github.MrxSiN.pixellauncherevolved.PixelLauncherEvolvedModule`, `module.prop`
@@ -12,6 +12,43 @@ everything.
   sorted string, and it is still read on every call. The new cache only skips re-parsing identical
   text, so a value written by an older version, a backup import or a reset is picked up as before.
 - **Backup/import format:** unchanged (`SettingsBackupTest` passes).
+- **Widget stacks (new state):** `home_widget_stacks` (bool, default false), `home_widget_stacks_sideways`
+  (false), `home_widget_stacks_remember` (true), `home_widget_stacks_smart_rotate` (false),
+  `home_widget_stacks_indicator` (int 0..2, 0) and `widget_stacks` (one text line, version 2:
+  `2;shown:id@slot,id@slot|...`, launcher item ids and a time-of-day slot 0..4 each; version 1,
+  `1;shown:id,id`, reads with every slot 0 and is written back as version 2 at the next change to a stack;
+  anything else reads as no stacks, so a module older than this one shows each waiting widget on
+  its own page). The backup carries the four switches and the dots choice as `widgetStacks`,
+  `widgetStacksSideways`, `widgetStacksRemember`, `widgetStacksSmartRotate` and
+  `widgetStacksIndicator`; a backup without them imports with their defaults. A
+  missing key is no stacks, so an upgrade changes nothing. Item ids belong to this launcher
+  database, so the stacks themselves are never exported. The launcher's database is only
+  ever written through its own `ModelWriter`, the way a drag between pages writes it: every member
+  stays a valid, non-overlapping widget row, a waiting member alone on its own page. Turning the
+  switch off, Safe Mode, or removing the module shows those pages; turning it back on hides them
+  again. A stored stack the launcher's items no longer support (a member gone, moved, or sharing its
+  page) is written back without that member, and one whose widget on show is gone is taken apart;
+  nothing is moved or deleted to make it fit.
+- **Per-Mode choices (new state, 0.1.6):** keys suffixed with a Mode's id, each absent until a Mode
+  sets it, absent meaning "use the main setting": `focus_with_ordinary_<mode>` (bool),
+  `focus_hidden_apps_<mode>` and `focus_drawer_apps_<mode>` (comma-separated packages),
+  `focus_search_hide_<mode>` (comma-separated search switch keys), `focus_icon_pack_<mode>` (a package
+  or `:system`), `focus_blur_<mode>` (percent as text), `focus_shade_<mode>` (ARGB as hex text) and
+  `focus_labels_<mode>` (a surface bit mask as text). `focus_orphan_<mode>` keeps a deleted Mode's
+  pages (`screen,screen,...` then its last name) and `focus_name_<mode>` the name each Mode was last
+  read with. None of these are in the settings backup, which, like Modes pages, is tied to this
+  phone's Modes.
+- **App labels (new state, 0.1.6):** `labels_hide_home`, `labels_hide_folders` and
+  `labels_hide_drawer` (bool, default false), backed up as `hideLabelsOnHome`,
+  `hideLabelsInFolders` and `hideLabelsInDrawer`.
+- **Double-tap action (removed, 0.1.6):** the choice added during this cycle was taken out before
+  release; backups no longer write `doubleTapAction`, and a file that has it still imports (the
+  name is ignored). A home double tap turns the screen off, as in 0.1.5.
+- **Layout copies (new state, 0.1.6):** up to two copies of the launcher's layout database, with the
+  launcher's grid prefs and the module's grid and dock settings, in the launcher's
+  `no_backup/ple_layout/`. They are taken only while the layout depends on the module (a custom grid,
+  a hidden dock's row, more dock icons than the grid's own) and put back only on a restore request
+  from Layout recovery.
 - **Icon packs (new state):** new preference keys in the same file: `home_icons_use_pack` (bool,
   default false = System), `home_icons_pack` (package name), `home_icons_generation` (int, only ever
   rises; part of the launcher's icon freshness key), and `home_icons_overrides` (one sorted text line,

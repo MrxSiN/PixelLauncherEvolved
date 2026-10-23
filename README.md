@@ -13,7 +13,7 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 [![Release](https://img.shields.io/github/v/release/MrxSiN/PixelLauncherEvolved?include_prereleases&color=5B3DF5&label=release&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Downloads](https://img.shields.io/github/downloads/MrxSiN/PixelLauncherEvolved/total?color=3DDC84&logo=android&logoColor=fff&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Android](https://img.shields.io/badge/Android-17%20QPR1-3DDC84?logo=android&logoColor=fff&style=for-the-badge)](https://developer.android.com)
-[![Compatibility](https://img.shields.io/badge/hooks-227%2F227%20resolved-3DDC84?style=for-the-badge)](#compatibility)
+[![Compatibility](https://img.shields.io/badge/hooks-282%2F282%20resolved-3DDC84?style=for-the-badge)](#compatibility)
 [![Licence](https://img.shields.io/github/license/MrxSiN/PixelLauncherEvolved?color=5B3DF5&style=for-the-badge)](LICENSE)
 
 </div>
@@ -23,7 +23,7 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 > [!NOTE]
 > **Fully compatible with the latest Android release — Android 17 QPR1 (October 2026),
 > build `CP3A.261005.005`, Pixel Launcher `907`.** Every launcher member the module stands on
-> resolves (227 of 227, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
+> resolves (282 of 282, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
 > Vector v2.2. The module checks this itself on every launcher start: see
 > [Compatibility](#compatibility).
 
@@ -67,20 +67,34 @@ running launcher on the next frame.
 | Appearance | **Blur strength** | From nothing to the deepest the launcher's own blur goes. Greyed out while Blur wallpaper is off. | — |
 | Dock | **Dock** | A page of its own; every change applies live. **Show dock** hides the dock's icons and keeps the search bar; its space becomes one more row of Home screen apps. Showing the dock again first moves anything in that row, on every page, to the rows above or a new page. The pinned apps stay pinned. Not available while a taskbar is on. **Icons in dock** is a slider from 1 icon to as many as keep a 48dp touch target each (7 on a Pixel 8 Pro 4x6 grid), applied live without a launcher restart. Past what fits at the Home screen's icon size, the dock's icons shrink to their cells. The grid's own count reads "Default". **Move to Home screen** (on by default) moves pinned apps a smaller count leaves out to the first free space on your Home screen, or a new page; off, they stay pinned but out of sight until the dock has room. Before turning off or removing the module, show the dock and set the count back to Default: without the module, Pixel Launcher deletes Home screen items in the extra row and dock apps past its own count. | — |
 | Dock | **Search bar** | A page of its own. **Search bar opens app search** makes the home search bar open the app drawer with its search box focused, instead of the Google app. The bar's own buttons keep their actions. | — |
-| Pages & layout | **Organize home screens** | Reorder and manage your Home screen pages. Every page on one screen, including pages a Mode hides, marked with that Mode. Touch and hold a page, then drag it into place; the order is saved when you leave. The first page keeps At a Glance, so it stays first. | — |
-| Pages & layout | **Modes home screens** | Gives home screen pages to one of the device's Modes — Bedtime, Driving, Sleeping, whatever you have. While that Mode is on, only its pages show; when it ends, the ordinary pages come back. | ✅ |
-| Pages & layout | **Modes pages** | Choose which pages each Mode shows, from previews of each page drawn by Pixel Launcher itself — your real icons, labels, folders and widgets, drawn again each time you open it — over the wallpaper as your home screen shows behind that page, blurred as home blurs it. The wallpaper comes through Wallpaper &amp; style, which must be in this module's scope; without it, or with a live wallpaper, pages show a plain backdrop. Each Mode can also **show the ordinary pages** beside its own, **hide apps** from the drawer and its search, put chosen **apps at the top of the drawer** under its name (they stay in A–Z too), switch off **search groups**, use its own **icon pack** (or the system's) and its own **wallpaper blur**, all only while it is on. When several Modes that set the same thing are on, the one that came on last wins, as with pages. | ✅ |
+| Home screens | **Reorder home screens** | Every home screen on one screen, including ones a Mode hides, marked with that Mode. Touch and hold one, then drag it into place; the order is saved when you leave. The first keeps At a Glance, so it stays first. | — |
+| Home screens | **Use Mode-specific home screens** | Gives home screens to one of the device's Modes — Bedtime, Driving, Sleeping, whatever you have. While that Mode is on, only its home screens show; when it ends, the regular ones come back. Home always keeps at least one regular home screen. | ✅ |
+| Home screens | **Assign home screens to Modes** | A page listing your Modes; each opens as its own page that saves as you leave it. Pick its home screens from previews drawn by Pixel Launcher itself — your real icons, labels, folders and widgets, drawn again each time — over the wallpaper as home shows it behind that screen, blurred as home blurs it (the wallpaper comes through Wallpaper &amp; style, which must be in this module's scope; without it, or with a live wallpaper, previews show a plain backdrop). Then, only while that Mode is on: **Also show regular home screens** beside its own; **Hidden apps**; **Top of app drawer**, chosen apps under the Mode's name at the top of All apps (they stay in A–Z too); its own **Icon pack** (or System icons), **Wallpaper blur**, **Home screen tint** (Dim, Warm, Cool) and **App labels**; and which **Search results** groups show. Each starts on "Use main setting". When several Modes that set the same thing are on, the one that came on last wins. A Mode deleted in Settings keeps its home screens to give to another Mode, listed as "(deleted)". | ✅ |
+| Widgets | **Widget stacks** | A page of its own. Several widgets in one place: drop a widget onto another (or **Create stack** in its menu, from the widget picker or the home screen), then swipe up or down — or sideways, if you choose — to switch, with dots beside the stack showing where you are. A widget that joins takes the stack's size where its app allows; a stack holds up to 10. **Edit stack** reorders, shows, configures, moves out or removes widgets; the launcher's own Remove removes the widget on show and the next takes its place; resizing keeps to what every widget allows. **Smart rotate widgets** shows the widget you set for the time of day as you come back home; **Remember last widget** off goes back to the first. TalkBack gets Next, Previous and Edit stack. **Restore standalone widgets** puts every stacked widget back on its own: use it before turning stacks off or removing the module. Without it, nothing is lost either: each waiting widget appears on a home screen of its own (an ordinary page, so a Mode with its own pages hides it while it is on). Stacks are not part of a settings backup, because they name this phone's own widgets. | — |
 | Gestures | **Double tap to sleep** | Two taps on an empty spot turn the screen off, closing the screen around the spot you tapped. | ✅ |
 | Gestures | **Double tap status bar to sleep** | The same, from two taps on the status bar. Watched in SystemUI, so it needs no root. | ✅ |
 
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/home-screen.png" width="250"><br><sub>Home screen</sub></td>
-<td align="center"><img src="docs/screenshots/organize-home-screens.png" width="250"><br><sub>Organize home screens</sub></td>
-<td align="center"><img src="docs/screenshots/modes-pages.png" width="250"><br><sub>Modes pages: the Modes</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/home-screen.png" width="250"><br><sub>Home screen</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/organize-home-screens.png" width="250"><br><sub>Reorder home screens</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/modes-pages.png" width="250"><br><sub>Assign home screens to Modes</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/screenshots/modes-pages-choose.png" width="250"><br><sub>Modes pages: choosing a Mode's pages</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/modes-pages-choose.png" width="250"><br><sub>A Mode's home screens</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/modes-mode-settings.png" width="250"><br><sub>What a Mode changes while it is on</sub></td>
+<td></td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td align="center" valign="top"><img src="docs/screenshots/widget-stack-swipe.png" width="250"><br><sub>Swiping through a widget stack</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/widget-stack-menu.png" width="250"><br><sub>A stack's long-press menu</sub></td>
+<td align="center" valign="top"><img src="docs/screenshots/widget-stack-edit.png" width="250"><br><sub>Edit stack</sub></td>
+</tr>
+<tr>
+<td align="center" valign="top"><img src="docs/screenshots/widget-stacks.png" width="250"><br><sub>Widget stacks settings</sub></td>
 <td></td>
 <td></td>
 </tr>
@@ -122,7 +136,7 @@ behind Modes pages: the launcher is not allowed to read the wallpaper file, Wall
 | Group | Tweak | What it does |
 |---|---|---|
 | Apps | **Columns** | Columns in All apps, from 3 up to what keeps a 48dp touch target; the launcher's own count reads "Default". Applies live. |
-| Apps | **App labels** | **Per-app labels**: rename an app, or hide its label on the Home screen or in the app drawer, app by app. Search finds the app by either name, the drawer sorts it under the new one, and TalkBack still says which app it is. **Rename on Home screen only** keeps new names to the Home screen, dock and folders. **Edit Name** in an app's long-press menu (Home screen and drawer, after Pause app) opens the same editor. Deep shortcuts and Recents keep their own names. **Reset custom labels** gives every app its own back. |
+| Apps | **App labels** | **Show app names on Home screen**, **in folders** and **in app drawer** leave names off a whole surface at once (TalkBack still reads them). **Per-app labels**: rename an app, give it another icon from your icon pack, or hide its label on the Home screen or in the app drawer, app by app. Search finds the app by either name, the drawer sorts it under the new one, and TalkBack still says which app it is. **Rename on Home screen only** keeps new names to the Home screen, dock and folders. **Rename** in an app's long-press menu (Home screen and drawer, after Pause app) opens the same editor, with a live preview of the icon and name. Deep shortcuts and Recents keep their own names. **Reset custom labels** gives every app its own back. |
 | Apps | **Hidden apps** | Leaves the apps you pick out of the drawer and out of its search. Tapping it opens the drawer with a tick on every icon: tap the apps to hide, then the button in the corner. |
 | Search results | **Web Search** | Google's suggestions for what you typed. Switch off to take the whole group out. |
 | Search results | **Play Store** | Apps you could install. |
@@ -140,8 +154,8 @@ tips are untouched.
 <td align="center"><img src="docs/screenshots/app-labels-apps.png" width="250"><br><sub>Per-app labels</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="docs/screenshots/rename.png" width="250"><br><sub>Rename, from an app's long-press menu</sub></td>
 <td align="center"><img src="docs/screenshots/web-results-app.png" width="250"><br><sub>Open web results with</sub></td>
-<td></td>
 <td></td>
 </tr>
 </table>
@@ -228,16 +242,27 @@ A backup is a portable, readable configuration:
 ```
 
 A name the file leaves out takes its default, and a name this version does not know is ignored.
+Widget stacks and the per-Mode choices are not in it either: they name this phone's own widgets
+and Modes.
 Icon choices are stored by name (pack package, component, profile number, drawable name), so a
 file read on another phone falls back to stock icons for any pack or app that is not there. No
 bitmap and no compiled pack index is exported.
-Modes pages and the page order are not in it: both are tied to this phone's launcher database and
-Modes, and import and reset leave them as they are.
+Mode home screens and the home screen order are not in it: both are tied to this phone's launcher
+database and Modes, and import and reset leave them as they are.
+
+**Layout recovery** is the one screen outside the launcher, for when Pixel Launcher keeps crashing
+or cannot open its settings. Open it from Android Settings → Apps → Pixel Launcher Evolved → the
+app's settings, or from your module manager. While your layout depends on the module (a custom
+grid, a hidden dock's row, more dock icons than the grid's own), the launcher keeps two copies of
+it: one from before it first came to depend on the module, and one from its last start. Pick one
+and confirm; the launcher puts it back as it next starts, and keeps the layout it replaced. Needs
+root.
 
 <table>
 <tr>
 <td align="center"><img src="docs/screenshots/advanced.png" width="250"><br><sub>Advanced</sub></td>
 <td align="center"><img src="docs/screenshots/safe-mode.png" width="250"><br><sub>Safe Mode, after a crash loop</sub></td>
+<td align="center"><img src="docs/screenshots/layout-recovery.png" width="250"><br><sub>Layout recovery</sub></td>
 </tr>
 </table>
 
@@ -254,7 +279,7 @@ does not assume they stayed put.
 
 | Device | Android build | Pixel Launcher | Checked | Not yet checked |
 |---|---|---|---|---|
-| Pixel 8 Pro | CP3A.261005.005 (Android 17) | 907 | home, dock, Modes pages and per-Mode settings, app drawer and search, icon packs, Overview, Home settings at 100% and 130% text, Diagnostics, recovery screen | TalkBack end to end, work profile and Private Space, other screen sizes and foldables, landscape, RTL, more than one Android user |
+| Pixel 8 Pro | CP3A.261005.005 (Android 17) | 907 | home, dock, Mode home screens and per-Mode choices, widget stacks (create, drag onto a widget, swipe both ways, Edit stack, Remove widget, Restore, restart), app drawer and search, icon packs, Overview, Home settings at 100% and 130% text, Diagnostics, recovery screen | TalkBack end to end (widget stack actions included), widget stack resizing and Smart rotate, work profile and Private Space, other screen sizes and foldables, landscape, RTL, more than one Android user |
 
 
 - **Launcher contracts.** Every class, method and field a tweak stands on is listed once, with the
@@ -269,7 +294,7 @@ does not assume they stayed put.
 
   ```
   Pixel Launcher versionCode: 907
-  Resolved 227 / 227, fallback signatures 0, failed 0
+  Resolved 282 / 282, fallback signatures 0, failed 0
 
   Contracts
   ✓ TaskView.onFinishInflate()
@@ -303,7 +328,7 @@ does not assume they stayed put.
 | **Launcher** | Pixel Launcher (`com.google.android.apps.nexuslauncher`), tested on `versionCode` 907 |
 | **Device** | Pixel (tested on Pixel 8 Pro) |
 | **Framework** | [Vector](https://github.com/JingMatrix/Vector) v2.2+, or any framework implementing libxposed API 101+ |
-| **Root** | Required for Double tap to sleep and Modes home screens. Double tap status bar to sleep needs none |
+| **Root** | Required for Double tap to sleep, Mode home screens and Layout recovery. Double tap status bar to sleep needs none |
 
 Built against the modern [libxposed API](https://github.com/libxposed/api)
 (`io.github.libxposed:api`), not the legacy `de.robv.android.xposed` bridge.
@@ -313,7 +338,7 @@ Built against the modern [libxposed API](https://github.com/libxposed/api)
 ```
 1. Install the APK from Releases
 2. Enable Pixel Launcher Evolved in your Xposed manager
-3. Grant it root, if you want the two tweaks that need it
+3. Grant it root, if you want the tweaks that need it
 4. Force-stop the Pixel Launcher once
 5. Long press home → Home settings → Pixel Launcher Evolved
 ```
@@ -321,8 +346,8 @@ Built against the modern [libxposed API](https://github.com/libxposed/api)
 The module declares a **static scope**, so there is nothing to pick: the Pixel Launcher;
 SystemUI for what the launcher cannot draw or see — the screen off that Double tap to sleep asks
 for, opened around the spot you tapped, and taps on the status bar; and Wallpaper &amp; style for the
-icon pack, Grid &amp; size, and the wallpaper behind Modes pages. It has no icon in the app drawer and no screen of
-its own. Settings stored by earlier versions are carried across.
+icon pack, Grid &amp; size, and the wallpaper behind Mode previews. It has no icon in the app drawer; its only
+screen is Layout recovery. Settings stored by earlier versions are carried across.
 
 Updating needs no force-stop: after a new build is installed, the launcher restarts itself the
 next time the screen goes off.
@@ -358,7 +383,8 @@ palette, shapes and type, and move on Material's shared axis with predictive bac
 
 It filters the model the launcher builds its workspace from. The database is never written, so a
 hidden page is hidden the way a page scrolled off the side is hidden — turning the Mode off brings
-it back exactly as it was.
+it back exactly as it was. Widget stacks use the same filter for the home screens their waiting
+widgets sit on.
 
 What is filtered is the **items**, not a list of screens, because the launcher keeps no such list:
 `collectWorkspaceScreens` walks the items and collects the screens they name. The launcher is
@@ -367,10 +393,12 @@ the very same map.
 
 - A page exists because an item names it, so nothing the launcher saves can delete a page it was
   not shown. A removed page is dropped from every Mode, so a new page that reuses its id does not
-  quietly belong to one. A Mode deleted in Settings gives its pages back.
+  quietly belong to one. A Mode deleted in Settings gives its pages back, and keeps them listed to
+  give to another Mode.
 - **Reading Modes needs root.** Android only reports the Modes an app created itself, so this
-  module's own app reads them out of the notification service's dump and answers the launcher
-  through a content provider that serves no other caller.
+  module's own app reads them out of the notification service's dump (only the live Modes of the
+  launcher's own Android user, bounded to 15 seconds) and answers the launcher through a content
+  provider that serves no other caller. The first home screen never waits for that answer.
 - Modes are looked at whenever the launcher regains window focus and whenever the zen
   configuration changes. Nothing polls on a timer, and Driving and Transit work even though they do
   not change Do Not Disturb.
@@ -412,8 +440,10 @@ diagnostics/                 launcher contracts, the analyzer and its report
 hook/                        the feature contract, context, startup and registry
 feature/                     one package per area; each feature installs itself
   settings/                  Home settings pages, rows and Expressive drawing
+  stacks/                    widget stacks: the graph, swipe, drop, dialogs and dots
   backup/                    export, import and reset
-focus/                       Modes, pages, and the provider that answers for them
+focus/                       Modes, pages, per-Mode choices, and the provider that answers for them
+layout/, recovery/           layout copies, and the screen that puts one back
 bridge/                      what the launcher, SystemUI and Wallpaper & style say to each other
 picker/                      Wallpaper & style: the icon pack and Grid & size pages
 lock/                        the root-backed endpoint that turns the screen off
