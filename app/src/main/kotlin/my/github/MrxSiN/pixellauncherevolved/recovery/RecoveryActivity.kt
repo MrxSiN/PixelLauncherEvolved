@@ -7,6 +7,7 @@ import android.os.Process
 import android.text.format.DateFormat
 import android.util.TypedValue
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -64,7 +65,16 @@ class RecoveryActivity : Activity() {
             button(R.string.recovery_restore_latest) { confirm(SLOT_LATEST, R.string.recovery_confirm_latest) },
         ).onEach(column::addView)
         column.addView(text(getString(R.string.recovery_limits)))
-        setContentView(ScrollView(this).apply { addView(column) })
+        setContentView(ScrollView(this).apply {
+            addView(column)
+            clipToPadding = false
+            // Drawn edge to edge (target SDK 35+): keep the text clear of the title and system bars.
+            setOnApplyWindowInsetsListener { view, insets ->
+                val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+                insets
+            }
+        })
 
         refresh()
     }
