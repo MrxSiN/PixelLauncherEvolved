@@ -699,3 +699,43 @@ entries 1–6 together as one candidate, not one change at a time.
 |---|---|---|---|
 | APK | 1,202,324 B | 1,202,324 B | 0 (page-aligned) |
 | classes.dex | 614,784 B | 614,880 B | +96 B |
+
+## 42. Widget stacks: drag-over arrays, kept launcher lookups, bind parse — ACCEPTED (not measured)
+
+- **Hypothesis:** the widget stacks paths added on `main` did avoidable work: every drag move over
+  the home screen allocated two `Object[]` for reflective calls and an `Iterator` per
+  `StackGraph.stackOf` (twice per move); each `StackHost` call that reads the launcher
+  (`workspace`, `modelItem`, `inflate`, `move`, `maxScreen`, `modelItems`, `itemsOf`, `closeFloating`,
+  the new `useTmpCoords` reset) looked its fields up again with `Reflect.field`, which walks the
+  class chain with a `NoSuchFieldException` per miss (the activity's fields sit two classes up);
+  each workspace bind parsed the stored stacks again and formatted both graphs to compare them;
+  each TalkBack node query made three `AccessibilityAction`s; each swipe release read
+  `ViewConfiguration` again.
+- **Path:** `feature/stacks/StackDrop.kt` (`over`), `StackGraph.kt` (`stackOf`, new `sameAs`),
+  `StackHost.kt` (`FieldOf`, `withItems`, kept `Method`s), `WidgetStacks.kt` (`onBind`),
+  `StackSwipe.kt` (`minFling` beside `slop`), `WidgetStacksFeature.kt` (TalkBack actions),
+  `core/Invoke.java` (new `with`).
+- **Mechanism:** `Invoke.with` hands a kept argument array to `Method.invoke` (Kotlin's spread
+  copies it); `stackOf` is an index walk; launcher fields and methods are kept once found (each
+  owner's class is fixed for the process; a member not found is looked up again next time, as
+  before); `onBind` keeps the last stored text and its parse and compares graphs structurally
+  (`sameAs`, equal exactly when `format()` is), formatting only to write; the three actions and
+  the fling speed are made once.
+- **Correctness:** same members found, same values written, same write decision. `StackGraphTest`
+  gains `sameAs` against `format()` equality over every pair of nine stored texts (v1 and v2), and
+  `stackOf`; all 35 suites pass. Device (October 23, 2026, backup taken first, layout restored
+  after, md5 equal): picker widgets Battery and Chrome Dino; Dino dragged across pages onto Battery
+  (drop frame, shrink, stack made, size taken), sideways next / past the end / back / slow past the
+  start, Edit stack listing and a reorder, launcher restart (stack kept, text not rewritten, every
+  widget id still bound) and a swipe after it: all PASS.
+- **DEX (release, R8, `dexdump -d` + `scripts/dex-audit.py`):** `StackDrop.over` (inlined with
+  `widgetAt`): 4 `filled-new-array` to 2, the 2 left run once per hover target, not per move;
+  `StackGraph.stackOf`: `Iterable.iterator`/`hasNext`/`next` to none; `StackHost.workspace` and
+  `modelItem`: `getDeclaredField` (and its exception path) to none after the first call.
+- **Measured:** no. The drag path's per-move cost and the bind path are not covered by the existing
+  probes; the change removes allocations and exceptions without adding work.
+
+| Artifact (release, R8) | Before | Candidate | Change |
+|---|---|---|---|
+| APK | 1,275,356 B | 1,275,356 B | 0 (page-aligned) |
+| classes.dex | 672,408 B | 672,708 B | +300 B |

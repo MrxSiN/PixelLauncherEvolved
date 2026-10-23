@@ -64,6 +64,25 @@ internal object SettingsPages {
         groups = listOf(SettingsGroup(null, listOf(DiagnosticsRows))),
     )
 
+    private val WIDGET_STACKS = SettingsPage(
+        key = "widget_stacks",
+        titleRes = R.string.feature_widget_stacks_title,
+        summaryRes = R.string.settings_page_widget_stacks_summary,
+        groups = listOf(
+            SettingsGroup(null, listOf(ToggleRow(FeatureCatalog.WIDGET_STACKS, CompatibilityFeature.WIDGET_STACKS))),
+            SettingsGroup(
+                R.string.settings_group_widget_stacks_behaviour,
+                listOf(
+                    WidgetStackRows.dependent(FeatureCatalog.WIDGET_STACKS_SIDEWAYS),
+                    WidgetStackRows.dependent(FeatureCatalog.WIDGET_STACKS_REMEMBER),
+                    WidgetStackRows.dependent(FeatureCatalog.WIDGET_STACKS_SMART_ROTATE),
+                ),
+            ),
+            SettingsGroup(R.string.settings_group_widget_stacks_dots, listOf(WidgetStackRows.Indicator)),
+            SettingsGroup(R.string.settings_group_widget_stacks_recovery, listOf(WidgetStackRows.Restore)),
+        ),
+    )
+
     private val HOME_SCREEN = SettingsPage(
         key = "home_screen",
         titleRes = R.string.settings_page_home_screen,
@@ -77,6 +96,10 @@ internal object SettingsPages {
             SettingsGroup(
                 R.string.settings_group_pages,
                 listOf(OrganizePagesRow, ToggleRow(FeatureCatalog.FOCUS_HOME_SCREENS, CompatibilityFeature.FOCUS_HOME_SCREENS), FocusPagesRow),
+            ),
+            SettingsGroup(
+                R.string.settings_group_widgets,
+                listOf(PageLinkRow(WIDGET_STACKS)),
             ),
             SettingsGroup(
                 R.string.settings_group_gestures,
@@ -149,7 +172,7 @@ internal object SettingsPages {
     /** The pages listed under this module's heading in Home settings. */
     val topLevel: List<SettingsPage> = listOf(HOME_SCREEN, APP_DRAWER, OVERVIEW, LAYOUT_AND_TASKBAR, ADVANCED)
 
-    private val all: List<SettingsPage> = topLevel + SEARCH_BAR + DOCK + APP_LABELS + DIAGNOSTICS
+    private val all: List<SettingsPage> = topLevel + SEARCH_BAR + DOCK + APP_LABELS + DIAGNOSTICS + WIDGET_STACKS
 
     /** The page the launcher is opening under [rootKey], or null for one of its own. */
     fun byRootKey(rootKey: String?): SettingsPage? = all.firstOrNull { SettingsKeys.page(it) == rootKey }

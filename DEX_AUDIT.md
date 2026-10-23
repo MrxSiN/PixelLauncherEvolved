@@ -133,3 +133,34 @@ None of these is installed until a label exists. Read from source and the releas
 
 No preference read, JSON parse, resource lookup, class or member lookup or logging is reachable from
 these hooks after install, except `Log.w` on failure.
+
+## Widget stack hooks (touch, bind, menu)
+
+Read from the release DEX through the mapping (`scripts/dex-audit.py ... StackSwipe.intercept
+StackSwipe.touch StackSwipe.layout StackSwipe.clipTo StackSwipe.track StackSwipe.canScroll
+StackDots.draw StackSwipe.settle$lambda`):
+
+| Source | Sites on the normal path |
+|---|---|
+| `onInterceptTouchEvent` / `onTouchEvent` hooks, no stack | volatile `WidgetStacks.anchors`, `length`, `proceed` |
+| same, a stack exists | `Field.getInt(id)` on the touched widget's tag and a binary search; on a stack, `rawX/rawY`, `VelocityTracker.addMovement` (obtained once), `ViewConfiguration.get` (cached by the framework) |
+| swipe frame (`touch` MOVE, `layout`, `clipTo`, `StackDots.draw`, settle update) | none: translations, one reused `Rect` for clip bounds (the view copies it into its own after the first), primitive fraction from the animator |
+| gesture start (`begin`, `prepare`) | once per gesture: model lookup under the model's lock, an inflated view the first time a member shows, `Log.w` only on failure |
+| `showComposePopup` hook | when a widget menu opens: one `PopupItem`, a proxy action and a new list |
+
+The bind filter's `WidgetStacks.onBind` runs once per workspace bind (a `SparseIntArray` of items per
+page and the parse of one preference string), never per frame.
+
+`onDragOver` hook (drag moves only): with the switch off, one volatile read and `proceed`. On: three
+cached `Field.get`, `Method.invoke` of `getVisualCenter`/`mapPointFromDropLayout` with one reused
+`float[2]` (one `Object[]` per invoke, drag path only, not a frame path of the home screen at rest),
+an index walk over the page's items; `ViewPropertyAnimator` only when the held widget changes.
+
+Swipe after the spring rewrite (`StackSwipe.follow`, `place`, `move`, `step` (the `TimeAnimator`
+callback), `StackClip.getOutline`, `StackIndicator.draw`): no allocation, boxing, reflection or
+logging. A first build boxed an `Int` per move through `takeIf`; replaced by a comparison.
+`StackDrop.over` calls `getVisualCenter`/`mapPointFromDropLayout` through `Method.invoke` on
+argument arrays it keeps (`Invoke.with`): after ledger entry 42 the per-move `filled-new-array`s are
+gone, and `StackGraph.stackOf` (asked twice per move) no longer takes an `Iterator`. The two
+`filled-new-array`s left in that method are `setDragMode`/`setCurrentDropLayout`, run once when a
+widget first comes under the drag, not per move.

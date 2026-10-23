@@ -7,10 +7,12 @@ S	androidx.preference.PreferenceScreen
 S	androidx.preference.SeekBarPreference
 S	androidx.preference.SwitchPreference
 S	androidx.preference.TwoStatePreference
+S	com.android.launcher3.AbstractFloatingView
 S	com.android.launcher3.BaseActivity
 S	com.android.launcher3.BubbleTextView
 S	com.android.launcher3.CellLayout
 S	com.android.launcher3.DeviceProfile
+S	com.android.launcher3.DropTarget$DragObject
 S	com.android.launcher3.DropTargetBar
 S	com.android.launcher3.ExtendedEditText
 S	com.android.launcher3.Hotseat
@@ -26,6 +28,7 @@ S	com.android.launcher3.ProxyPrefs
 S	com.android.launcher3.QuickstepTransitionManager
 S	com.android.launcher3.ShortcutAndWidgetContainer
 S	com.android.launcher3.Workspace
+S	com.android.launcher3.WorkspaceLayoutManager
 S	com.android.launcher3.allapps.ActivityAllAppsContainerView
 S	com.android.launcher3.allapps.ActivityAllAppsContainerView$AdapterHolder
 S	com.android.launcher3.allapps.AlphabeticalAppsList
@@ -36,6 +39,8 @@ S	com.android.launcher3.allapps.BaseAllAppsAdapter$ViewHolder
 S	com.android.launcher3.allapps.SearchUiManager
 S	com.android.launcher3.anim.PendingAnimation
 S	com.android.launcher3.appprediction.PredictionRowView
+S	com.android.launcher3.celllayout.CellInfo
+S	com.android.launcher3.celllayout.CellLayoutLayoutParams
 S	com.android.launcher3.compat.AlphabeticIndexCompat
 S	com.android.launcher3.dagger.LauncherBaseAppComponent
 S	com.android.launcher3.dagger.LauncherComponentProvider
@@ -52,6 +57,10 @@ S	com.android.launcher3.deviceprofile.parser.DisplayOption
 S	com.android.launcher3.deviceprofile.parser.DisplayOptionSpec
 S	com.android.launcher3.deviceprofile.parser.GridOption
 S	com.android.launcher3.display.LauncherDisplayInfo
+S	com.android.launcher3.dragndrop.DragLayer
+S	com.android.launcher3.dragndrop.DragOptions
+S	com.android.launcher3.dragndrop.DragView
+S	com.android.launcher3.dragndrop.ItemDeleteHandler
 S	com.android.launcher3.folder.FolderIcon
 S	com.android.launcher3.graphics.LauncherCustomizationProvider
 S	com.android.launcher3.icons.BaseIconFactory
@@ -80,8 +89,10 @@ S	com.android.launcher3.model.data.AppsListData
 S	com.android.launcher3.model.data.ItemInfo
 S	com.android.launcher3.model.data.ItemInfoWithIcon
 S	com.android.launcher3.model.data.WorkspaceData$MutableWorkspaceData
+S	com.android.launcher3.popup.PopupCategory
 S	com.android.launcher3.popup.PopupContainer
 S	com.android.launcher3.popup.PopupContainerWithArrow
+S	com.android.launcher3.popup.WorkspaceLongPressOptions
 S	com.android.launcher3.popup.ui.PopupItem
 S	com.android.launcher3.popup.ui.StringContainer$ResourceString
 S	com.android.launcher3.prefs
@@ -122,6 +133,7 @@ S	com.android.launcher3.util.DaggerSingletonObject
 S	com.android.launcher3.util.Executors
 S	com.android.launcher3.util.IntArray
 S	com.android.launcher3.util.IntSet
+S	com.android.launcher3.util.ItemInflater
 S	com.android.launcher3.util.LabelComparator
 S	com.android.launcher3.util.MultiPropertyFactory
 S	com.android.launcher3.util.MultiValueAlpha
@@ -133,6 +145,10 @@ S	com.android.launcher3.views.PredictedAppIcon
 S	com.android.launcher3.views.Snackbar
 S	com.android.launcher3.widget.LauncherAppWidgetHostView
 S	com.android.launcher3.widget.LauncherAppWidgetProviderInfo
+S	com.android.launcher3.widget.LauncherWidgetHolder
+S	com.android.launcher3.widget.resize.ResizeManager
+S	com.android.launcher3.widget.resize.ResizeManager$ResizeConstraints
+S	com.android.launcher3.widget.util.WidgetSizeHandler
 S	com.android.quickstep.BaseContainerInterface
 S	com.android.quickstep.LauncherActivityInterface
 S	com.android.quickstep.RecentsAnimationCallbacks
@@ -169,6 +185,7 @@ N	ClickableViewAccessibility
 N	Contracts
 N	Custom
 N	DEPRECATION
+N	DragLayer
 N	INSTANCE
 N	LAUNCHER_APP_ICON_MENU_SPLIT_LEFT_TOP
 N	LAUNCHER_APP_ICON_MENU_SPLIT_RIGHT_BOTTOM
@@ -185,6 +202,7 @@ N	PixelLauncherEvolved
 N	Rename
 N	STATE_TRUE
 N	STATE_UNKNOWN
+N	SYSTEM_SHORTCUT_FIXED
 N	TASKBAR_UI_THREAD
 N	TRUE
 N	UNCHECKED_CAST
@@ -201,8 +219,10 @@ N	actionsHeight
 N	actionsTopMarginPx
 N	activated_at
 N	active
+N	activityContext
 N	add
 N	addAppsWithSections
+N	addInScreen
 N	addOnChangeListener
 N	addPreference
 N	addViewToCellLayout
@@ -210,6 +230,7 @@ N	advanced
 N	allAppsProfile
 N	android
 N	animateIconsForReveal
+N	animateViewIntoPosition
 N	appDrawerColumns
 N	appIconSize
 N	appLabels
@@ -243,6 +264,7 @@ N	backup_reset
 N	barSizePx
 N	baseIntent
 N	before
+N	beginResizeSession
 N	bindAddScreens
 N	bindCompleteModelAsync
 N	bindItems
@@ -265,6 +287,7 @@ N	call
 N	canMigrate
 N	canStartHomeSafely
 N	category
+N	cell
 N	cellHeightPx
 N	cellLayoutBorderSpacePx
 N	cellLayoutHeightSpecification
@@ -280,6 +303,7 @@ N	circle_dismiss_background
 N	class
 N	clone
 N	close
+N	closeAllOpenViews
 N	collapsedMenuDefaultWidth
 N	collectWorkspaceScreens
 N	color
@@ -291,6 +315,8 @@ N	commitExtraEmptyScreens
 N	compare
 N	compatibility_analyzed_launcher_version
 N	compatibility_watch
+N	completeAddAppWidget
+N	completeDelete
 N	component
 N	componentName
 N	computeSectionName
@@ -307,6 +333,8 @@ N	current
 N	db
 N	dbFile
 N	default
+N	deferDragViewCleanupPostAnimation
+N	detachContentView
 N	detachNavigationBarFromApp
 N	deviceProperties
 N	dexkit
@@ -322,6 +350,8 @@ N	dockIcons
 N	dockMovesToHome
 N	dock_removal_note
 N	doubleTapToSleep
+N	dragComplete
+N	dragView
 N	drawable
 N	drift
 N	en
@@ -334,6 +364,7 @@ N	failure
 N	feature_
 N	features_failed
 N	findSpaceForItem
+N	finish
 N	fixedSize
 N	float
 N	focus_blur_
@@ -358,7 +389,10 @@ N	forceReload
 N	framework
 N	from
 N	fullTablet
+N	gadget_setup_text
 N	get
+N	getActivityComponent
+N	getAppWidgetHolder
 N	getAppsView
 N	getBitmapCrops
 N	getBottomMargin
@@ -377,6 +411,7 @@ N	getIcon
 N	getIconBounds
 N	getIconLayoutWidth
 N	getIntent
+N	getItemDeleteHandler
 N	getItemsToBeAdded
 N	getItemsToBeRemoved
 N	getLauncherContentAnimator
@@ -405,6 +440,8 @@ N	getText
 N	getThumbnailBounds
 N	getUserHandle
 N	getViewRootImpl
+N	getVisualCenter
+N	getWidgetForAppWidgetId
 N	getWorkspaceScrimColor
 N	get_preview_bitmap
 N	goToSleep
@@ -462,6 +499,11 @@ N	home_icons_use_pack
 N	home_screen
 N	home_search_bar
 N	home_search_opens_drawer
+N	home_widget_stacks
+N	home_widget_stacks_indicator
+N	home_widget_stacks_remember
+N	home_widget_stacks_sideways
+N	home_widget_stacks_smart_rotate
 N	hooks_failed
 N	hooks_fallback
 N	hooks_resolved
@@ -495,6 +537,7 @@ N	iconpack
 N	id
 N	idp_grid_name
 N	image
+N	inflateItem
 N	init
 N	initDeviceProfile
 N	initGrid
@@ -562,6 +605,8 @@ N	mDestroyed
 N	mDeviceProfile
 N	mDisplay
 N	mDp
+N	mDragInfo
+N	mDragTargetLayout
 N	mEnabled
 N	mFolderItems
 N	mGridSizeString
@@ -573,6 +618,7 @@ N	mIconSpaceReserved
 N	mIconTouchSize
 N	mIdp
 N	mIsDualGrid
+N	mItemInflater
 N	mItemMarginLeftRight
 N	mKey
 N	mLabelComparator
@@ -599,6 +645,7 @@ N	mSearchUiManager
 N	mShortcutsAndWidgets
 N	mStashedHandleHeight
 N	mState
+N	mStateManager
 N	mTarget
 N	mTaskSize
 N	mTaskbarDividerContainer
@@ -608,6 +655,7 @@ N	mViewRoot
 N	mVisible
 N	mWidth
 N	mWorkspace
+N	mapPointFromDropLayout
 N	mapTypeIndex
 N	matchWorkspace
 N	matches
@@ -624,8 +672,10 @@ N	migrated_from_framework_preferences
 N	migration_src_
 N	migration_src_db_file
 N	migration_src_workspace_size
+N	minHSpan
 N	minSpanX
 N	minSpanY
+N	minVSpan
 N	minWidthAllowed
 N	mipmap
 N	model
@@ -673,8 +723,12 @@ N	onCreate
 N	onCreatePreferences
 N	onDeviceProfileChanged
 N	onDragEnd
+N	onDragExit
+N	onDragOver
 N	onDraw
+N	onDrop
 N	onFinishInflate
+N	onInitializeAccessibilityNodeInfo
 N	onInterceptTouchEvent
 N	onLauncherVisibilityChanged
 N	onLayout
@@ -685,6 +739,8 @@ N	onTouch
 N	onTouchEvent
 N	onViewDestroyed
 N	onWindowFocusChanged
+N	openWidgetPicker
+N	originalView
 N	overrides
 N	overview
 N	overviewBubble
@@ -717,6 +773,7 @@ N	page_
 N	parseWeightedPredefinedDisplayOption
 N	pauseBlursOnWindows
 N	pause_app_label
+N	performAccessibilityAction
 N	performClick
 N	personal
 N	pixel_launcher_evolved
@@ -724,6 +781,7 @@ N	pixel_launcher_evolved_focus
 N	pixel_launcher_evolved_icon_pack
 N	pixel_launcher_evolved_icons
 N	pixel_launcher_evolved_page_order
+N	pixel_launcher_evolved_widget_stack
 N	ple
 N	ple_
 N	ple_custom
@@ -746,6 +804,7 @@ N	ple_icons_state
 N	ple_layout
 N	ple_previews
 N	ple_rename
+N	ple_widget_stack
 N	prefix
 N	preview_count
 N	private
@@ -759,12 +818,14 @@ N	recreatePreviewRenderer
 N	recycle
 N	refresh_icons
 N	removeExtraEmptyScreenDelayed
+N	removeItem
 N	removeOnChangeListener
 N	reorganize_pages
 N	requestFocusExplicitly
 N	requireContext
 N	resId
 N	resetLayout
+N	resizeConstraints
 N	restart_launcher
 N	restore
 N	root
@@ -772,6 +833,7 @@ N	rowSpacing
 N	rows
 N	rows_from
 N	rows_to
+N	runAtomicResizeSession
 N	safe_mode
 N	safe_mode_crashes
 N	safe_mode_disabled
@@ -781,7 +843,9 @@ N	sectionName
 N	selftest
 N	setBackgroundBlurRadius
 N	setChecked
+N	setCurrentDropLayout
 N	setCurrentGrid
+N	setDragMode
 N	setExtras
 N	setFullscreenProgress
 N	setIcon
@@ -806,6 +870,7 @@ N	showAppBubble
 N	showAsGrid
 N	showComposePopup
 N	showKeyboard
+N	snapToPage
 N	snapshot
 N	solveGridPlacement
 N	spacing
@@ -817,6 +882,7 @@ N	spanX
 N	spanY
 N	stagePosition
 N	startActivitySafely
+N	startConfigActivity
 N	startHome
 N	startPadding
 N	statusBarDoubleTapToSleep
@@ -850,8 +916,10 @@ N	updateForGroupedTask
 N	updateHiddenFlags
 N	updateRingPath
 N	updateShapePath
+N	updateSizeRanges
 N	updateStateForFlag
 N	useIconPack
+N	useTmpCoords
 N	user
 N	userId
 N	uses_pack
@@ -861,6 +929,15 @@ N	viewType
 N	weather
 N	webSearchApp
 N	web_search_app
+N	widgetStacks
+N	widgetStacksIndicator
+N	widgetStacksRemember
+N	widgetStacksSideways
+N	widgetStacksSmartRotate
+N	widgetView
+N	widget_stacks
+N	widget_stacks_restore
+N	widgets_24px
 N	width
 N	widthPx
 N	widthSpecs

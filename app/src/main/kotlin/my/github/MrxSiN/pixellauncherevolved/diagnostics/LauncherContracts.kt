@@ -25,11 +25,13 @@ import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.OV
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.SPLIT_SCREEN
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.TASKBAR_APP_DRAWER_BUTTON
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.TASKBAR_ONLY
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.WIDGET_STACKS
 
 /** A tweak as the compatibility page names it. */
 enum class CompatibilityFeature(@param:StringRes val titleRes: Int) {
     BLUR_WALLPAPER(R.string.feature_home_blur_wallpaper_title),
     FOCUS_HOME_SCREENS(R.string.feature_focus_home_screens_title),
+    WIDGET_STACKS(R.string.feature_widget_stacks_title),
     ORGANIZE_PAGES(R.string.pages_reorganize_title),
     DOUBLE_TAP_TO_SLEEP(R.string.feature_home_double_tap_to_sleep_title),
     HOME_SEARCH_BAR(R.string.settings_page_search_bar),
@@ -69,6 +71,8 @@ object LauncherContracts {
     private const val LONG = "long"
     private const val CONTEXT = "android.content.Context"
     private const val VIEW = "android.view.View"
+    private const val MOTION_EVENT = "android.view.MotionEvent"
+    private const val POPUP_CONTAINER = "com.android.launcher3.popup.PopupContainer"
 
     private const val LAUNCHER = "com.android.launcher3.Launcher"
     private const val QUICKSTEP_LAUNCHER = "com.android.launcher3.uioverrides.QuickstepLauncher"
@@ -127,7 +131,7 @@ object LauncherContracts {
         // Focus home screens
         LauncherContract(
             Signature(MODEL_CALLBACKS, Member.Method("bindModelWithAsyncInflation")),
-            setOf(FOCUS_HOME_SCREENS),
+            setOf(FOCUS_HOME_SCREENS, WIDGET_STACKS),
             alternatives = listOf(Signature(MODEL_CALLBACKS, Member.Method("bindCompleteModelAsync"))),
         ),
         contract(MODEL_CALLBACKS, Member.Method("bindAddScreens"), FOCUS_HOME_SCREENS),
@@ -136,12 +140,71 @@ object LauncherContracts {
             "com.android.launcher3.model.data.WorkspaceData\$MutableWorkspaceData",
             method("collectWorkspaceScreens"),
             FOCUS_HOME_SCREENS,
+            WIDGET_STACKS,
         ),
         contract(WORKSPACE, Member.Field("mScreenOrder"), FOCUS_HOME_SCREENS),
         optional(WORKSPACE, Member.Method("stripEmptyScreens"), FOCUS_HOME_SCREENS),
         optional(WORKSPACE, Member.Method("insertNewWorkspaceScreen"), FOCUS_HOME_SCREENS),
         optional("com.android.launcher3.model.WorkspaceItemSpaceFinder", Member.Method("findSpaceForItem"), FOCUS_HOME_SCREENS),
-        contract(LAUNCHER, Member.Field("mModel"), FOCUS_HOME_SCREENS),
+        contract(LAUNCHER, Member.Field("mModel"), FOCUS_HOME_SCREENS, WIDGET_STACKS),
+
+        // Widget stacks
+        contract(WIDGET_HOST, method("onInterceptTouchEvent", MOTION_EVENT), WIDGET_STACKS),
+        contract(WIDGET_HOST, method("onTouchEvent", MOTION_EVENT), WIDGET_STACKS),
+        contract(WIDGET_HOST, Member.Field("mActivityContext"), WIDGET_STACKS),
+        contract(LAUNCHER, Member.Field("mItemInflater"), WIDGET_STACKS),
+        contract(LAUNCHER, Member.Field("mWorkspace"), WIDGET_STACKS),
+        contract(LAUNCHER, method("getModelWriter"), WIDGET_STACKS),
+        contract("com.android.launcher3.util.ItemInflater", Member.Method("inflateItem"), WIDGET_STACKS),
+        contract("com.android.launcher3.WorkspaceLayoutManager", Member.Method("addInScreen"), WIDGET_STACKS),
+        contract(CELL_LAYOUT, Member.Method("addViewToCellLayout"), WIDGET_STACKS),
+        contract(CELL_LAYOUT, Member.Field("mShortcutsAndWidgets"), WIDGET_STACKS),
+        optional("com.android.launcher3.celllayout.CellLayoutLayoutParams", Member.Field("useTmpCoords"), WIDGET_STACKS),
+        optional("com.android.launcher3.AbstractFloatingView", Member.Method("closeAllOpenViews"), WIDGET_STACKS),
+        optional("com.android.launcher3.widget.util.WidgetSizeHandler", Member.Method("updateSizeRanges"), WIDGET_STACKS),
+        contract(ITEM_INFO, Member.Field("minSpanX"), WIDGET_STACKS),
+        // Dropping a widget on another: optional, the menu row stacks without them
+        optional(WORKSPACE, Member.Method("onDragOver"), WIDGET_STACKS),
+        optional(WORKSPACE, Member.Method("onDragExit"), WIDGET_STACKS),
+        optional(WORKSPACE, Member.Method("onDrop"), WIDGET_STACKS),
+        optional(WORKSPACE, Member.Method("onDragEnd"), WIDGET_STACKS),
+        optional(WORKSPACE, method("setDragMode", INT), WIDGET_STACKS),
+        optional(WORKSPACE, Member.Method("setCurrentDropLayout"), WIDGET_STACKS),
+        optional(WORKSPACE, Member.Method("mapPointFromDropLayout"), WIDGET_STACKS),
+        optional(WORKSPACE, Member.Field("mDragTargetLayout"), WIDGET_STACKS),
+        optional(WORKSPACE, Member.Field("mDragInfo"), WIDGET_STACKS),
+        optional("com.android.launcher3.DropTarget\$DragObject", Member.Field("deferDragViewCleanupPostAnimation"), WIDGET_STACKS),
+        optional("com.android.launcher3.DropTarget\$DragObject", Member.Field("dragComplete"), WIDGET_STACKS),
+        optional("com.android.launcher3.dragndrop.DragView", Member.Method("detachContentView"), WIDGET_STACKS),
+        optional("com.android.launcher3.dragndrop.DragLayer", Member.Method("animateViewIntoPosition"), WIDGET_STACKS),
+        optional("com.android.launcher3.statemanager.StateManager", Member.Method("goToState"), WIDGET_STACKS),
+        optional(LAUNCHER, Member.Field("mStateManager"), WIDGET_STACKS),
+        // TalkBack, home coming back, the picker, deletes, resize, widget settings: each optional
+        optional(WIDGET_HOST, method("onInitializeAccessibilityNodeInfo", "android.view.accessibility.AccessibilityNodeInfo"), WIDGET_STACKS),
+        optional(LAUNCHER, method("onResume"), WIDGET_STACKS),
+        optional(LAUNCHER, Member.Method("completeAddAppWidget"), WIDGET_STACKS),
+        optional("com.android.launcher3.popup.WorkspaceLongPressOptions", method("openWidgetPicker", CONTEXT), WIDGET_STACKS),
+        optional(WORKSPACE, method("getWidgetForAppWidgetId", INT), WIDGET_STACKS),
+        optional(WORKSPACE, method("snapToPage", INT), WIDGET_STACKS),
+        optional(WORKSPACE, Member.Method("stripEmptyScreens"), WIDGET_STACKS),
+        optional("com.android.launcher3.dragndrop.ItemDeleteHandler", Member.Method("removeItem"), WIDGET_STACKS),
+        optional("com.android.launcher3.dragndrop.ItemDeleteHandler", Member.Method("completeDelete"), WIDGET_STACKS),
+        optional("com.android.launcher3.dragndrop.ItemDeleteHandler", Member.Field("activityContext"), WIDGET_STACKS),
+        optional("com.android.launcher3.widget.resize.ResizeManager", Member.Method("beginResizeSession"), WIDGET_STACKS),
+        optional("com.android.launcher3.widget.resize.ResizeManager", Member.Method("finish"), WIDGET_STACKS),
+        optional("com.android.launcher3.widget.resize.ResizeManager", Member.Field("resizeConstraints"), WIDGET_STACKS),
+        optional("com.android.launcher3.widget.resize.ResizeManager", Member.Field("widgetView"), WIDGET_STACKS),
+        optional("com.android.launcher3.widget.resize.ResizeManager\$ResizeConstraints", Member.Field("minHSpan"), WIDGET_STACKS),
+        optional("com.android.launcher3.widget.LauncherWidgetHolder", Member.Method("startConfigActivity"), WIDGET_STACKS),
+        optional(ITEM_INFO, Member.Field("minSpanY"), WIDGET_STACKS),
+        contract("com.android.launcher3.model.ModelWriter", Member.Method("modifyItemInDatabase"), WIDGET_STACKS),
+        contract(LAUNCHER_MODEL, Member.Field("mBgDataModel"), WIDGET_STACKS),
+        contract("com.android.launcher3.model.BgDataModel", Member.Field("itemsIdMap"), WIDGET_STACKS),
+        contract(POPUP_CONTAINER, method("showComposePopup", INT, "java.util.List"), WIDGET_STACKS),
+        contract(POPUP_CONTAINER, Member.Field("originalView"), WIDGET_STACKS),
+        contract(POPUP_CONTAINER, Member.Field("itemInfo"), WIDGET_STACKS),
+        contract("com.android.launcher3.popup.ui.StringContainer\$ResourceString", Member.Method("getText"), WIDGET_STACKS),
+        contract("com.android.launcher3.popup.PopupCategory", Member.Field("SYSTEM_SHORTCUT_FIXED"), WIDGET_STACKS),
         // Focus page previews, drawn by the launcher's own preview; a page is drawn from the model without it
         optional("com.android.launcher3.dagger.LauncherComponentProvider", method("get", "android.content.Context"), FOCUS_HOME_SCREENS),
         optional("com.android.launcher3.dagger.LauncherBaseAppComponent", method("getGridCustomizationsProxy"), FOCUS_HOME_SCREENS),

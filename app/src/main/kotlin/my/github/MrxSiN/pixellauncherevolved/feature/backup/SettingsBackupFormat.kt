@@ -42,6 +42,10 @@ object SettingsBackupFormat {
     val SWITCHES: Map<String, BoolSetting> = linkedMapOf(
         "blur" to Settings.HOME_BLUR_WALLPAPER,
         "modesHomeScreens" to Settings.FOCUS_HOME_SCREENS,
+        "widgetStacks" to Settings.WIDGET_STACKS,
+        "widgetStacksSideways" to Settings.WIDGET_STACKS_SIDEWAYS,
+        "widgetStacksRemember" to Settings.WIDGET_STACKS_REMEMBER,
+        "widgetStacksSmartRotate" to Settings.WIDGET_STACKS_SMART_ROTATE,
         "doubleTapToSleep" to Settings.HOME_DOUBLE_TAP_TO_SLEEP,
         "statusBarDoubleTapToSleep" to Settings.STATUS_BAR_DOUBLE_TAP_TO_SLEEP,
         "searchBarOpensAppSearch" to Settings.HOME_SEARCH_OPENS_DRAWER,
@@ -72,6 +76,7 @@ object SettingsBackupFormat {
     private const val KEY_VERSION = "version"
     private const val KEY_BLUR_STRENGTH = "blurStrength"
     private const val KEY_DOCK_ICONS = "dockIcons"
+    private const val KEY_STACK_INDICATOR = "widgetStacksIndicator"
     private const val KEY_LAYOUT_MODE = "layoutMode"
     private const val KEY_HIDDEN_APPS = "hiddenApps"
     private const val KEY_WEB_SEARCH_APP = "webSearchApp"
@@ -106,6 +111,7 @@ object SettingsBackupFormat {
         for ((name, setting) in SWITCHES) put(name, snapshot.switches[setting] ?: setting.default)
         put(KEY_BLUR_STRENGTH, snapshot.blurStrength / PERCENT)
         put(KEY_DOCK_ICONS, snapshot.dockIcons)
+        put(KEY_STACK_INDICATOR, snapshot.stackIndicator)
         put(KEY_LAYOUT_MODE, LAYOUT_MODES.getValue(snapshot.layoutMode))
         put(KEY_HIDDEN_APPS, JSONArray(snapshot.hiddenApps.sorted()))
         put(KEY_WEB_SEARCH_APP, snapshot.webSearchApp ?: JSONObject.NULL)
@@ -225,6 +231,7 @@ object SettingsBackupFormat {
             // Kept as written: the launcher applies a count only where the grid it
             // meets has room for more, so an impossible one reads as System.
             dockIcons = json.optInt(KEY_DOCK_ICONS, defaults.dockIcons).coerceIn(Settings.DOCK_ICONS.range),
+            stackIndicator = json.optInt(KEY_STACK_INDICATOR, defaults.stackIndicator).coerceIn(Settings.WIDGET_STACKS_INDICATOR.range),
             layoutMode = LAYOUT_MODES.entries.firstOrNull { it.value == json.optString(KEY_LAYOUT_MODE) }?.key
                 ?: defaults.layoutMode,
             hiddenApps = json.optJSONArray(KEY_HIDDEN_APPS)

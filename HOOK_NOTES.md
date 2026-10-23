@@ -2932,3 +2932,207 @@ inside the launcher (`Debug.dumpHprofData`; the launcher is not debuggable, so `
 refused), converted with `hprof-conv`, and walked from the GC roots. Every listener on a launcher or
 picker view now removes itself in `onViewDetachedFromWindow`, where the window's observer is still
 reachable, and registers again on attach.
+
+## Widget stacks (Android 17 QPR1 `CP3A.261005.005`, launcher 907, read from the DEX October 22, 2026)
+
+```
+LoaderTask.loadAllSurfacesOrdered
+  AppWidgetHost.getAppWidgetIds(); "Deleting widget not found in db: appWidgetId="   ghost-widget sweep
+LoaderCursor.checkAndAddItem                      GridOccupancy.isRegionVacant, else ") already occupied" -> deleted
+ModelDbController.getNewScreenId()                SELECT MAX(screen) FROM favorites WHERE container = -100 AND screen >= 0, + 1
+PopupControllerForExtraHomeScreenItems.show(View) every widget long press: PopupDataRepository.getAllSupportedPopupActions
+  PopupContainer.showPopupData(int, List<PopupData>) -> showComposePopup(int, List<PopupItem>)   no empty check
+PopupContainer.originalView, itemInfo
+LauncherAppWidgetHostView.onInterceptTouchEvent   DOWN: dragLayer.requestDisallowInterceptTouchEvent(true) when mIsScrollable;
+                                                  mLongPressHelper.onTouchEvent(ev)
+Launcher.mItemInflater: ItemInflater.inflateItem$default(inflater, info, null, 6)   as LauncherAccessibilityDelegate.bindItem
+WorkspaceLayoutManager.addInScreen(View, int container, int screenId, int x, int y, int spanX, int spanY)
+CellLayout.removeView(View) unmarks the view's cells; markCellsAsOccupiedForView(View)
+ModelWriter.modifyItemInDatabase(ItemInfo, int, int, int, int, int, int)   sets the item's fields, writes on the model thread
+```
+
+- There is no stock widget stack on this launcher and no launcher string for one. Both stock
+  routes to a widget that is in the database but not shown destroy it: an `appWidgetId` bound to the
+  launcher's host with no row is deleted at load, and an overlapping row is deleted by
+  `checkAndAddItem`. So every member stays a real row in a cell of its own. The member on show sits
+  where the stack is; each other one sits alone at (0,0) of a page of its own, with an id taken as
+  one above every page in the model, so the next page anyone makes (`getNewScreenId`) is above it.
+- Those pages are hidden by the Modes pages bind filter (`FocusHomeFeature`), which already filters
+  the one call that hands over the whole workspace and the incremental `bindItems`, and keeps new
+  apps off pages it reserves. `WidgetStacks.onBind` runs first in that filter with the full item
+  map, and only hides a page that holds exactly the one member it expects. Without the filter (Modes
+  pages unavailable, Safe Mode, module removed) the pages show, one widget each.
+- Swiping moves widgets with the same calls a drag between pages makes: the incoming view is placed
+  over the stack's cells with `addInScreen(view, -100, screen, x, y, spanX, spanY)` (which does not
+  touch its `ItemInfo`), and on commit the outgoing view is removed (`removeView` unmarks the shared
+  cells, so the incoming view's are marked again) and both rows are moved with
+  `modifyItemInDatabase`. The outgoing view is kept detached for the next swipe, so the holder's
+  view for that `appWidgetId` is reused rather than inflated again; the cache is dropped at each bind.
+- The long-press menu is the Compose menu App labels uses. Rows are added at `showComposePopup`,
+  on `PopupContainer`'s own method (the widget menu is not a `PopupContainerWithArrow`), with the
+  category of the last stock row, or `PopupCategory.SYSTEM_SHORTCUT_FIXED` when a widget has none.
+  Their text is answered by `StringContainer$ResourceString.getText` for those two label objects
+  only; the resource id they carry (`gadget_setup_text`) is never shown.
+- The swipe is vertical. Down on a stack holds off the drag layer's own controllers as the
+  launcher does for a scrollable widget, so swiping up on a stack does not open the app drawer.
+  The gesture is taken only past the touch slop and only when no view under the finger can scroll
+  that way; the widget then gets `ACTION_CANCEL` from the normal intercept path.
+
+### Not done
+
+- Auto-rotate; a resize that checks every member: the stack's span is the member on show's, and a
+  member shown after a resize takes that span (and is told it, `WidgetSizeHandler.updateSizeRanges`).
+
+### Dropping a widget on a widget (added October 23, 2026)
+
+```
+Workspace.onDragOver(DragObject)
+  setDropLayoutForDragObject -> mDragTargetLayout; findNearestArea -> mTargetCell
+  ShortcutAndWidgetContainer.getChildAt(x, y) -> mDragOverView; within getFolderCreationRadius: folder modes,
+  else setDragMode(0) and the reorder alarm (mReorderAlarm, cleanupReorder cancels it)
+Workspace.setCurrentDropLayout(null)   reverts the old layout's temporary reorder, fades its drop outline
+Workspace.acceptDrop                   true at once for a drag that started on the workspace
+DragController drop: onDragExit (dragComplete = true) -> acceptDrop -> onDrop -> source.onDropCompleted
+Workspace.onDropCompleted(target == this, success)   removes nothing; getViewByItemId(original id)
+Workspace.onDrop                       DragView.detachContentView(...) before re-adding the widget;
+                                       DragLayer.animateViewIntoPosition(DragView, View, int, Workspace);
+                                       StateManager.goToState(NORMAL ...) leaves the drag state
+CellLayout.getShortcutsAndWidgets()    inlined away; field mShortcutsAndWidgets
+```
+
+- `StackDrop` takes the folder path's place for widgets: with the dragged widget's visual centre
+  anywhere over another home screen widget, `onDragOver` sets drag mode 0 and the
+  current drop layout to null once (no reorder, no outline, items back), shrinks the widget under it
+  to 92% and gives `GESTURE_THRESHOLD_ACTIVATE`; moving off gives it back to the launcher
+  (`..._DEACTIVATE`). `onDragExit` keeps the hold only when `dragComplete`; `onDrop` then detaches
+  the drag view's content back to its cell, stacks the widget at the target's size, lets the drag
+  view fly into the target, and goes to `NORMAL`. `onDragEnd` lets go of any hold.
+- A first build held only over the inner 70% of a widget. On the device the launcher's reorder
+  alarm fired while the drag crossed the outer band, pushing the widget away before the centre got
+  inside it, so the whole widget counts now.
+- Only drags that started on the home screen (`mDragInfo` set), of a widget not itself in a
+  stack, onto a widget whose size the dragged widget's app allows (`ItemInfo.minSpanX/Y`).
+- The stacked widget takes the target's span and its app gets `updateSizeRanges`, as after a
+  resize. Add to stack in the menu now offers every widget on the home screen it fits.
+- Device (October 23, 2026, backup taken first, layout restored after, md5 equal): Tasks stretched
+  to 4x3 with the stock handles, Calendar (4x2) dragged onto it: Tasks shrank under the drag, the
+  drop flew Calendar into Tasks and left the drag state, `widget_stacks` = `1;0:51,50`, Calendar's
+  row moved to its own page as 4x3 and swiping showed it laid out at 4x3 (four days of events).
+  Launcher restart kept the stack; no `already occupied` / `Deleting widget`; ids still bound.
+  Not run: dragging off a held widget, dropping a widget whose app cannot go that small.
+- Velocity-matched settle (the settle is a fixed 380 ms spatial spring), a predictive-back aware
+  editor (Edit stack uses this module's dialogs), and accessibility actions on the stack itself
+  (Edit stack → Show is the non-swipe way).
+- When the widget on show is removed, the stack comes apart at the next bind and the others show
+  on their own pages, rather than the next one taking its place.
+- A page a stack frees (switch off, Remove from stack, Unstack) is an ordinary page, so while a
+  Mode with its own pages is on, that Mode hides it like any other ordinary page; it shows once the
+  Mode is off (or with "show the ordinary pages").
+
+### Verified on the device (October 23, 2026, Pixel 8 Pro `CP3A.261005.005`, launcher 907)
+
+Owner's Calendar (made 4x2 with the stock resize handles for the test) and Tasks, on the Work
+Mode's page, with a full launcher backup taken first and restored after:
+
+- Long-press menu: **Add to stack** after the launcher's Remove; with no same-size widget it says so.
+  **Edit stack** on the stack. Both drawn as launcher rows.
+- Add to stack moved Tasks to its own page (screen 8, (0,0)), alone, nothing else moved; the page
+  was not shown. `widget_stacks` = `1;0:50,51`.
+- Swipe up on Calendar scrolled its event list (the stack yielded); swipe down at the list's top
+  switched to Tasks; a held swipe showed both widgets clipped to the stack's cells and the dots;
+  release past a third committed. Sideways swipes over the stack did not switch it.
+- Launcher force-stopped: the stack and its hidden page came back; no `already occupied` or
+  `Deleting widget` in the log; ids 131/132 still bound.
+- Edit stack → List → Show switched without a swipe.
+- Switch off + restart: both rows stayed valid (Calendar on screen 8, Tasks at the stack's cells),
+  ids bound; switch on again: the stack came back and swiped.
+- Found and fixed: `CellLayout.getShortcutsAndWidgets()` is inlined away on 907 (Add to stack listed
+  nothing); the field `mShortcutsAndWidgets` is read instead. The resize frame stayed on screen
+  after Add to stack took the widget away; floating views are now closed first
+  (`AbstractFloatingView.closeAllOpenViews`), not yet re-run on the device.
+
+### Feedback and the swipe's look (device, October 23, 2026)
+
+- Neighbours are parked in the `ShortcutAndWidgetContainer`'s `ViewGroupOverlay`, not among its
+  children, so reorder/occupancy/`mapOverItems` never see them. Kept INVISIBLE they got no content
+  (a blank card slid in); kept VISIBLE at alpha 0 they load and are not drawn. The overlay never
+  lays children out again: `forceLayout` on the whole tree, then measure/layout, at each swipe.
+- The commit adds the incoming widget with `addInScreen` before the stack's anchor list names it,
+  so the `addViewToCellLayout` hook skipped it (no dots, no parking after the first swipe); the
+  commit now does both itself.
+- Rounded clip: a `ViewOutlineProvider` round rect from the stack's top to bottom in the view's
+  own coordinates, radius `system_app_widget_background_radius`; original provider restored after.
+  Settle: `EMPHASIZED_DECELERATE`, 300 ms (the spring overshoot opened a gap).
+- Dots: drawn in the Workspace overlay (content coordinates, so they scroll with pages) at
+  `page.left + container.left + anchor.right + 6dp`; the page's own overlay cut them to the page
+  and put them on the widget. Hidden while the page is scaled (drag), faded with the page.
+- Verified: dots in the margin at rest; swipe both ways with the incoming widget's content
+  showing during the slide and rounded cut edges; dots return after the switch; list still
+  scrolls first. Not verified: the drop frame and the pulse (no second widget on the test page;
+  the owner's two widgets were already stacked).
+
+### The full feature (October 23, 2026; read from the DEX, then run on the device)
+
+```
+WorkspaceLongPressOptions.openWidgetPicker(Context)        static; starts the picker activity (or home with extra_open_widget_picker)
+Launcher.completeAddAppWidget(int, ItemInfo, AppWidgetHostView, LauncherAppWidgetProviderInfo, boolean, boolean, Drawable)
+Workspace.getWidgetForAppWidgetId(int)
+Launcher.getActivityComponent().getItemDeleteHandler()      QuickstepBaseActivityComponent
+ItemDeleteHandler.removeItem(ItemInfo, boolean deleteFromDb, String reason)
+  LauncherAppWidgetInfo: bindItemRemoved, then ModelWriter.execute(deleteWidgetInfo(info, holder, reason))
+ItemDeleteHandler.completeDelete(ItemInfo, String), prepareToUndoDelete(ItemInfo); field activityContext
+ResizeManager (Compose resize frame AppWidgetResizeFrameCompose)
+  fields widgetView, resizeConstraints (ResizeConstraints: minHSpan, minVSpan, maxHSpan, maxVSpan, cellCountX/Y)
+  beginResizeSession(Edge, Edge), runAtomicResizeSession(Edge, int, Function0), finish()
+LauncherWidgetHolder.startConfigActivity(BaseActivity, int appWidgetId, int requestCode)
+LauncherAppWidgetHostView.onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo); View.performAccessibilityAction(int, Bundle)
+```
+
+- A widget picked for a stack is added by the launcher like any other (it binds it, runs its
+  configuration, places it where there is room), then `completeAddAppWidget` hands its id and the
+  module moves it into the stack. With no room on the home screen the launcher refuses the add and
+  nothing joins.
+- Deleting goes through `ItemDeleteHandler.removeItem`, which releases the widget id; the stored
+  stacks are updated first. The launcher's own Remove on the widget on show is followed at
+  `completeDelete` (after any undo has gone), where the next widget is moved into its cells.
+- Resizing: before each resize session the frame's minimum spans are raised to the largest any
+  member's app needs; when the frame closes, the waiting widgets are moved to the new span and told
+  (`updateSizeRanges` on their parked views).
+- Widget settings for a waiting widget: `startConfigActivity` with a request code the launcher does
+  not handle (0x5157), so the result goes only to the widget's app.
+- Device (October 23, 2026, backup taken first, layout restored after, md5 equal, the owner's
+  widget ids still bound): on test widgets from the picker, Create stack → Choose from all widgets
+  added Weather to Battery at Battery's 4x2 (`2;0:61@0,62@0`); Add widget added a third. Swipes up
+  went 1 → 2 → 3 with the dots following; a swipe past the end stayed on the last widget. Edit stack
+  listed the three with Move up/down and the one showing; Remove widget asked first, then deleted
+  it (`2;1:61@0,62@0`). Restore standalone widgets reported one widget back and cleared the stacks;
+  with no room on the stack's page it got a page of its own. Settings page rendered, Swipe sideways
+  off.
+- Found on the device: with no room on a page, the launcher puts the picked widget on a new page and
+  moves to it; once the widget joins the stack that page is empty and stays on screen. Fixed:
+  `Workspace.stripEmptyScreens` then `snapToPage` (the stack's page) after the join; re-run, the
+  third widget joined with the stack's page kept on screen.
+- Owner report after that pass: an up-and-down swipe on a stack could turn the page, and sideways a
+  swipe could open the long-press menu. Up and down, only the drag layer was held off once the
+  stack took the swipe, so `Workspace`'s paging still intercepted a slightly diagonal swipe
+  mid-drag (its angle test runs from the down point) and cancelled it. Sideways, a swipe at either
+  end was handed back to the home screen, which paged, and the stack never cancelled the widget's
+  `CheckLongPressHelper` on that path (it cancels only when the finger leaves the widget). Fixed:
+  once the stack takes a swipe every parent is held off (`requestDisallowInterceptTouchEvent` from
+  the widget's parent), and sideways stops at the ends with the same give as up and down; the page
+  turns from outside the stack.
+- Found on the same device pass: a widget the launcher had placed for the picker came into the stack
+  laid out two rows lower, over the icons there, while its row named the stack's cells.
+  `WorkspaceLayoutManager.addInScreen` reuses a view's `CellLayoutLayoutParams` and sets
+  `mCellX`/`mCellY`/spans, but not `useTmpCoords`; left true from the launcher's placement, the page
+  lays the view out at `tmpCellX`/`tmpCellY`. Fixed: the stack clears `useTmpCoords` before
+  `addInScreen` (optional contract).
+- Device (October 23, 2026, backup taken first, layout restored after, md5 equal, the owner's
+  widget ids and own stack still there): test stack Battery + Weather (+ YouTube search) from the
+  picker. Sideways: next, past the last widget, past the first widget, and a 1.5 s slow swipe all
+  stayed on the page with no long-press menu, the slow one switching. Up and down: back, a swipe
+  about 30 degrees off vertical (switched, no page turn), past the end, slow past the end, slow
+  back: all PASS. The YouTube widget added afterwards came in at the stack's cells.
+- Not run: TalkBack actions, Swipe sideways, Smart rotate, resizing a stack, promotion after the
+  launcher's own Remove. A widget whose info has no label (Photos People & pets before setup) shows
+  as "Widget" in Edit stack.

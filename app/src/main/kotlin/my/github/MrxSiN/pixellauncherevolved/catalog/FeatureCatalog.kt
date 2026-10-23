@@ -35,6 +35,26 @@ object FeatureCatalog {
         titleRes = R.string.feature_focus_home_screens_title,
         summaryRes = R.string.feature_focus_home_screens_summary,
     )
+    val WIDGET_STACKS = CatalogEntry(
+        setting = Settings.WIDGET_STACKS,
+        titleRes = R.string.feature_widget_stacks_title,
+        summaryRes = R.string.feature_widget_stacks_summary,
+    )
+    val WIDGET_STACKS_SIDEWAYS = CatalogEntry(
+        setting = Settings.WIDGET_STACKS_SIDEWAYS,
+        titleRes = R.string.feature_widget_stacks_sideways_title,
+        summaryRes = R.string.feature_widget_stacks_sideways_summary,
+    )
+    val WIDGET_STACKS_REMEMBER = CatalogEntry(
+        setting = Settings.WIDGET_STACKS_REMEMBER,
+        titleRes = R.string.feature_widget_stacks_remember_title,
+        summaryRes = R.string.feature_widget_stacks_remember_summary,
+    )
+    val WIDGET_STACKS_SMART_ROTATE = CatalogEntry(
+        setting = Settings.WIDGET_STACKS_SMART_ROTATE,
+        titleRes = R.string.feature_widget_stacks_smart_rotate_title,
+        summaryRes = R.string.feature_widget_stacks_smart_rotate_summary,
+    )
     val DOUBLE_TAP_TO_SLEEP = CatalogEntry(
         setting = Settings.HOME_DOUBLE_TAP_TO_SLEEP,
         titleRes = R.string.feature_home_double_tap_to_sleep_title,
@@ -139,6 +159,10 @@ object FeatureCatalog {
     val entries: List<CatalogEntry> = listOf(
         HOME_BLUR_WALLPAPER,
         FOCUS_HOME_SCREENS,
+        WIDGET_STACKS,
+        WIDGET_STACKS_SIDEWAYS,
+        WIDGET_STACKS_REMEMBER,
+        WIDGET_STACKS_SMART_ROTATE,
         DOUBLE_TAP_TO_SLEEP,
         STATUS_BAR_DOUBLE_TAP_TO_SLEEP,
         SEARCH_OPENS_DRAWER,

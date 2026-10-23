@@ -133,6 +133,25 @@ object Settings {
      * preference file.
      */
     val FOCUS_HOME_SCREENS = BoolSetting("focus_home_screens", default = false)
+
+    /**
+     * Which widgets are stacked is not here: it is kept by launcher item id, in
+     * [my.github.MrxSiN.pixellauncherevolved.feature.stacks.WidgetStacks.KEY]
+     * in the same preference file, and never leaves the device.
+     */
+    val WIDGET_STACKS = BoolSetting("home_widget_stacks", default = false)
+
+    /** Swipe a stack sideways, as One UI does, instead of up and down. */
+    val WIDGET_STACKS_SIDEWAYS = BoolSetting("home_widget_stacks_sideways", default = false)
+
+    /** Off: a stack shows its first widget again each time home comes back. */
+    val WIDGET_STACKS_REMEMBER = BoolSetting("home_widget_stacks_remember", default = true)
+
+    /** Bring forward the widget a person set for the part of the day, as home comes back. */
+    val WIDGET_STACKS_SMART_ROTATE = BoolSetting("home_widget_stacks_smart_rotate", default = false)
+
+    /** The dots beside a stack: 0 quiet at rest, 1 always full, 2 only while swiping. */
+    val WIDGET_STACKS_INDICATOR = IntSetting("home_widget_stacks_indicator", default = 0, range = 0..2)
     val OVERVIEW_HIDE_TASKBAR_ALL_APPS =
         BoolSetting("overview_hide_taskbar_all_apps", default = false)
 

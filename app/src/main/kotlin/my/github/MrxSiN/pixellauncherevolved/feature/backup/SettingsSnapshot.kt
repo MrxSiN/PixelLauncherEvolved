@@ -53,6 +53,8 @@ data class SettingsSnapshot(
      * private, clone) rather than by this device's user number.
      */
     val appLabels: List<PortableAppLabel> = emptyList(),
+    /** How a widget stack's dots show; the stacks themselves name this phone's widgets and stay on it. */
+    val stackIndicator: Int = Settings.WIDGET_STACKS_INDICATOR.default,
 ) {
     companion object {
         /** What a fresh install has. */
@@ -97,6 +99,7 @@ class TweakStores(
         iconPack = icons.pack(),
         iconOverrides = iconOverrides.overrides(),
         grid = Settings.GRID.associateWith { settings[it] },
+        stackIndicator = settings[Settings.WIDGET_STACKS_INDICATOR],
         appLabels = appLabels?.labels().orEmpty().mapNotNull { label ->
             kindOf(label.userId)?.let { PortableAppLabel(it.portable, label) }
         },
@@ -107,6 +110,7 @@ class TweakStores(
         snapshot.switches.forEach { (setting, value) -> settings.put(setting, value) }
         settings.put(Settings.HOME_BLUR_STRENGTH, snapshot.blurStrength)
         settings.put(Settings.DOCK_ICONS, snapshot.dockIcons)
+        settings.put(Settings.WIDGET_STACKS_INDICATOR, snapshot.stackIndicator)
         snapshot.layoutMode.switches().forEach { (setting, on) -> settings.put(setting, on) }
         hiddenApps.hide(snapshot.hiddenApps)
         webSearchApp.choose(snapshot.webSearchApp)

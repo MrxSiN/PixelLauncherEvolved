@@ -17,6 +17,7 @@ import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.stacks.WidgetStacks
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPages
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusPlan
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusSource
@@ -299,6 +300,9 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
             }.getOrNull()
         }
         val bind = WorkspaceBinding.find(callbacks)
+        // Widget stacks hide the pages their waiting widgets sit on through this
+        // same filter; no item type field only means no stacks.
+        val stackFields = context.findClass(ITEM_INFO)?.field(ITEM_TYPE)?.let { WidgetStacks.ItemFields(screenId, container, it) }
 
         if (collect == null || toArray == null || version == null || modificationId == null ||
             items == null || rebuild == null || bind == null
@@ -313,6 +317,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
                 runCatching {
                     val all = (toArray.invoke(collect.invoke(it)) as IntArray).toList()
                     val itemMap = items.get(it) as SparseArray<*>
+                    if (stackFields != null) WidgetStacks.onBind(itemMap, stackFields)
                     previews.remember(itemMap)
                     if (focus.screens(all).size == all.size) {
                         null
@@ -670,6 +675,7 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         const val WRAP = "wrap"
         const val TO_ARRAY = "toArray"
         const val SCREEN_ID = "screenId"
+        const val ITEM_TYPE = "itemType"
         const val CONTAINER = "container"
         const val MODEL_FIELD = "mModel"
         const val FORCE_RELOAD = "forceReload"
@@ -733,7 +739,8 @@ internal class FocusHome(
     private var activeModes: Map<String, Long>? = null
 
     /** The screens to bind, out of the ones the launcher would have bound. */
-    fun screens(all: List<Int>): List<Int> {
+    fun screens(ids: List<Int>): List<Int> {
+        val all = shownOf(ids)
         // Remembered before anything is filtered, because this is the only place
         // the unfiltered order is seen and settings numbers the pages from it.
         FocusPages.remember(all)
@@ -746,7 +753,8 @@ internal class FocusHome(
     private var bound = false
 
     /** Filters only genuinely new ids from an incremental screen callback. */
-    fun addedScreens(added: List<Int>): List<Int> {
+    fun addedScreens(ids: List<Int>): List<Int> {
+        val added = shownOf(ids)
         val known = FocusPages.order.toHashSet()
         if (added.none { it >= 0 && it !in known }) return added
 
@@ -776,7 +784,11 @@ internal class FocusHome(
 
     /** Every page set aside for a Mode, which no new app should be placed on. */
     fun reservedScreens(): Set<Int> =
-        if (isEnabled()) store.assignments().values.flatten().toSet() else emptySet()
+        (if (isEnabled()) store.assignments().values.flatten().toSet() else emptySet()) + WidgetStacks.hiddenScreens.toList()
+
+    /** [screens] without the pages widget stacks keep their waiting widgets on, which no Mode shows either. */
+    private fun shownOf(screens: List<Int>): List<Int> =
+        if (WidgetStacks.hiddenScreens.isEmpty()) screens else screens.filterNot(WidgetStacks::isHidden)
 
     /**
      * Takes in pages the person has just made on the home screen in front of them.
