@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.os.SystemClock
 
 import io.github.libxposed.api.XposedModule
+import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
@@ -49,8 +50,17 @@ import my.github.MrxSiN.pixellauncherevolved.settings.SharedPreferencesStore
  */
 class PixelLauncherEvolvedModule : XposedModule() {
 
+    @Volatile private var processName = ""
+
+    override fun onModuleLoaded(param: ModuleLoadedParam) {
+        processName = param.processName
+    }
+
     override fun onPackageLoaded(param: PackageLoadedParam) {
         if (!param.isFirstPackage) return
+        // Helper processes such as SystemUI's :screenshot share the package but
+        // not the UI these features patch; the freezer kills them over callbacks.
+        if (processName.isNotEmpty() && processName != param.packageName) return
 
         val logger = AndroidLogger
         when (param.packageName) {
