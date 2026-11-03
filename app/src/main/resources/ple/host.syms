@@ -12,11 +12,13 @@ S	com.android.launcher3.BaseActivity
 S	com.android.launcher3.BubbleTextView
 S	com.android.launcher3.CellLayout
 S	com.android.launcher3.DeviceProfile
+S	com.android.launcher3.DeviceProfile$Builder
 S	com.android.launcher3.DropTarget$DragObject
 S	com.android.launcher3.DropTargetBar
 S	com.android.launcher3.ExtendedEditText
 S	com.android.launcher3.Hotseat
 S	com.android.launcher3.InvariantDeviceProfile
+S	com.android.launcher3.InvariantDeviceProfile$DisplayOptionSpec
 S	com.android.launcher3.Launcher
 S	com.android.launcher3.LauncherAppState
 S	com.android.launcher3.LauncherApplication
@@ -99,6 +101,7 @@ S	com.android.launcher3.prefs
 S	com.android.launcher3.preview.PreviewContext
 S	com.android.launcher3.preview.PreviewSurfaceRenderer
 S	com.android.launcher3.qsb.OseWidgetController
+S	com.android.launcher3.qsb.OseWidgetView
 S	com.android.launcher3.responsive.CellSpec
 S	com.android.launcher3.responsive.ResponsiveCellSpecsProvider
 S	com.android.launcher3.responsive.ResponsiveCellSpecsProvider$Companion
@@ -603,15 +606,18 @@ N	mDbDir
 N	mDbFile
 N	mDestroyed
 N	mDeviceProfile
+N	mDeviceProperties
 N	mDisplay
 N	mDp
 N	mDragInfo
 N	mDragTargetLayout
 N	mEnabled
 N	mFolderItems
+N	mFolderProfile
 N	mGridSizeString
 N	mHasPerformedLongPress
 N	mHotseat
+N	mHotseatProfile
 N	mIcon
 N	mIconSize
 N	mIconSpaceReserved
@@ -655,6 +661,7 @@ N	mViewRoot
 N	mVisible
 N	mWidth
 N	mWorkspace
+N	mWorkspaceProfile
 N	mapPointFromDropLayout
 N	mapTypeIndex
 N	matchWorkspace
@@ -912,6 +919,7 @@ N	toArray
 N	toString
 N	unchanged
 N	unknown
+N	updateActionButtonsVisibility
 N	updateForGroupedTask
 N	updateHiddenFlags
 N	updateRingPath

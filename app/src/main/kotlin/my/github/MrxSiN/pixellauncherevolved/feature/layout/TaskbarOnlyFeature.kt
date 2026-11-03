@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.layout
 
+import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
@@ -19,11 +20,11 @@ class TaskbarOnlyFeature : ToggleFeature(Settings.TASKBAR_ONLY) {
 
     override val compatibility = CompatibilityFeature.TASKBAR_ONLY
     override fun install(context: FeatureContext) {
-        LiveLayout.install(context)
         TaskbarPresence(context).install()
         HotseatHandoff(context).install()
         TaskbarIconCount(context).install()
         TaskbarRevealShape(context).install()
+        LiveLayout.install(context, LayoutMode.TASKBAR_ONLY)
     }
 }
 
@@ -68,19 +69,18 @@ class TaskbarOnlyFeature : ToggleFeature(Settings.TASKBAR_ONLY) {
 private class TaskbarPresence(private val context: FeatureContext) {
 
     fun install() {
-        val factory = requireNotNull(context.findClass(DeviceProfiles.PROPERTIES_FACTORY))
-        val properties = requireNotNull(
-            context.findClass("com.android.launcher3.deviceprofile.DeviceProperties"),
-        )
+        val properties = requireNotNull(context.findClass(DeviceProfiles.PROPERTIES))
         val configurationOf = requireNotNull(Reflect.field(properties, "taskbarConfiguration"))
         val presentOf = requireNotNull(
             Reflect.field(configurationOf.type, "isTaskbarPresent"),
         )
+        check(presentOf.type == Boolean::class.javaPrimitiveType) { "isTaskbarPresent is a ${presentOf.type.name}" }
 
-        val create = requireNotNull(
-            Reflect.declared(factory, DeviceProfiles.CREATE_PROPERTIES) { true }
-                ?.apply { isAccessible = true },
-        )
+        val create = DeviceProfiles.createProperties(context.classLoader)
+        if (create == null) {
+            installThroughConstructor(configurationOf.type)
+            return
+        }
 
         context.xposed.hook(create).intercept { chain ->
             chain.proceed()?.also { built ->
@@ -90,6 +90,31 @@ private class TaskbarPresence(private val context: FeatureContext) {
         }
 
         context.logger.info("Taskbar only: taskbar reported present on every device profile")
+    }
+
+    /**
+     * The `CP2A.260805.005` way, for a launcher with no properties factory to
+     * hook: the boolean is passed true into `TaskbarConfiguration(boolean)`
+     * itself, the configuration's only constructor there (and in AOSP
+     * `android-17.0.0_r1`, where it is a one-field data class). Its callers are
+     * deoptimized first, because ART inlines a constructor that small past the hook.
+     */
+    private fun installThroughConstructor(configuration: Class<*>) {
+        val present = requireNotNull(DeviceProfiles.taskbarConfiguration(context.classLoader)) {
+            "No ${DeviceProfiles.CREATE_PROPERTIES} and no TaskbarConfiguration(boolean)"
+        }
+        DeviceProfiles.keepCallsReal(context.xposed, context.classLoader, requireNotNull(context.findClass(DeviceProfiles.PROPERTIES)))
+        DeviceProfiles.keepCallsReal(context.xposed, context.classLoader, configuration)
+
+        context.xposed.hook(present).intercept { chain ->
+            if (LiveLayout.taskbarOnly) chain.proceed(TASKBAR_PRESENT) else chain.proceed()
+        }
+
+        context.logger.info("Taskbar only: taskbar reported present through its configuration's constructor")
+    }
+
+    private companion object {
+        val TASKBAR_PRESENT = arrayOf<Any?>(true)
     }
 }
 
@@ -189,7 +214,9 @@ private class TaskbarIconCount(private val context: FeatureContext) {
         val maxNumIcons = requireNotNull(Reflect.method(taskbarView, "calculateMaxNumIcons"))
         val contextOf = requireNotNull(Reflect.field(taskbarView, "mActivityContext"))
         val profileOf = requireNotNull(Reflect.field(activityContext, "mDeviceProfile"))
-        val hotseatOf = requireNotNull(Reflect.field(profile, "hotseatProfile"))
+        val hotseatOf = requireNotNull(
+            DeviceProfiles.part(context.classLoader, "com.android.launcher3.deviceprofile.HotseatProfile", "hotseatProfile", "mHotseatProfile"),
+        )
 
         context.xposed.hook(maxNumIcons).intercept { chain ->
             val stock = chain.proceed() as Int

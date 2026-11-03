@@ -26,6 +26,8 @@ class LauncherAnalysis(
         fun run(context: Context, classLoader: ClassLoader, logger: Logger): LauncherAnalysis {
             val analyzer = ContractAnalyzer(rename = rename@{ type, member ->
                 when (member) {
+                    // A constructor has no name to have been renamed from.
+                    is Member.Constructor -> false
                     is Member.Field -> Host.field(type, member.name) != null
                     is Member.Method -> {
                         val parameters = member.parameters

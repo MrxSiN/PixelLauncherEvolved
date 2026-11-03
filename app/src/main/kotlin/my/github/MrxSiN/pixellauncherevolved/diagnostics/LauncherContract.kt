@@ -57,4 +57,11 @@ sealed interface Member {
     data class Field(override val name: String) : Member {
         override fun describe(): String = name
     }
+
+    /** A constructor, matched by its parameters. Never inherited, so only the class itself is checked. */
+    data class Constructor(val parameters: List<String>) : Member {
+        override val name: String get() = "<init>"
+
+        override fun describe(): String = parameters.joinToString(prefix = "<init>(", postfix = ")") { it.substringAfterLast('.') }
+    }
 }

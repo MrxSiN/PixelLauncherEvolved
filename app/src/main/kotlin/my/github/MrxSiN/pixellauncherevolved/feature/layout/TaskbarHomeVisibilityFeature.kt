@@ -87,9 +87,9 @@ class TaskbarHomeVisibilityFeature : LauncherFeature {
             return
         }
 
-        LiveLayout.install(context)
         StaleVisibilityReport(context, taskbar).install()
         LauncherLifecycle(context, taskbar, launcher, TaskbarThread.handler(context)).install()
+        LiveLayout.install(context)
     }
 
     private companion object {

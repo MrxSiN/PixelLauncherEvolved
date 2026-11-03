@@ -68,6 +68,37 @@ class HookRecorderTest {
         assertEquals(emptyList<String>(), unhooked)
     }
 
+    @Test
+    fun aPartThatFailsTakesBackOnlyItsOwnHooks() {
+        val hooks = HookRecorder(framework)
+
+        val failure = hooks.install {
+            hooks.hook(first).intercept { it.proceed() }
+            val part = hooks.install {
+                hooks.hook(second).intercept { it.proceed() }
+                throw IllegalStateException("the part's member moved")
+            }
+            assertEquals(1, part?.undone)
+        }
+
+        assertNull(failure)
+        assertEquals(listOf("isEmpty"), unhooked)
+    }
+
+    @Test
+    fun aPartThatInstalledIsTakenBackWithTheFeatureThatFailsAfterIt() {
+        val hooks = HookRecorder(framework)
+
+        val failure = hooks.install {
+            assertNull(hooks.install { hooks.hook(first).intercept { it.proceed() } })
+            hooks.hook(second).intercept { it.proceed() }
+            throw IllegalStateException("a later member moved")
+        }
+
+        assertEquals(2, failure?.undone)
+        assertEquals(listOf("length", "isEmpty"), unhooked)
+    }
+
     private inline fun <reified T> proxy(crossinline answer: (java.lang.reflect.Method, Array<Any?>?) -> Any?): T =
         Proxy.newProxyInstance(T::class.java.classLoader, arrayOf(T::class.java)) { _, method, args -> answer(method, args) } as T
 }

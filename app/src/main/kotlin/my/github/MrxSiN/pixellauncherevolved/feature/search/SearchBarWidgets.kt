@@ -32,20 +32,32 @@ import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
  * [holds] run on the main thread, which is the only reason a plain weak set is
  * enough here.
  */
-class SearchBarWidgets private constructor(private val bars: MutableSet<View>) {
+class SearchBarWidgets private constructor(
+    private val bars: MutableSet<View>?,
+    private val barType: Class<*>?,
+) {
 
     /** Whether [view] is a search bar this launcher built. */
-    fun holds(view: View?): Boolean = view != null && view in bars
+    fun holds(view: View?): Boolean {
+        if (view == null) return false
+        val type = barType
+        return if (type != null) type.isInstance(view) else bars!!.contains(view)
+    }
 
     companion object {
 
         /**
          * Null when the launcher has no such call, which leaves the feature
          * uninstalled rather than watching every widget on the home screen.
+         *
+         * A launcher without the `CP3A` call is asked for the earlier bar's
+         * own host class instead, and only a subclass of the widget host
+         * counts: a class of that name that is anything else is not the bar.
          */
         operator fun invoke(context: FeatureContext): SearchBarWidgets? {
-            val controller = context.findClass(WIDGET_CONTROLLER) ?: return null
             val hostView = context.findClass(HOST_VIEW) ?: return null
+            val controller = context.findClass(WIDGET_CONTROLLER)
+                ?: return earlierBar(context, hostView)?.let { SearchBarWidgets(null, it) }
             val applyTo = Reflect.method(
                 controller,
                 APPLY_TO,
@@ -60,11 +72,21 @@ class SearchBarWidgets private constructor(private val bars: MutableSet<View>) {
                 chain.proceed()
             }
 
-            return SearchBarWidgets(bars)
+            return SearchBarWidgets(bars, null)
         }
+
+        /**
+         * `com.android.launcher3.qsb.OseWidgetView`, the bar's own host view on
+         * `CP2A.260805.005`, where an `isInstance` check was how this feature
+         * told the bar apart (v0.0.7, verified on that build).
+         */
+        private fun earlierBar(context: FeatureContext, hostView: Class<*>): Class<*>? =
+            runCatching { Class.forName(EARLIER_BAR, false, context.classLoader) }.getOrNull()
+                ?.takeIf { hostView.isAssignableFrom(it) && it != hostView }
 
         private const val WIDGET_CONTROLLER = "com.android.launcher3.qsb.OseWidgetController"
         private const val HOST_VIEW = "com.android.launcher3.widget.LauncherAppWidgetHostView"
         private const val APPLY_TO = "applyTo"
+        private const val EARLIER_BAR = "com.android.launcher3.qsb.OseWidgetView"
     }
 }

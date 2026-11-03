@@ -13,7 +13,7 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 [![Release](https://img.shields.io/github/v/release/MrxSiN/PixelLauncherEvolved?include_prereleases&color=5B3DF5&label=release&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Downloads](https://img.shields.io/github/downloads/MrxSiN/PixelLauncherEvolved/total?color=3DDC84&logo=android&logoColor=fff&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Android](https://img.shields.io/badge/Android-17%20QPR1-3DDC84?logo=android&logoColor=fff&style=for-the-badge)](https://developer.android.com)
-[![Compatibility](https://img.shields.io/badge/hooks-282%2F282%20resolved-3DDC84?style=for-the-badge)](#compatibility)
+[![Compatibility](https://img.shields.io/badge/hooks-307%2F307%20resolved-3DDC84?style=for-the-badge)](#compatibility)
 [![Licence](https://img.shields.io/github/license/MrxSiN/PixelLauncherEvolved?color=5B3DF5&style=for-the-badge)](LICENSE)
 
 </div>
@@ -23,7 +23,7 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 > [!NOTE]
 > **Fully compatible with the latest Android release — Android 17 QPR1 (October 2026),
 > build `CP3A.261005.005`, Pixel Launcher `907`.** Every launcher member the module stands on
-> resolves (282 of 282, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
+> resolves (307 of 307, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
 > Vector v2.2. The module checks this itself on every launcher start: see
 > [Compatibility](#compatibility).
 
@@ -281,6 +281,15 @@ does not assume they stayed put.
 |---|---|---|---|---|
 | Pixel 8 Pro | CP3A.261005.005 (Android 17) | 907 | home, dock, Mode home screens and per-Mode choices, widget stacks (create, drag onto a widget, swipe both ways, Edit stack, Remove widget, Restore, restart), app drawer and search, icon packs, Overview, Home settings at 100% and 130% text, Diagnostics, recovery screen | TalkBack end to end (widget stack actions included), widget stack resizing and Smart rotate, work profile and Private Space, other screen sizes and foldables, landscape, RTL, more than one Android user |
 
+**Pixel 11 Pro (`CD1A.261005.003`, launcher 907): not tested on the phone.** Its launcher reports the
+same `versionCode` as the Pixel 8 Pro's but an earlier internal layout, the one of Android 17
+`CP2A` and AOSP `android-17.0.0_r1` ([issue 1](https://github.com/MrxSiN/PixelLauncherEvolved/issues/1)).
+The module now falls back to that layout's own names where they are known: the dock and its icon
+count, All apps columns, Overview actions, Overview only, Taskbar only, the home screen search bar
+and spacing can install if the phone has them, and the report marks each such contract with ⚠.
+Grid columns and rows, icon size, full tablet layout and widget stacks stay unavailable there: the
+earlier launcher has no safe place to hook them. See HOOK_NOTES.md, "Two launcher generations".
+
 
 - **Launcher contracts.** Every class, method and field a tweak stands on is listed once, with the
   signature this module expects and the older one it falls back to. They are checked against the
@@ -294,7 +303,7 @@ does not assume they stayed put.
 
   ```
   Pixel Launcher versionCode: 907
-  Resolved 282 / 282, fallback signatures 0, failed 0
+  Resolved 307 / 307, fallback signatures 0, failed 0
 
   Contracts
   ✓ TaskView.onFinishInflate()

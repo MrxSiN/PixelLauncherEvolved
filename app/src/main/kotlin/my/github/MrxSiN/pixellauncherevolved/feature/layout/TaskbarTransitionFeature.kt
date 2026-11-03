@@ -66,13 +66,13 @@ class TaskbarTransitionFeature : LauncherFeature {
         settings[Tweaks.TABLET_MODE] || settings[Tweaks.TASKBAR_ONLY]
 
     override fun install(context: FeatureContext) {
-        LiveLayout.install(context)
         val window = TaskbarWindow(context)
 
         window.followRoot()
         window.hideWhileRecentsAnimates()
         window.followTheWindowHandBack()
         window.showWhenTheLauncherSettles()
+        LiveLayout.install(context)
 
         context.logger.info("Taskbar: left out of the app's transition into Overview")
     }

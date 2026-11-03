@@ -207,3 +207,21 @@ Intentional changes, owner-reported or measured:
 
 Not verified: RTL (needs an RTL system language), live wallpapers beyond the gradient, a Mode with
 several pages, work profile pages.
+
+## Earlier launcher generation (issue 1, 2026-11-03)
+
+Oracle: `c793e9e` (v0.1.6 and one fix). Candidate: the working tree with the
+earlier-generation fallbacks (HOOK_NOTES, "Two launcher generations").
+
+- **Pixel 8 Pro (`CP3A.261005.005`, launcher 907), release build:** 307 / 307 contracts resolved,
+  0 by fallback, 0 failed; all 29 features logged `Installed <id>`, no warnings; the owner's Taskbar
+  only stayed on (`isTaskbarPresent=true`); the Overview row hooked `updateForGroupedTask`, the
+  primary. Every lookup tries the `CP3A` name first, so on this launcher no fallback is reached.
+- **Intentional changes, all on launchers missing members:** Overview only and Full tablet layout
+  are shown unavailable where they used to be reported compatible and fail to install; a layout mode
+  whose feature failed is never read as on (its switch is kept); a Grid & size part or the dock's
+  icon count that fails halfway takes its hooks back. On a launcher of the earlier layout, the dock,
+  its icon count, All apps columns, Overview actions, Overview only, Taskbar only, the search bar
+  and spacing install through that layout's own members. None of that was run on such a launcher.
+- **Tests:** `LauncherGenerationsTest` (three fixtures), `DeviceProfilesTest`,
+  `TabletModeFeatureTest`, new `HookRecorderTest` and `ContractAnalyzerTest` cases; 250 unit tests pass.

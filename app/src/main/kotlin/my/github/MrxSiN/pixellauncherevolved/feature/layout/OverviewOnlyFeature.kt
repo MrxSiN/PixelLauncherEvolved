@@ -7,6 +7,7 @@ import android.graphics.Rect
 import android.view.View
 
 import my.github.MrxSiN.pixellauncherevolved.core.Invoke
+import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
@@ -37,7 +38,6 @@ class OverviewOnlyFeature : ToggleFeature(Settings.OVERVIEW_ONLY) {
 
     override val compatibility = CompatibilityFeature.OVERVIEW_ONLY
     override fun install(context: FeatureContext) {
-        LiveLayout.install(context)
         val classification = LargeScreenClassification(context)
 
         GridOverviewProfiles(context, classification, OverviewGridMetrics(context)).install()
@@ -45,6 +45,7 @@ class OverviewOnlyFeature : ToggleFeature(Settings.OVERVIEW_ONLY) {
         PhoneActionRow(context).install()
         GridCardAppChip(context).install()
         GridAtRest(context).install()
+        LiveLayout.install(context, LayoutMode.OVERVIEW_ONLY)
     }
 }
 
@@ -151,12 +152,13 @@ private class GridOverviewProfiles(
 ) {
 
     fun install() {
-        val profile = requireNotNull(context.findClass(DeviceProfiles.PROFILE))
-        val builder = requireNotNull(context.findClass(DeviceProfiles.BUILDER))
-        val propertiesOf = requireNotNull(Reflect.field(profile, "deviceProperties"))
-        val overviewOf = requireNotNull(Reflect.field(profile, "overviewProfile"))
+        val build = requireNotNull(DeviceProfiles.build(context.classLoader)) { "No device profile builder" }
+        val propertiesOf = requireNotNull(
+            DeviceProfiles.part(context.classLoader, DeviceProfiles.PROPERTIES, "deviceProperties", "mDeviceProperties"),
+        )
+        val overviewOf = requireNotNull(DeviceProfiles.part(context.classLoader, OVERVIEW_PROFILE, "overviewProfile"))
 
-        context.xposed.hook(Reflect.declaredMethod(builder, DeviceProfiles.BUILD)).intercept { chain ->
+        context.xposed.hook(build).intercept { chain ->
             chain.proceed()?.also { built ->
                 if (LiveLayout.overviewOnly) runCatching {
                     metrics.applyTo(overviewOf.get(built))
@@ -853,7 +855,9 @@ private class PhoneActionRow(private val context: FeatureContext) {
      */
     private class OverviewMetrics(context: FeatureContext, profile: Class<*>) {
 
-        private val propertiesOf = requireNotNull(Reflect.field(profile, "deviceProperties"))
+        private val propertiesOf = requireNotNull(
+            DeviceProfiles.part(context.classLoader, DeviceProfiles.PROPERTIES, "deviceProperties", "mDeviceProperties"),
+        )
         private val overviewOf = requireNotNull(Reflect.field(profile, "overviewProfile"))
 
         private val properties = requireNotNull(
@@ -886,3 +890,5 @@ private class PhoneActionRow(private val context: FeatureContext) {
         const val HIDDEN_LARGE_SCREEN = 32
     }
 }
+
+private const val OVERVIEW_PROFILE = "com.android.launcher3.deviceprofile.OverviewProfile"

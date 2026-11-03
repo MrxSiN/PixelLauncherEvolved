@@ -59,6 +59,38 @@ class ContractAnalyzerTest {
     }
 
     @Test
+    fun `a primary that exists is preferred over an alternative that also does`() {
+        val contract = LauncherContract(
+            Signature(LIST, Member.Method("trimToSize", emptyList())),
+            setOf(CompatibilityFeature.DOCK),
+            alternatives = listOf(Signature(LIST, Member.Method("ensureCapacity", listOf("int")))),
+        )
+
+        assertEquals(ContractOutcome.RESOLVED, analyzer.analyze(listOf(contract)).results.single().outcome)
+    }
+
+    @Test
+    fun `a constructor resolves by its parameters only`() {
+        assertEquals(ContractOutcome.RESOLVED, check(Member.Constructor(listOf("int"))).outcome)
+        assertEquals(ContractOutcome.MISSING_MEMBER, check(Member.Constructor(listOf("boolean"))).outcome)
+        assertEquals("ArrayList.<init>(int)", Signature(LIST, Member.Constructor(listOf("int"))).describe())
+    }
+
+    @Test
+    fun `a constructor is never found on a superclass`() {
+        // ArrayList declares ArrayList(int); its subclass Sub declares only a no-argument one.
+        val contract = LauncherContract(
+            Signature(Sub::class.java.name, Member.Constructor(listOf("int"))),
+            setOf(CompatibilityFeature.DOCK_ICONS),
+        )
+
+        assertEquals(ContractOutcome.MISSING_MEMBER, analyzer.analyze(listOf(contract)).results.single().outcome)
+    }
+
+    /** A class whose superclass has an `(int)` constructor and which has none. */
+    class Sub : ArrayList<Any>()
+
+    @Test
     fun `only a missing required member makes a feature incompatible`() {
         val optional = LauncherContract(
             Signature(LIST, Member.Method("gone")),

@@ -204,9 +204,10 @@ grep -q 'addOnPreDrawListener' "$SRC/feature/overview/OverviewActionsFeature.kt"
 grep -q 'whileLearning' "$SRC/feature/layout/TaskbarAllAppsButtonFeature.kt"
 
 # Layout modes apply live: every layout hook is installed and reads LiveLayout's
-# flags, and a change rebuilds the profiles through onConfigChanged.
+# flags, and a change rebuilds the profiles through onConfigChanged. Each mode
+# registers itself last, so a mode whose install failed is never read as on.
 for mode in TabletModeFeature TaskbarOnlyFeature OverviewOnlyFeature; do
-  grep -q 'LiveLayout.install(context)' "$SRC/feature/layout/$mode.kt"
+  grep -q 'LiveLayout.install(context, LayoutMode.' "$SRC/feature/layout/$mode.kt"
   ! grep -q 'override val isLive: Boolean = false' "$SRC/feature/layout/$mode.kt"
 done
 grep -q 'onConfigChanged' "$SRC/feature/layout/LiveLayout.kt"
@@ -219,21 +220,23 @@ grep -q '"isLargeScreen"' "$SRC/feature/layout/TabletModeFeature.kt"
 # grid stays on phone measurements and every profile agrees a taskbar exists.
 # CP3A has no TaskbarConfiguration constructor left to hook: the shrinker
 # inlined it into the factory, which writes the field itself. So the field is
-# written on the properties that factory answers, and the deoptimization that
-# kept the constructor real is gone with the hook that needed it.
-grep -q 'com.android.launcher3.deviceprofile.DeviceProperties' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+# written on the properties that factory answers. Only a launcher without the
+# factory (the earlier generation, CP2A) falls back to the constructor, with
+# its callers deoptimized, as CP2A needed.
 grep -q 'taskbarConfiguration' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
 grep -q 'isTaskbarPresent' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
-grep -q 'DeviceProfiles.PROPERTIES_FACTORY' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
-! grep -q 'deoptimize' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+grep -q 'DeviceProfiles.createProperties' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+grep -q 'installThroughConstructor' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
+grep -q 'PROPERTIES_FACTORY' "$SRC/feature/layout/DeviceProfiles.kt"
 
 # The device profile classes are named once: CP2A nested the builder inside
-# DeviceProfile and CP3A gave it a class of its own, and both layout features
-# read the profile through the same place.
+# DeviceProfile and CP3A gave it a class of its own, and every layout feature
+# and the dock read the profile through the same place, which prefers CP3A's.
 grep -q 'com.android.launcher3.deviceprofile.DeviceProfileBuilder' "$SRC/feature/layout/DeviceProfiles.kt"
-grep -q 'DeviceProfiles.BUILDER' "$SRC/feature/layout/OverviewOnlyFeature.kt"
+grep -q 'DeviceProfiles.build(' "$SRC/feature/layout/OverviewOnlyFeature.kt"
+grep -q 'DeviceProfiles.build(' "$SRC/feature/dock/DockFeature.kt"
 grep -q 'DeviceProfiles.PROFILE' "$SRC/feature/layout/TaskbarOnlyFeature.kt"
-! grep -rq 'DeviceProfile..Builder"' "$SRC"
+test "$(grep -rl 'DeviceProfile..Builder"' "$SRC")" = "$SRC/feature/layout/DeviceProfiles.kt"
 
 # The taskbar aligns onto a hotseat the launcher's own profile lays out, so the
 # offset has to come from that profile rather than the taskbar window's.
@@ -304,7 +307,8 @@ grep -q 'mLongPressState' "$SRC/feature/gesture/DoubleTapToSleepFeature.kt"
 # and only where the widget has no narrower button of its own.
 grep -q 'com.android.launcher3.qsb.OseWidgetController' "$SRC/feature/search/SearchBarWidgets.kt"
 grep -q 'SearchBarWidgets(context)' "$SRC/feature/search/HomeSearchBarFeature.kt"
-! grep -rq 'OseWidgetView' "$SRC"
+# CP2A's own bar class is only the fallback for a launcher without the call.
+test "$(grep -rl 'OseWidgetView' "$SRC" | sort | tr '\n' ' ')" = "$SRC/diagnostics/LauncherContracts.kt $SRC/feature/search/SearchBarWidgets.kt "
 grep -q 'onInterceptTouchEvent' "$SRC/feature/search/HomeSearchBarFeature.kt"
 grep -q 'mHasPerformedLongPress' "$SRC/feature/search/HomeSearchBarFeature.kt"
 # The long press is cleared on the way up, so it is read before proceeding.

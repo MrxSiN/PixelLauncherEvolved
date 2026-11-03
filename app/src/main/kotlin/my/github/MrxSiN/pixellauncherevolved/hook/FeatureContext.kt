@@ -48,6 +48,16 @@ class FeatureContext(
     fun findClass(name: String): Class<*>? = Host.cls(classLoader, name)
 
     /**
+     * Installs one part of a feature on its own: when it throws, the hooks it
+     * set are taken back and the error is answered, and the rest of the
+     * feature carries on. Null when it installed.
+     */
+    fun part(install: () -> Unit): Throwable? {
+        val hooks = xposed as? HookRecorder ?: return runCatching(install).exceptionOrNull()
+        return hooks.install(install)?.error
+    }
+
+    /**
      * Hooks one method, running [after] once the original has returned.
      *
      * A missing method is reported and skipped: a launcher update that renames

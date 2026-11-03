@@ -36,11 +36,13 @@ class ContractAnalyzer(
     private fun find(signature: Signature): Boolean {
         val type = load(signature.owner) ?: return false
         val member = signature.member ?: return true
+        if (member is Member.Constructor) return runCatching { declares(type, member) }.getOrDefault(false)
 
         return runCatching { hierarchy(type).any { declares(it, member) } || rename(type, member) }.getOrDefault(false)
     }
 
     private fun declares(type: Class<*>, member: Member): Boolean = when (member) {
+        is Member.Constructor -> type.declaredConstructors.any { it.parameterTypes.map(Class<*>::getName) == member.parameters }
         is Member.Field -> type.declaredFields.any { it.name == member.name }
         is Member.Method -> type.declaredMethods.any { method ->
             method.name == member.name &&

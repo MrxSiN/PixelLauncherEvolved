@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.overview
 
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 
 /**
@@ -33,6 +34,13 @@ internal object OverviewActionsRow {
      *
      * A missing signature is reported by [FeatureContext.hookAfter] and skipped,
      * so a launcher that has moved one of the two still gets the other.
+     *
+     * The recompute is the `CP3A` `updateForGroupedTask(boolean)` when there is
+     * one, and otherwise the earlier launcher's own
+     * `updateActionButtonsVisibility()`, which `CP2A.260805.005` and AOSP
+     * `android-17.0.0_r1` both have (the latter calls it from a two-argument
+     * `updateForGroupedTask(boolean, boolean)`). Never both: on a launcher
+     * that has both, the row would be applied twice per change for nothing.
      */
     fun onRecomputed(
         context: FeatureContext,
@@ -40,11 +48,20 @@ internal object OverviewActionsRow {
         apply: (thisObject: Any?, args: List<Any?>) -> Unit,
     ) {
         context.hookAfter(row, "onFinishInflate", after = apply)
-        context.hookAfter(
-            row,
-            "updateForGroupedTask",
-            Boolean::class.javaPrimitiveType!!,
-            after = apply,
-        )
+        when (recompute(row)) {
+            GROUPED_TASK -> context.hookAfter(row, GROUPED_TASK, Boolean::class.javaPrimitiveType!!, after = apply)
+            BUTTONS_VISIBILITY -> context.hookAfter(row, BUTTONS_VISIBILITY, after = apply)
+            else -> context.logger.warn("The Overview action row has no recompute this module knows; only its inflation is followed")
+        }
     }
+
+    /** Which recompute [row] has, as [onRecomputed] picks it; null for neither. */
+    fun recompute(row: Class<*>): String? = when {
+        Reflect.method(row, GROUPED_TASK, Boolean::class.javaPrimitiveType!!) != null -> GROUPED_TASK
+        runCatching { row.getDeclaredMethod(BUTTONS_VISIBILITY) }.isSuccess -> BUTTONS_VISIBILITY
+        else -> null
+    }
+
+    private const val GROUPED_TASK = "updateForGroupedTask"
+    private const val BUTTONS_VISIBILITY = "updateActionButtonsVisibility"
 }

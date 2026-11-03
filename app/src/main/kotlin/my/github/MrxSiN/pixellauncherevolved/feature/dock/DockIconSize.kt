@@ -209,7 +209,7 @@ internal object DockIconSize {
         if (scale >= 1f) return null
         val profile = profileOf(hotseat) ?: return null
         val dock = dockProfile(hotseat) ?: return null
-        val folders = Reflect.field(profile.javaClass, "folderProfile")?.get(profile) ?: return null
+        val folders = Dock.foldersOf?.get(profile) ?: return null
         val height = Reflect.field(dock.javaClass, "cellHeightPx")?.getInt(dock) ?: return null
         val offset = Reflect.field(folders.javaClass, "folderIconOffsetYPx")?.getInt(folders) ?: 0
         val cell = cellOf(hotseat) ?: return null
@@ -223,13 +223,13 @@ internal object DockIconSize {
     /** The Home screen's icon size, `WorkspaceProfile.iconSizePx`. */
     private fun iconPx(hotseat: ViewGroup): Float {
         val profile = profileOf(hotseat) ?: return 0f
-        val workspace = Reflect.field(profile.javaClass, "workspaceProfile")?.get(profile) ?: return 0f
+        val workspace = Dock.workspaceOf?.get(profile) ?: return 0f
         return (Reflect.field(workspace.javaClass, "iconSizePx")?.getInt(workspace) ?: 0).toFloat()
     }
 
     private fun dockProfile(hotseat: ViewGroup): Any? {
         val profile = profileOf(hotseat) ?: return null
-        return Reflect.field(profile.javaClass, "hotseatProfile")?.get(profile)
+        return Dock.hotseatOf?.get(profile)
     }
 
     private fun profileOf(hotseat: ViewGroup): Any? {

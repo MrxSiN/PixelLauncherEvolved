@@ -67,6 +67,114 @@ half of each fingerprint dropped, and logs how many it found, got wrong or
 missed. On `CP3A.260905.009`: members 400 / 313 / 183 found and classes
 93 / 90 / 86 of 95, none wrong at any level.
 
+## Two launcher generations (GitHub issue 1, November 3, 2026)
+
+Pixel 11 Pro `CD1A.261005.003` runs Pixel Launcher `versionCode=907`, the same
+number as the Pixel 8 Pro's QPR1 launcher, and reported 255 of 282 contracts
+(issue 1). The same `versionCode` is not the same launcher. No Pixel 11 Pro or
+its firmware was examined; everything below comes from the issue's report,
+from this file's `CP2A.260805.005` notes, and from AOSP Launcher3 at tag
+`android-17.0.0_r1` (Apache 2.0, commit `c612e6e`, April 2026), read as source.
+
+What the report lists as missing is, almost name for name, what `CP3A` added or
+moved after the layout that `CP2A` and `android-17.0.0_r1` share:
+
+| Missing on Pixel 11 Pro | `android-17.0.0_r1` source | `CP2A` (this file) |
+| --- | --- | --- |
+| `DeviceProfileBuilder.build()` | `DeviceProfile$Builder.build()` | the same |
+| `DeviceProperties.isVerticalBarLayout()` | `DeviceProfile.isVerticalBarLayout()` | — |
+| `DeviceProfile.workspaceProfile`, `folderProfile` | private `mWorkspaceProfile`, `mFolderProfile` (also `mHotseatProfile`, `mDeviceProperties`) | `mHotseatProfile`, `mDeviceProperties` |
+| `parser.DisplayOptionSpec.mapTypeIndex(boolean, boolean)`, `numShownHotseatIcons`, `numAllAppsColumns` | `InvariantDeviceProfile$DisplayOptionSpec`, one made per profile by `DisplayOptionSpec(InvariantDeviceProfile, boolean isTwoPanels, boolean isLandscape)` from `Builder.createDefaultDisplayOptionSpec`, same two `int` fields | — |
+| `GridOption.displayOptionSpec`, `DisplayOption.parseWeightedPredefinedDisplayOption` | neither: `GridOption` carries the counts itself, and the weighted pick is private `InvariantDeviceProfile.invDistWeightedInterpolate` inside `initGrid` | — |
+| `OverviewActionsView.updateForGroupedTask(boolean)` | `updateForGroupedTask(boolean, boolean)`, which calls private `updateActionButtonsVisibility()` | `updateActionButtonsVisibility()` |
+| `OseWidgetController` | Google's, not in AOSP | the bar's own host class `qsb.OseWidgetView` |
+| `DeviceProperties$Factory` | `companion object Factory` | `TaskbarConfiguration(boolean)` constructor |
+| `ResponsiveCellSpecsProvider$Companion`, `ResponsiveSpecsProvider$Companion` | both companions, `create` `@JvmStatic` on the provider | — |
+| `PopupContainer.showComposePopup(int, List)`, `popup.ui.PopupItem`, `StringContainer$ResourceString` | `showComposePopup(List, int)`, other popup model | — |
+
+Two missing classes are companions that `android-17.0.0_r1` declares
+(`DeviceProperties$Factory`, the providers' `$Companion`). That fits a shrinker
+that folded each companion into its outer class, leaving a `@JvmStatic`
+function as a static method of the provider itself. It is a hypothesis: the
+fallback asks for exactly `create` (or `createDeviceProperties`), static, with
+the arity and answer type of the original, and nothing else.
+
+The report's `✓` lines do not fit `android-17.0.0_r1` everywhere:
+`setSearchResults(ArrayList, boolean)` resolved, where that tag has
+`(ArrayList)` and `(ArrayList, int)`. So the Pixel 11 Pro launcher is a build
+between the two, and no fallback here is taken on trust: each is looked up at
+startup, by its exact name, with its types checked.
+
+### What falls back, and how
+
+`feature/layout/DeviceProfiles.kt` holds every device profile lookup. The `CP3A`
+name is always tried first (through `Host`, as before); an earlier name only by
+exact reflection, never through DexKit matching, and only when its type matches:
+
+- builder: `deviceprofile.DeviceProfileBuilder`, else `DeviceProfile$Builder`;
+  `build()` must take nothing and answer `DeviceProfile`.
+- profile parts: `deviceProperties`/`hotseatProfile`/`workspaceProfile`/
+  `folderProfile`, else the `m`-prefixed field, of the part's own class only.
+- vertical bar: `DeviceProperties.isVerticalBarLayout()`, else
+  `DeviceProfile.isVerticalBarLayout()`, either answering `boolean`.
+- grid spec copy (dock icon count, All apps columns): after
+  `mapTypeIndex(boolean, boolean)` answers a copy of its own class, else after
+  each `InvariantDeviceProfile$DisplayOptionSpec(InvariantDeviceProfile,
+  boolean, boolean)` runs. The constructor is small and called directly, so
+  `build()` and the builder's static helpers answering the spec are
+  deoptimized first, as `CP2A` needed for `TaskbarConfiguration(boolean)`. The
+  field written must be an `int`. The `(DisplayOption, boolean)` constructor
+  for a secondary display is never hooked, as `mapTypeIndex` never sees it.
+- Taskbar only: `DeviceProperties$Factory.createDeviceProperties`, else a static
+  `DeviceProperties.createDeviceProperties` answering `DeviceProperties`, else
+  the `CP2A` route through `TaskbarConfiguration(boolean)`.
+- Overview action row: `updateForGroupedTask(boolean)`, else
+  `updateActionButtonsVisibility()`, never both; neither, and only inflation is
+  followed (no fuzzy guess).
+- Search bar: `OseWidgetController.applyTo`, else `qsb.OseWidgetView`, only as
+  a subclass of `LauncherAppWidgetHostView`.
+
+Each is an alternative on its contract, so the report shows it as `⚠ … Missing
+/ Alternative found`, and `LauncherGenerationsTest` reads the contract list
+against three fixtures: the Pixel 8 Pro (every primary), the Pixel 11 Pro as
+issue 1 reports it (nothing else assumed), and the same with the alternatives
+`android-17.0.0_r1` declares.
+
+### What stays unavailable there
+
+- **Grid columns and rows, icon size:** they write into the option
+  `parseWeightedPredefinedDisplayOption` answers. The earlier pick is private
+  code inside `initGrid`, which also builds every profile; there is no seam that
+  is only the pick, and a wrong grid here is a database migration.
+- **Full tablet layout:** it keeps the phone grid by giving the stock
+  classification during that same pick. Without it the 6x5 tablet grid is picked
+  and the loader deletes the rows past it, so the feature now finds the pick
+  before hooking anything, and its contract lists it.
+- **Widget stacks:** the long-press menu is a different popup model
+  (`showComposePopup(List, int)`, no `popup.ui.PopupItem`/`StringContainer`);
+  nothing was adapted without seeing the real one.
+
+### Installing without leaving half of a feature
+
+- `HookRecorder.install` nests: a part installed through `FeatureContext.part`
+  takes back only its own hooks when it fails, and hands them to the feature's
+  when it succeeds. Grid & size's four parts and the dock's icon count install
+  this way. The dock's count installs before the grid hooks that raise its
+  capacity, and they raise it only when the count installed.
+- `LiveLayout.install(context, mode)` is each layout feature's last step. A mode
+  whose feature failed is never read as on, whatever its stored switch says, and
+  no listener or hook is left on its account.
+- `TabletModeFeature` resolves both of its methods before hooking either.
+- Overview only's contracts now list every member it installs with (the action
+  row's hidden flags, bottom margin and `mDp`/`mTaskSize`, the app chip's
+  fields, `LauncherActivityInterface.INSTANCE` and the rest), so it is shown
+  unavailable rather than reported compatible and failing (issue 1's
+  `Required value was null`). That took the list from 282 to 307 contracts.
+
+Measured on the Pixel 8 Pro (`CP3A.261005.005`, launcher 907, November 3,
+2026, release build): 307 / 307 resolved, 0 by fallback, 0 failed; every feature
+installed; `updateForGroupedTask` hooked (the primary).
+
 ## The bubble entry point
 
 The launcher reaches the shell's bubble controller through its own proxy:

@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.layout
 
+import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
@@ -18,6 +19,11 @@ import my.github.MrxSiN.pixellauncherevolved.hook.ToggleFeature
  * `launcher_4_by_6.db`, and its loader then deletes every item in the rows the
  * 5-row grid lacks. During that one call the stock answer is given, so the
  * phone grid and its database are kept and nothing is out of bounds.
+ *
+ * Both methods are found before either is hooked: the classification without
+ * the grid pick to wrap would be the data loss above, so a launcher without
+ * the pick (the earlier generation, AOSP `android-17.0.0_r1`, where the pick is
+ * private `InvariantDeviceProfile` code) installs neither.
  */
 class TabletModeFeature : ToggleFeature(Settings.TABLET_MODE) {
 
@@ -27,17 +33,15 @@ class TabletModeFeature : ToggleFeature(Settings.TABLET_MODE) {
     private val pickingGrid = ThreadLocal<Boolean>()
 
     override fun install(context: FeatureContext) {
-        LiveLayout.install(context)
         val owner = requireNotNull(context.findClass("com.android.launcher3.display.LauncherDisplayInfo"))
         val bounds = requireNotNull(context.findClass("com.android.launcher3.util.WindowBounds"))
         val method = Reflect.declaredMethod(owner, "isLargeScreen", bounds)
         check(method.returnType == Boolean::class.javaPrimitiveType)
-        context.xposed.hook(method).intercept { chain ->
-            if (LiveLayout.tablet && pickingGrid.get() != true) true else chain.proceed()
+        val option = requireNotNull(context.findClass("com.android.launcher3.deviceprofile.parser.DisplayOption"))
+        val pick = requireNotNull(Reflect.declared(option, "parseWeightedPredefinedDisplayOption") { true }) {
+            "No DisplayOption.parseWeightedPredefinedDisplayOption to keep the phone grid through"
         }
 
-        val option = requireNotNull(context.findClass("com.android.launcher3.deviceprofile.parser.DisplayOption"))
-        val pick = requireNotNull(Reflect.declared(option, "parseWeightedPredefinedDisplayOption") { true })
         context.xposed.hook(pick).intercept { chain ->
             if (pickingGrid.get() == true) return@intercept chain.proceed()
             pickingGrid.set(true)
@@ -47,6 +51,10 @@ class TabletModeFeature : ToggleFeature(Settings.TABLET_MODE) {
                 pickingGrid.remove()
             }
         }
+        context.xposed.hook(method).intercept { chain ->
+            if (LiveLayout.tablet && pickingGrid.get() != true) true else chain.proceed()
+        }
+        LiveLayout.install(context, LayoutMode.FULL_TABLET)
         context.logger.info("Tablet mode: launcher large-screen classification enabled")
     }
 }

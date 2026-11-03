@@ -51,6 +51,23 @@ internal object Dock {
     @JvmField
     var hiddenIcons: View? = null
 
+    /**
+     * `DeviceProfile`'s parts the dock reads, resolved once by [DockFeature]
+     * through [my.github.MrxSiN.pixellauncherevolved.feature.layout.DeviceProfiles.part],
+     * which knows both launcher generations' names for them. Null when missing.
+     */
+    @Volatile
+    var propertiesOf: Field? = null
+
+    @Volatile
+    var hotseatOf: Field? = null
+
+    @Volatile
+    var workspaceOf: Field? = null
+
+    @Volatile
+    var foldersOf: Field? = null
+
     fun hotseat(): ViewGroup? = last?.get()
 
     fun remember(hotseat: ViewGroup) {
@@ -65,7 +82,7 @@ internal object Dock {
 
     /** Whether a `DeviceProfile` has a taskbar. */
     fun hasTaskbar(profile: Any): Boolean {
-        val properties = field(profile.javaClass, "deviceProperties")?.get(profile) ?: return false
+        val properties = propertiesOf?.get(profile) ?: return false
         val taskbar = field(properties.javaClass, "taskbarConfiguration")?.get(properties) ?: return false
         return field(taskbar.javaClass, "isTaskbarPresent")?.getBoolean(taskbar) == true
     }
@@ -86,7 +103,7 @@ internal object Dock {
     /** How many cells of at least [cell] px fit across this dock (`HotseatProfile.widthPx`) with [gap] px between them. */
     fun fits(hotseat: ViewGroup, cell: Float, gap: Int): Int? {
         val profile = profile(hotseat) ?: return null
-        val dock = field(profile.javaClass, "hotseatProfile")?.get(profile) ?: return null
+        val dock = hotseatOf?.get(profile) ?: return null
         val width = field(dock.javaClass, "widthPx")?.getInt(dock) ?: return null
         return DockIcons.fits(width, cell, gap)
     }

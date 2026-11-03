@@ -94,6 +94,10 @@ object LauncherContracts {
     private const val HOTSEAT = "com.android.launcher3.Hotseat"
     private const val CELL_LAYOUT = "com.android.launcher3.CellLayout"
     private const val DISPLAY_OPTION_SPEC = "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec"
+    private const val IDP = "com.android.launcher3.InvariantDeviceProfile"
+    private const val BUILDER = "com.android.launcher3.deviceprofile.DeviceProfileBuilder"
+    private const val OVERVIEW_PROFILE = "com.android.launcher3.deviceprofile.OverviewProfile"
+    private const val CHIP_VIEW = "com.android.quickstep.views.IconAppChipView"
     private const val DISPLAY_OPTION = "com.android.launcher3.deviceprofile.parser.DisplayOption"
     private const val GRID_OPTION = "com.android.launcher3.deviceprofile.parser.GridOption"
     private const val MIGRATION_OPTION = "com.android.launcher3.model.GridMigrationOption"
@@ -117,6 +121,24 @@ object LauncherContracts {
 
     private val TASK_CARD = setOf(BUBBLE_LAUNCHER, SPLIT_SCREEN)
     private val TASKBAR = setOf(TASKBAR_ONLY, FULL_TABLET_LAYOUT)
+
+    /*
+     * The earlier launcher generation: Android 17 CP2A.260805.005 as read off
+     * a Pixel 8 Pro, and AOSP android-17.0.0_r1, whose shape Pixel 11 Pro
+     * CD1A.261005.003 reports (GitHub issue 1). Each is an alternative a
+     * feature falls back to by exactly this name, with its types checked;
+     * see HOOK_NOTES.md, "Two launcher generations".
+     */
+
+    /** `CP2A`, `android-17.0.0_r1`: the builder nested in `DeviceProfile`. */
+    private val EARLIER_BUILD = listOf(Signature("$DEVICE_PROFILE\$Builder", method("build")))
+
+    /** `android-17.0.0_r1`: the grid spec nested in the grid, one made per profile by its constructor. */
+    private const val EARLIER_SPEC = "$IDP\$DisplayOptionSpec"
+    private val EARLIER_SPEC_MADE = listOf(Signature(EARLIER_SPEC, Member.Constructor(listOf(IDP, BOOLEAN, BOOLEAN))))
+
+    /** `CP2A`, `android-17.0.0_r1`: a profile's part behind a private m-prefixed field. */
+    private fun earlier(field: String) = listOf(Signature(DEVICE_PROFILE, Member.Field(field)))
 
     val all: List<LauncherContract> = listOf(
         // Blur wallpaper
@@ -220,7 +242,13 @@ object LauncherContracts {
         contract("com.android.launcher3.touch.WorkspaceTouchListener", Member.Field("mLongPressState"), DOUBLE_TAP_TO_SLEEP),
 
         // Home screen search bar
-        contract("com.android.launcher3.qsb.OseWidgetController", method("applyTo", WIDGET_HOST, BOOLEAN), HOME_SEARCH_BAR),
+        // CP2A: the bar's own host class, told apart by type.
+        contract(
+            "com.android.launcher3.qsb.OseWidgetController",
+            method("applyTo", WIDGET_HOST, BOOLEAN),
+            listOf(Signature("com.android.launcher3.qsb.OseWidgetView")),
+            HOME_SEARCH_BAR,
+        ),
         contract(WIDGET_HOST, method("onInterceptTouchEvent", "android.view.MotionEvent"), HOME_SEARCH_BAR),
         contract("com.android.launcher3.statemanager.StateManager", Member.Method("goToState"), HOME_SEARCH_BAR, HIDDEN_APPS),
 
@@ -316,12 +344,13 @@ object LauncherContracts {
         contract("com.android.launcher3.model.DeviceGridState", Member.Field("mGridSizeString"), DOCK),
         contract("com.android.launcher3.InvariantDeviceProfile", Member.Method("newDPBuilder"), DOCK),
         contract(HOTSEAT, method("resetLayout", BOOLEAN), DOCK),
-        contract(DEVICE_PROPERTIES, method("isVerticalBarLayout"), DOCK),
+        // android-17.0.0_r1 asks the profile itself.
+        contract(DEVICE_PROPERTIES, method("isVerticalBarLayout"), listOf(Signature(DEVICE_PROFILE, method("isVerticalBarLayout"))), DOCK),
         contract("com.android.launcher3.util.MultiValueAlpha", method("apply", FLOAT), DOCK),
         contract("com.android.launcher3.util.MultiPropertyFactory", Member.Field("mTarget"), DOCK),
         contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("isQsbInline"), DOCK),
         optional("com.android.launcher3.InvariantDeviceProfile", Member.Field("isFixedLandscape"), DOCK),
-        contract("com.android.launcher3.deviceprofile.DeviceProfileBuilder", method("build"), DOCK),
+        contract(BUILDER, method("build"), EARLIER_BUILD, DOCK),
         contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("barSizePx"), DOCK),
         contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("cellHeightPx"), DOCK),
         contract("com.android.launcher3.deviceprofile.WorkspaceProfile", Member.Field("workspacePadding"), DOCK),
@@ -336,8 +365,13 @@ object LauncherContracts {
         contract(CELL_LAYOUT, Member.Field("mShortcutsAndWidgets"), DOCK),
         contract(CELL_LAYOUT, Member.Field("mActivity"), DOCK),
         contract("com.android.launcher3.deviceprofile.TaskbarConfiguration", Member.Field("isTaskbarPresent"), DOCK),
-        contract(DISPLAY_OPTION_SPEC, method("mapTypeIndex", BOOLEAN, BOOLEAN), DOCK_ICONS),
-        contract(DISPLAY_OPTION_SPEC, Member.Field("numShownHotseatIcons"), DOCK_ICONS),
+        contract(DISPLAY_OPTION_SPEC, method("mapTypeIndex", BOOLEAN, BOOLEAN), EARLIER_SPEC_MADE, DOCK_ICONS),
+        contract(
+            DISPLAY_OPTION_SPEC,
+            Member.Field("numShownHotseatIcons"),
+            listOf(Signature(EARLIER_SPEC, Member.Field("numShownHotseatIcons"))),
+            DOCK_ICONS,
+        ),
         // The dock's database capacity, raised for a count above the grid's.
         contract("com.android.launcher3.InvariantDeviceProfile", method("initGrid", "java.lang.String"), DOCK_ICONS),
         // Applies a new count live, as a grid change from Wallpaper & style is.
@@ -345,8 +379,8 @@ object LauncherContracts {
         contract("com.android.launcher3.InvariantDeviceProfile", Member.Field("numDatabaseHotseatIcons"), DOCK_ICONS),
         contract(DEVICE_PROFILE, Member.Field("inv"), DOCK_ICONS),
         // What fits across the dock.
-        contract(DEVICE_PROFILE, Member.Field("hotseatProfile"), DOCK_ICONS),
-        contract(DEVICE_PROFILE, Member.Field("workspaceProfile"), DOCK_ICONS),
+        contract(DEVICE_PROFILE, Member.Field("hotseatProfile"), earlier("mHotseatProfile"), DOCK_ICONS),
+        contract(DEVICE_PROFILE, Member.Field("workspaceProfile"), earlier("mWorkspaceProfile"), DOCK_ICONS),
         contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("widthPx"), DOCK_ICONS),
         contract("com.android.launcher3.deviceprofile.WorkspaceProfile", Member.Field("iconSizePx"), DOCK_ICONS),
         // Moving the apps a smaller count leaves out onto the Home screen, so the launcher never deletes them.
@@ -363,7 +397,7 @@ object LauncherContracts {
         contract(LAUNCHER, Member.Field("mModel"), DOCK_ICONS),
         optional(LAUNCHER_MODEL, method("forceReload", "java.lang.String"), DOCK_ICONS),
         // More icons than fit at the Home screen's icon size: whole cells, smaller icons.
-        contract("com.android.launcher3.deviceprofile.DeviceProfileBuilder", method("build"), DOCK_ICONS),
+        contract(BUILDER, method("build"), EARLIER_BUILD, DOCK_ICONS),
         contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("borderSpace"), DOCK_ICONS),
         contract("com.android.launcher3.deviceprofile.HotseatProfile", Member.Field("numShownIcons"), DOCK_ICONS),
         contract(CELL_LAYOUT, Member.Method("addViewToCellLayout"), DOCK_ICONS),
@@ -371,7 +405,7 @@ object LauncherContracts {
         contract("com.android.launcher3.BubbleTextView", Member.Field("mIcon"), DOCK_ICONS),
         contract("com.android.launcher3.BubbleTextView", Member.Method("setIcon"), DOCK_ICONS),
         LauncherContract(Signature("com.android.launcher3.folder.FolderIcon"), setOf(DOCK_ICONS), isRequired = false),
-        optional(DEVICE_PROFILE, Member.Field("folderProfile"), DOCK_ICONS),
+        optional(DEVICE_PROFILE, Member.Field("folderProfile"), earlier("mFolderProfile"), DOCK_ICONS),
         optional("com.android.launcher3.deviceprofile.FolderProfile", Member.Field("folderIconOffsetYPx"), DOCK_ICONS),
         optional("com.android.launcher3.views.PredictedAppIcon", Member.Field("mNormalizedIconSize"), DOCK_ICONS),
         optional("com.android.launcher3.views.PredictedAppIcon", method("updateRingPath"), DOCK_ICONS),
@@ -428,7 +462,8 @@ object LauncherContracts {
         contract(ITEM_INFO, Member.Field("spanX"), GRID),
         contract(ITEM_INFO, Member.Field("spanY"), GRID),
         // Icon size
-        contract("$CELL_SPECS_PROVIDER\$Companion", Member.Method("create"), GRID_ICON_SIZE),
+        // A folded companion leaves @JvmStatic create on the provider itself.
+        contract("$CELL_SPECS_PROVIDER\$Companion", Member.Method("create"), listOf(Signature(CELL_SPECS_PROVIDER, Member.Method("create"))), GRID_ICON_SIZE),
         contract(CELL_SPECS_PROVIDER, Member.Field("groupOfSpecs"), GRID_ICON_SIZE),
         contract(SPEC_GROUP, Member.Field("heightSpecs"), GRID_ICON_SIZE, GRID_SPACING),
         contract(SPEC_GROUP, Member.Field("widthSpecs"), GRID_ICON_SIZE, GRID_SPACING),
@@ -439,14 +474,19 @@ object LauncherContracts {
         contract(SIZE_SPEC, Member.Field("matchWorkspace"), GRID_ICON_SIZE, GRID_SPACING),
         contract(SIZE_SPEC, Member.Field("maxSize"), GRID_ICON_SIZE, GRID_SPACING),
         // Spacing
-        contract("$SPECS_PROVIDER\$Companion", Member.Method("create"), GRID_SPACING),
+        contract("$SPECS_PROVIDER\$Companion", Member.Method("create"), listOf(Signature(SPECS_PROVIDER, Member.Method("create"))), GRID_SPACING),
         contract(SPECS_PROVIDER, Member.Field("groupOfSpecs"), GRID_SPACING),
         contract("com.android.launcher3.responsive.ResponsiveSpec", Member.Field("gutter"), GRID_SPACING),
         contract("com.android.launcher3.responsive.ResponsiveSpec", Member.Field("startPadding"), GRID_SPACING),
         contract("com.android.launcher3.responsive.ResponsiveSpec", Member.Field("endPadding"), GRID_SPACING),
         // All apps columns
-        contract(DISPLAY_OPTION_SPEC, method("mapTypeIndex", BOOLEAN, BOOLEAN), APP_DRAWER_COLUMNS),
-        contract(DISPLAY_OPTION_SPEC, Member.Field("numAllAppsColumns"), APP_DRAWER_COLUMNS),
+        contract(DISPLAY_OPTION_SPEC, method("mapTypeIndex", BOOLEAN, BOOLEAN), EARLIER_SPEC_MADE, APP_DRAWER_COLUMNS),
+        contract(
+            DISPLAY_OPTION_SPEC,
+            Member.Field("numAllAppsColumns"),
+            listOf(Signature(EARLIER_SPEC, Member.Field("numAllAppsColumns"))),
+            APP_DRAWER_COLUMNS,
+        ),
         contract("com.android.launcher3.InvariantDeviceProfile", method("initGrid", "java.lang.String"), APP_DRAWER_COLUMNS),
         contract("com.android.launcher3.InvariantDeviceProfile", Member.Field("numDatabaseAllAppsColumns"), APP_DRAWER_COLUMNS),
         contract("com.android.launcher3.deviceprofile.AllAppsProfile", Member.Field("numShownAllAppsColumns"), APP_DRAWER_COLUMNS),
@@ -459,7 +499,8 @@ object LauncherContracts {
 
         // Overview actions
         contract(ACTIONS_VIEW, method("onFinishInflate"), OVERVIEW_ACTIONS),
-        contract(ACTIONS_VIEW, method("updateForGroupedTask", BOOLEAN), OVERVIEW_ACTIONS),
+        // CP2A and android-17.0.0_r1: the recompute CP3A inlined into updateForGroupedTask.
+        contract(ACTIONS_VIEW, method("updateForGroupedTask", BOOLEAN), listOf(Signature(ACTIONS_VIEW, method("updateActionButtonsVisibility"))), OVERVIEW_ACTIONS),
         contract(RECENTS_VIEW, method("dismissAllTasks", VIEW), OVERVIEW_ACTIONS),
         contract("com.android.quickstep.views.RecentsViewContainer", method("containerFromContext", CONTEXT), OVERVIEW_ACTIONS, SPLIT_SCREEN),
 
@@ -486,12 +527,38 @@ object LauncherContracts {
 
         // Overview only
         contract(RECENTS_VIEW, method("showAsGrid"), OVERVIEW_ONLY),
-        contract(DEVICE_PROFILE, Member.Field("deviceProperties"), OVERVIEW_ONLY, TASKBAR_ONLY, DOCK),
+        contract(DEVICE_PROFILE, Member.Field("deviceProperties"), earlier("mDeviceProperties"), OVERVIEW_ONLY, TASKBAR_ONLY, DOCK),
         contract(DEVICE_PROFILE, Member.Field("overviewProfile"), OVERVIEW_ONLY),
         contract(DEVICE_PROPERTIES, Member.Field("isLargeScreen"), OVERVIEW_ONLY),
         contract(CONTAINER_INTERFACE, Member.Method("calculateGridSize"), OVERVIEW_ONLY),
         contract(CONTAINER_INTERFACE, Member.Method("calculateLargeTileSize"), OVERVIEW_ONLY),
-        contract("com.android.quickstep.views.IconAppChipView", method("onFinishInflate"), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, method("onFinishInflate"), OVERVIEW_ONLY),
+        // Everything else Overview only installs with, each looked up as it is
+        // set up: without one it cannot install, so it is not offered.
+        contract(BUILDER, method("build"), EARLIER_BUILD, OVERVIEW_ONLY),
+        contract(ACTIONS_VIEW, method("updateHiddenFlags", INT, BOOLEAN), OVERVIEW_ONLY),
+        contract(ACTIONS_VIEW, method("getBottomMargin"), OVERVIEW_ONLY),
+        contract(ACTIONS_VIEW, Member.Field("mDp"), OVERVIEW_ONLY),
+        contract(ACTIONS_VIEW, Member.Field("mTaskSize"), OVERVIEW_ONLY),
+        contract(DEVICE_PROFILE, method("getOverviewActionsClaimedSpaceBelow"), OVERVIEW_ONLY),
+        contract(DEVICE_PROPERTIES, Member.Field("heightPx"), OVERVIEW_ONLY),
+        contract(DEVICE_PROPERTIES, Member.Field("insets"), OVERVIEW_ONLY),
+        contract(OVERVIEW_PROFILE, Member.Field("actionsTopMarginPx"), OVERVIEW_ONLY),
+        contract(OVERVIEW_PROFILE, Member.Field("actionsHeight"), OVERVIEW_ONLY),
+        contract(OVERVIEW_PROFILE, Member.Field("rowSpacing"), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, method("setMaxWidth", INT), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, Member.Field("collapsedMenuDefaultWidth"), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, Member.Field("minWidthAllowed"), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, Member.Field("appIconSize"), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, Member.Field("maxWidth"), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, Member.Field("appTitle"), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, method("getChipWidth"), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, method("getCollapsedBackgroundLtrBounds"), OVERVIEW_ONLY),
+        contract(CHIP_VIEW, method("calculateCollapsedTextWidth", INT), OVERVIEW_ONLY),
+        contract("com.android.quickstep.views.RecentsViewContainer", method("containerFromContext", CONTEXT), OVERVIEW_ONLY),
+        contract("com.android.launcher3.views.ActivityContext", method("getDeviceProfile"), OVERVIEW_ONLY),
+        contract("com.android.quickstep.LauncherActivityInterface", Member.Field("INSTANCE"), OVERVIEW_ONLY),
+        contract("com.android.launcher3.util.DaggerSingletonObject", method("get", CONTEXT), OVERVIEW_ONLY),
         optional(
             "com.android.launcher3.views.Snackbar",
             method("show", "com.android.launcher3.views.ActivityContext", "java.lang.CharSequence", INT, "java.lang.Runnable", "java.lang.Runnable"),
@@ -499,9 +566,19 @@ object LauncherContracts {
         ),
 
         // Taskbar only and full tablet layout
-        contract("$DEVICE_PROPERTIES\$Factory", Member.Method("createDeviceProperties"), TASKBAR_ONLY),
+        // A folded companion leaves it static on DeviceProperties; CP2A built
+        // the configuration through its own constructor instead.
+        contract(
+            "$DEVICE_PROPERTIES\$Factory",
+            Member.Method("createDeviceProperties"),
+            listOf(
+                Signature(DEVICE_PROPERTIES, Member.Method("createDeviceProperties")),
+                Signature("com.android.launcher3.deviceprofile.TaskbarConfiguration", Member.Constructor(listOf(BOOLEAN))),
+            ),
+            TASKBAR_ONLY,
+        ),
         contract(DEVICE_PROPERTIES, Member.Field("taskbarConfiguration"), TASKBAR_ONLY, DOCK),
-        contract(DEVICE_PROFILE, Member.Field("hotseatProfile"), TASKBAR_ONLY),
+        contract(DEVICE_PROFILE, Member.Field("hotseatProfile"), earlier("mHotseatProfile"), TASKBAR_ONLY),
         contract(TASKBAR_VIEW, method("calculateMaxNumIcons"), TASKBAR_ONLY),
         contract("com.android.launcher3.taskbar.LauncherTaskbarUIController", Member.Method("onLauncherVisibilityChanged"), TASKBAR),
         contract("com.android.launcher3.taskbar.TaskbarStashController", method("updateStateForFlag", LONG, BOOLEAN), TASKBAR),
@@ -511,6 +588,12 @@ object LauncherContracts {
             method("isLargeScreen", "com.android.launcher3.util.WindowBounds"),
             FULL_TABLET_LAYOUT,
         ),
+        // Full tablet layout keeps the phone's grid by giving the stock answer
+        // while the grid option is picked; without the pick to wrap, the 6x5
+        // tablet grid would be chosen and the loader would delete the rows a
+        // phone grid has past it. The earlier launcher picks inside private
+        // InvariantDeviceProfile code with no such seam, so it is not offered there.
+        contract(DISPLAY_OPTION, Member.Method("parseWeightedPredefinedDisplayOption"), FULL_TABLET_LAYOUT),
 
         // Taskbar app drawer button
         contract(TASKBAR_VIEW, Member.Field("mAllAppsButtonContainer"), TASKBAR_APP_DRAWER_BUTTON),
@@ -525,6 +608,12 @@ object LauncherContracts {
     private fun contract(owner: String, member: Member, features: Set<CompatibilityFeature>) =
         LauncherContract(Signature(owner, member), features)
 
+    private fun contract(owner: String, member: Member, alternatives: List<Signature>, vararg features: CompatibilityFeature) =
+        LauncherContract(Signature(owner, member), features.toSet(), alternatives)
+
     private fun optional(owner: String, member: Member, vararg features: CompatibilityFeature) =
         LauncherContract(Signature(owner, member), features.toSet(), isRequired = false)
+
+    private fun optional(owner: String, member: Member, alternatives: List<Signature>, vararg features: CompatibilityFeature) =
+        LauncherContract(Signature(owner, member), features.toSet(), alternatives, isRequired = false)
 }

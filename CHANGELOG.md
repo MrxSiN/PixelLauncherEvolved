@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Pixel 11 Pro and other launchers of the earlier internal layout** ([issue 1](https://github.com/MrxSiN/PixelLauncherEvolved/issues/1);
+  `CD1A.261005.003`, launcher 907, 255 of 282 contracts). The same `versionCode` hides the
+  layout of Android 17 `CP2A` and AOSP `android-17.0.0_r1`, not QPR1's. Each lookup now prefers the
+  QPR1 name and falls back, by exact name and with its types checked, to that layout's own: the
+  builder nested in `DeviceProfile`, `isVerticalBarLayout` on the profile, the profile's m-prefixed
+  parts, the grid spec made by `InvariantDeviceProfile$DisplayOptionSpec`'s constructor (the dock's
+  icon count and All apps columns), `updateActionButtonsVisibility` (Overview actions),
+  `OseWidgetView` (the search bar), `TaskbarConfiguration(boolean)` (Taskbar only) and a provider's
+  static `create` (spacing). Not tested on a Pixel 11 Pro; the report marks each fallback with ⚠.
+  Grid columns and rows, icon size, full tablet layout and widget stacks stay unavailable there.
+- **Overview only and Full tablet layout were reported compatible and then failed to install** where
+  the device profile builder or the grid pick is missing. Every member they install with is now on
+  their contracts (307 in all, from 282), so they are shown unavailable instead. Full tablet layout
+  finds the grid pick before it hooks anything, so the tablet classification can never be on
+  without the phone grid kept.
+- **A layout mode that failed to install stayed on:** its switch was read as on by the other layout
+  hooks and a change to it rebuilt the layout. A mode now counts only once its feature has
+  installed; the switch itself is kept.
+- **A Grid & size part that failed halfway** (icon size, spacing, All apps columns) left the hooks
+  it had set; a part now takes them back, as a feature does. The dock's icon count is one such part:
+  without it the dock still hides, and its capacity is never raised for a count nothing shows.
+
 ## 0.1.6
 
 ### Added

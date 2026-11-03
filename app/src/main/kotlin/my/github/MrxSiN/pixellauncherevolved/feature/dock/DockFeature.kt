@@ -11,6 +11,7 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.feature.grid.Grid
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.DeviceProfiles
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
@@ -61,7 +62,25 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
     override fun install(context: FeatureContext) {
         launcher = context
         val hotseat = requireNotNull(context.findClass(Dock.HOTSEAT))
-        val icons = context.analysis.isAvailable(CompatibilityFeature.DOCK_ICONS)
+        Dock.propertiesOf = requireNotNull(DeviceProfiles.part(context.classLoader, DeviceProfiles.PROPERTIES, "deviceProperties", "mDeviceProperties"))
+        Dock.hotseatOf = DeviceProfiles.part(context.classLoader, HOTSEAT_PROFILE, "hotseatProfile", "mHotseatProfile")
+        Dock.workspaceOf = DeviceProfiles.part(context.classLoader, WORKSPACE_PROFILE, "workspaceProfile", "mWorkspaceProfile")
+        Dock.foldersOf = DeviceProfiles.part(context.classLoader, FOLDER_PROFILE, "folderProfile", "mFolderProfile")
+
+        // The count stands on its own contracts and installs as one part: a
+        // launcher without them still hides the dock, and one that fails
+        // halfway takes back what it set rather than raising the dock's
+        // capacity for a count nothing then shows.
+        val icons = context.analysis.isAvailable(CompatibilityFeature.DOCK_ICONS) &&
+            context.part {
+                requireNotNull(Dock.hotseatOf) { "No DeviceProfile.hotseatProfile" }
+                requireNotNull(Dock.workspaceOf) { "No DeviceProfile.workspaceProfile" }
+                installCount(context)
+                DockIconSize.install(context)
+            }.let { failure ->
+                failure?.let { context.logger.warn("Dock: the icon count failed to install; the dock keeps the grid's own", it) }
+                failure == null
+            }
 
         context.xposed.hook(Reflect.declaredMethod(hotseat, "setInsets", Rect::class.java)).intercept { chain ->
             chain.proceed().also {
@@ -81,10 +100,6 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
         installGrid(context, icons)
         installGridState(context)
         installProfile(context)
-        if (icons) {
-            installCount(context)
-            DockIconSize.install(context)
-        }
 
         val chosen = context.settings[Settings.DOCK_ICONS]
         context.logger.info("Dock: hidden=${context.settings[Settings.DOCK_HIDDEN]}, icons=${if (chosen == 0) "system" else chosen}")
@@ -326,27 +341,27 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
      * the workspace's bottom padding, which the Home screen pages grow into.
      */
     private fun installProfile(context: FeatureContext) {
-        val builder = requireNotNull(Host.cls(context.classLoader, BUILDER))
+        val build = requireNotNull(DeviceProfiles.build(context.classLoader)) { "No device profile builder" }
+        val verticalBar = requireNotNull(DeviceProfiles.verticalBar(context.classLoader)) { "No ${DeviceProfiles.VERTICAL_BAR}" }
         val gap = DockIconSize.gapPx()
-        context.xposed.hook(Reflect.declaredMethod(builder, "build")).intercept { chain ->
+        context.xposed.hook(build).intercept { chain ->
             chain.proceed()?.also { profile ->
                 runCatching {
-                    val dock = Reflect.field(profile.javaClass, "hotseatProfile")?.get(profile) ?: return@runCatching
+                    val dock = Dock.hotseatOf?.get(profile) ?: return@runCatching
                     if (context.settings[Settings.DOCK_ICONS] != 0) {
                         val space = Reflect.field(dock.javaClass, "borderSpace")
                         if (space != null && space.getInt(dock) < gap) space.setInt(dock, gap)
                     }
-                    if (context.settings[Settings.DOCK_HIDDEN] && !Dock.hasTaskbar(profile)) giveRow(profile, dock)
+                    if (context.settings[Settings.DOCK_HIDDEN] && !Dock.hasTaskbar(profile)) giveRow(profile, dock, verticalBar)
                 }.onFailure { context.logger.warn("Unable to lay the dock out", it) }
             }
         }
     }
 
-    private fun giveRow(profile: Any, dock: Any) {
+    private fun giveRow(profile: Any, dock: Any, verticalBar: (Any) -> Boolean) {
         // A dock down the side of a landscape phone has no row to give; its
         // bar is a width there, and the Home screen's bottom padding is not its.
-        val properties = Reflect.field(profile.javaClass, "deviceProperties")?.get(profile) ?: return
-        if (Reflect.method(properties.javaClass, "isVerticalBarLayout")?.invoke(properties) != false) return
+        if (verticalBar(profile)) return
         if (Reflect.field(dock.javaClass, "isQsbInline")?.getBoolean(dock) != false) return
         val grid = Reflect.field(profile.javaClass, "inv")?.get(profile) ?: return
         val stock = stockRowsOf[grid] ?: return
@@ -354,7 +369,7 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
 
         val row = Reflect.field(dock.javaClass, "cellHeightPx")?.getInt(dock) ?: return
         val bar = Reflect.field(dock.javaClass, "barSizePx") ?: return
-        val workspace = Reflect.field(profile.javaClass, "workspaceProfile")?.get(profile) ?: return
+        val workspace = Dock.workspaceOf?.get(profile) ?: return
         val padding = Reflect.field(workspace.javaClass, "workspacePadding")?.get(workspace) as? Rect ?: return
         val height = Reflect.field(workspace.javaClass, "cellLayoutHeightSpecification")
 
@@ -363,29 +378,29 @@ class DockFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
         height?.let { it.setInt(workspace, it.getInt(workspace) + row) }
     }
 
+    /**
+     * Writes the count into each profile's own copy of the grid spec as it is
+     * made ([DeviceProfiles.onProfileSpec]): `mapTypeIndex` on `CP3A`, the
+     * `InvariantDeviceProfile$DisplayOptionSpec` constructor on the earlier
+     * launcher. Both copies carry `numShownHotseatIcons`, the int the profile
+     * lays the dock out from; anything else under that name is refused, and
+     * the field is resolved before the hook can run.
+     */
     private fun installCount(context: FeatureContext) {
-        val spec = requireNotNull(Host.cls(context.classLoader, DISPLAY_OPTION_SPEC))
+        val spec = requireNotNull(DeviceProfiles.specClass(context.classLoader)) { "No grid spec" }
         val shownOf = Reflect.declaredField(spec, "numShownHotseatIcons")
-        val map = Reflect.declaredMethod(
-            spec,
-            "mapTypeIndex",
-            Boolean::class.javaPrimitiveType!!,
-            Boolean::class.javaPrimitiveType!!,
-        )
-
-        context.xposed.hook(map).intercept { chain ->
-            chain.proceed()?.also { copy ->
-                runCatching {
-                    val stock = shownOf.getInt(copy)
-                    shownOf.setInt(copy, DockIcons.shown(context.settings[Settings.DOCK_ICONS], stock))
-                }.onFailure { context.logger.warn("Unable to set the dock's icon count", it) }
-            }
+        check(shownOf.type == Int::class.javaPrimitiveType) { "numShownHotseatIcons is a ${shownOf.type.name}" }
+        DeviceProfiles.onProfileSpec(context.xposed, context.classLoader) { copy ->
+            runCatching {
+                shownOf.setInt(copy, DockIcons.shown(context.settings[Settings.DOCK_ICONS], shownOf.getInt(copy)))
+            }.onFailure { context.logger.warn("Unable to set the dock's icon count", it) }
         }
     }
 
     private companion object {
-        const val BUILDER = "com.android.launcher3.deviceprofile.DeviceProfileBuilder"
-        const val DISPLAY_OPTION_SPEC = "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec"
+        const val HOTSEAT_PROFILE = "com.android.launcher3.deviceprofile.HotseatProfile"
+        const val WORKSPACE_PROFILE = "com.android.launcher3.deviceprofile.WorkspaceProfile"
+        const val FOLDER_PROFILE = "com.android.launcher3.deviceprofile.FolderProfile"
         const val INVARIANT_DEVICE_PROFILE = "com.android.launcher3.InvariantDeviceProfile"
         const val DEVICE_GRID_STATE = "com.android.launcher3.model.DeviceGridState"
         const val MULTI_VALUE_ALPHA = "com.android.launcher3.util.MultiValueAlpha"

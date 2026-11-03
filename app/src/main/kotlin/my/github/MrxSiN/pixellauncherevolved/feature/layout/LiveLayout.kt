@@ -8,7 +8,6 @@ import android.os.Handler
 import android.os.Looper
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
-import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
@@ -66,16 +65,29 @@ internal object LiveLayout : SharedPreferences.OnSharedPreferenceChangeListener 
             .onFailure { context.logger.warn("Unable to apply layout mode $after live; it applies on the next launcher start", it) }
     }
 
-    /** Called by each layout feature as it installs; only the first call does anything. */
+    /** The modes whose feature finished installing; only these are ever read as on. */
+    private val installed = java.util.EnumSet.noneOf(LayoutMode::class.java)
+
+    /**
+     * Called by each layout feature as the last step of its install, with the
+     * [mode] it is, if it is one. Only the first call wires anything up.
+     *
+     * Last, so a feature that fails to install has never reached here: its
+     * mode stays off whatever its stored switch says (the switch itself is
+     * kept, untouched, for a launcher it can install on), and no listener or
+     * hook is left behind on its account.
+     */
     @Synchronized
-    fun install(context: FeatureContext) {
-        if (this.context != null) return
-        this.context = context
-        read(context)
-        context.findClass(LAUNCHER)?.let { type ->
-            context.hookAfter(type, "onCreate", Bundle::class.java) { activity, _ -> launcher = WeakReference(activity as Activity) }
+    fun install(context: FeatureContext, mode: LayoutMode? = null) {
+        mode?.let(installed::add)
+        if (this.context == null) {
+            this.context = context
+            context.findClass(LAUNCHER)?.let { type ->
+                context.hookAfter(type, "onCreate", Bundle::class.java) { activity, _ -> launcher = WeakReference(activity as Activity) }
+            }
+            LauncherSettings.preferences(context.appContext).registerOnSharedPreferenceChangeListener(this)
         }
-        LauncherSettings.preferences(context.appContext).registerOnSharedPreferenceChangeListener(this)
+        read(context)
     }
 
     override fun onSharedPreferenceChanged(preferences: SharedPreferences, key: String?) {
@@ -84,11 +96,12 @@ internal object LiveLayout : SharedPreferences.OnSharedPreferenceChangeListener 
         main.post(apply)
     }
 
+    @Synchronized
     private fun read(context: FeatureContext) {
-        overviewOnly = context.settings[Settings.OVERVIEW_ONLY]
-        taskbarOnly = context.settings[Settings.TASKBAR_ONLY]
-        tablet = context.settings[Settings.TABLET_MODE]
-        mode = LayoutMode.current(context.settings::get)
+        mode = LayoutMode.current { setting -> context.settings[setting] && installed.any { it.setting == setting } }
+        overviewOnly = mode == LayoutMode.OVERVIEW_ONLY
+        taskbarOnly = mode == LayoutMode.TASKBAR_ONLY
+        tablet = mode == LayoutMode.FULL_TABLET
     }
 
     /**

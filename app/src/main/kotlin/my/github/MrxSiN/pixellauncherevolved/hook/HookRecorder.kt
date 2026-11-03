@@ -28,19 +28,26 @@ class HookRecorder(private val base: XposedInterface) : XposedInterface by base 
     /**
      * Runs [install], and when it throws, unhooks every hook it set.
      * Null when it installed. Installs run one at a time, at launcher start.
+     *
+     * Nests: a part of a feature installed this way inside the feature's own
+     * install takes back only its own hooks when it fails, and hands them to
+     * the feature's when it succeeds, so a later failure of the feature still
+     * takes them back.
      */
     fun install(install: () -> Unit): Failure? {
+        val outer = recording
         val handles = ArrayList<HookHandle>()
         recording = handles
         return try {
             install()
+            outer?.addAll(handles)
             null
         } catch (error: Throwable) {
             // libxposed: unhook is idempotent and safe to call more than once.
             handles.forEach { runCatching(it::unhook) }
             Failure(error, handles.size)
         } finally {
-            recording = null
+            recording = outer
         }
     }
 

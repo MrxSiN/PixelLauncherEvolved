@@ -10,13 +10,14 @@ import android.widget.Toast
 
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.bridge.GridBridge
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
-import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.DeviceProfiles
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.LiveLayout
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
@@ -88,12 +89,30 @@ class GridFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
         context.logger.info("Grid & size: ${Settings.GRID.joinToString { "${it.key}=${context.settings[it]}" }}")
     }
 
-    private inline fun part(context: FeatureContext, needs: CompatibilityFeature, name: String, install: (FeatureContext) -> Unit) {
+    private inline fun part(context: FeatureContext, needs: CompatibilityFeature, name: String, crossinline install: (FeatureContext) -> Unit) {
         if (!context.analysis.isAvailable(needs)) {
             context.logger.warn("Grid & size: $name is unavailable on Pixel Launcher ${context.analysis.launcherVersion}")
             return
         }
-        runCatching { install(context) }.onFailure { context.logger.warn("Grid & size: $name failed to install", it) }
+        // A part that fails halfway takes back the hooks it had set.
+        context.part { install(context) }?.let { context.logger.warn("Grid & size: $name failed to install", it) }
+    }
+
+    /**
+     * A responsive spec provider's `create`, which answers the provider: on its
+     * `Companion` (`CP3A`), or as the static method of the provider itself
+     * that `@JvmStatic` puts there, which holds the body once the shrinker
+     * folds the companion away. Only by exact name, arity and answer.
+     */
+    private fun specsCreate(context: FeatureContext, companion: String, provider: Class<*>, arity: Int): Method {
+        context.findClass(companion)?.let { type ->
+            Reflect.declared(type, CREATE) { it.parameterTypes.size == arity && it.returnType == provider }?.let { return it }
+        }
+        return requireNotNull(
+            provider.declaredMethods.singleOrNull {
+                it.name == CREATE && Modifier.isStatic(it.modifiers) && it.parameterTypes.size == arity && it.returnType == provider
+            },
+        ) { "No ${provider.name}.$CREATE" }
     }
 
     /** Settings write several keys for one choice (Restore defaults, an import); they are applied once. */
@@ -508,9 +527,8 @@ class GridFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
      * (`matchWorkspace`), so it follows; a fixed one is scaled the same way.
      */
     private fun installIconSize(context: FeatureContext) {
-        val companion = requireNotNull(context.findClass(CELL_SPECS_COMPANION))
-        val create = requireNotNull(Reflect.declared(companion, "create") { it.parameterTypes.size == 1 })
         val provider = requireNotNull(context.findClass(CELL_SPECS_PROVIDER))
+        val create = specsCreate(context, CELL_SPECS_COMPANION, provider, 1)
         val groupsOf = Reflect.declaredField(provider, "groupOfSpecs")
         val group = requireNotNull(context.findClass(SPEC_GROUP))
         val heightsOf = Reflect.declaredField(group, "heightSpecs")
@@ -554,9 +572,8 @@ class GridFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
      * width specs, down for height specs ([GridSpec.spread]).
      */
     private fun installSpacing(context: FeatureContext) {
-        val companion = requireNotNull(context.findClass(SPECS_COMPANION))
-        val create = requireNotNull(Reflect.declared(companion, "create") { it.parameterTypes.size == 2 })
         val provider = requireNotNull(context.findClass(SPECS_PROVIDER))
+        val create = specsCreate(context, SPECS_COMPANION, provider, 2)
         val groupsOf = Reflect.declaredField(provider, "groupOfSpecs")
         val group = requireNotNull(context.findClass(SPEC_GROUP))
         val heightsOf = Reflect.declaredField(group, "heightSpecs")
@@ -625,18 +642,17 @@ class GridFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
     // ---- All apps columns -------------------------------------------------------------------
 
     private fun installAppsColumns(context: FeatureContext) {
-        val spec = requireNotNull(Host.cls(context.classLoader, DISPLAY_OPTION_SPEC))
+        val spec = requireNotNull(DeviceProfiles.specClass(context.classLoader)) { "No grid spec" }
         val columnsOf = Reflect.declaredField(spec, "numAllAppsColumns")
-        val map = Reflect.declaredMethod(spec, "mapTypeIndex", Boolean::class.javaPrimitiveType!!, Boolean::class.javaPrimitiveType!!)
+        check(columnsOf.type == Int::class.javaPrimitiveType) { "numAllAppsColumns is a ${columnsOf.type.name}" }
 
-        // Each profile lays All apps out from its own copy of the spec.
-        context.xposed.hook(map).intercept { chain ->
-            chain.proceed()?.also { copy ->
-                val chosen = context.settings[Settings.APP_DRAWER_COLUMNS]
-                if (chosen != GridSpec.SYSTEM) runCatching {
-                    columnsOf.setInt(copy, GridSpec.count(chosen, columnsOf.getInt(copy)))
-                }.onFailure { context.logger.warn("Grid & size: unable to set the All apps columns", it) }
-            }
+        // Each profile lays All apps out from its own copy of the spec
+        // (`mapTypeIndex` on CP3A, the spec's constructor on the earlier launcher).
+        DeviceProfiles.onProfileSpec(context.xposed, context.classLoader) { copy ->
+            val chosen = context.settings[Settings.APP_DRAWER_COLUMNS]
+            if (chosen != GridSpec.SYSTEM) runCatching {
+                columnsOf.setInt(copy, GridSpec.count(chosen, columnsOf.getInt(copy)))
+            }.onFailure { context.logger.warn("Grid & size: unable to set the All apps columns", it) }
         }
 
         // The model's count, which the app suggestions row is filled to.
@@ -669,7 +685,7 @@ class GridFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
         const val IDP = "com.android.launcher3.InvariantDeviceProfile"
         const val DISPLAY_OPTION = "com.android.launcher3.deviceprofile.parser.DisplayOption"
         const val GRID_OPTION = "com.android.launcher3.deviceprofile.parser.GridOption"
-        const val DISPLAY_OPTION_SPEC = "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec"
+        const val CREATE = "create"
         const val MIGRATION_OPTION = "com.android.launcher3.model.GridMigrationOption"
         const val MIGRATION_OPTION_COMPANION = "com.android.launcher3.model.GridMigrationOption\$Companion"
         const val MIGRATION_OPTION_STAND_IN = "com.android.launcher3.model.GridMigrationOption\$FourByFour"

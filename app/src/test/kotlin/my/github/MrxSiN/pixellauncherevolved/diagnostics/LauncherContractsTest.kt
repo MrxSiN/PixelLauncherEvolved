@@ -27,7 +27,8 @@ class LauncherContractsTest {
         for (signature in signatures) {
             val type = signature.owner.substringAfterLast('.').substringAfterLast('$')
             assertTrue("No feature names $type", type in sources)
-            signature.member?.let { member ->
+            // A constructor has no name to write down; its class is what a feature names.
+            signature.member?.takeIf { it !is Member.Constructor }?.let { member ->
                 assertTrue("No feature looks up ${signature.describe()}", "\"${member.name}\"" in sources)
             }
         }
