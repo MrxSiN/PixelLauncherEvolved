@@ -1,8 +1,25 @@
 # Changelog
 
-## Unreleased
+## 0.1.7
 
 ### Fixed
+
+- **Grid & size and Widget stacks were off on the November system update** (`CP4A.261105.040.A1`,
+  launcher still 907). That build moved a widget's smallest size off `ItemInfo`: a grid migration
+  entry keeps it in `resizeParams`, and a widget's provider holds it for the rest. One lookup
+  (`MinSpans`) reads whichever this launcher has, and a drag reads it from the widget's own view,
+  with no call out of the process. The 308 contracts all resolve on a Pixel 8 Pro.
+- **The compatibility report showed the latest launcher through fallbacks.** Contracts and lookups now
+  name `CP4A`'s members first (`OseWidgetView`, `activityContext`, `longPressHelper`, `resizeParams`,
+  the provider's spans), and `CP3A`'s are the fallbacks: 309 of 309 resolve with none by fallback on
+  a Pixel 8 Pro, and no DexKit match is needed at start.
+- **DexKit could not match a member renamed by a launcher already fingerprinted on the device.**
+  Re-recording a build listed the new names, such as `activityContext` for `mActivityContext`, as
+  never renamed, so the matcher skipped the right answer. Only names both builds share now count,
+  and fingerprints from the earlier format are replaced (FORMAT 3). The self-test expects a renamed
+  member under its current name.
+- **The compatibility report was not written again after a system update** that kept the
+  launcher's `versionCode`. It is now written once per `versionCode` and system build.
 
 - **Pixel 11 Pro and other launchers of the earlier internal layout** ([issue 1](https://github.com/MrxSiN/PixelLauncherEvolved/issues/1);
   `CD1A.261005.003`, launcher 907, 255 of 282 contracts). The same `versionCode` hides the
@@ -25,6 +42,11 @@
 - **A Grid & size part that failed halfway** (icon size, spacing, All apps columns) left the hooks
   it had set; a part now takes them back, as a feature does. The dock's icon count is one such part:
   without it the dock still hides, and its capacity is never raised for a count nothing shows.
+
+### Changed
+
+- The exact-name and typed field lookups the fallbacks use live in `Reflect`, and the Modes and
+  Wallpaper & style code uses them instead of its own copies. Behaviour is unchanged.
 
 ## 0.1.6
 

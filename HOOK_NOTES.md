@@ -67,6 +67,35 @@ half of each fingerprint dropped, and logs how many it found, got wrong or
 missed. On `CP3A.260905.009`: members 400 / 313 / 183 found and classes
 93 / 90 / 86 of 95, none wrong at any level.
 
+## The November update (`CP4A.261105.040.A1`, launcher 907, verified November 11, 2026)
+
+The system update kept Pixel Launcher at `versionCode=907` but changed its code. Read from the DEX
+of `NexusLauncherRelease.apk` on a Pixel 8 Pro:
+
+- `ItemInfo.minSpanX/minSpanY` are gone. `DbReader.loadAllWorkspaceEntries` puts them in
+  `DbEntry.resizeParams` (`dragndrop.ResizeParams`, final `minSpanX/minSpanY`). A model widget
+  (`LauncherAppWidgetInfo`) holds none: the launcher reads its provider's,
+  `LauncherAppWidgetProviderInfo.minSpanX/Y`, which `fromProviderInfo(Context, AppWidgetProviderInfo)`
+  fills through `initSpans`. A live view has `ResizeParams.forView(View)`, and its
+  `getAppWidgetInfo()` is that provider already. `MinSpans` reads, per item class: `resizeParams`,
+  then the item's own fields (`CP3A`), then the provider, from the view when there is one (no Binder
+  on drag), else from `AppWidgetManager` (cold paths only).
+- `LauncherAppWidgetHostView` is Kotlin now: `mActivityContext` is `activityContext`,
+  `mLongPressHelper` is `longPressHelper`.
+- `com.android.launcher3.qsb.OseWidgetController` is gone, and the bar has its own host class again,
+  `OseWidgetView`, a subclass of `LauncherAppWidgetHostView`, as on `CP2A`.
+
+The contracts name these first; `CP3A`'s names are the alternatives. Report: 309 of 309, none by
+fallback, with no DexKit match needed at start.
+
+**DexKit recorder fix (FORMAT 3).** Re-recording a launcher build wrote its new member names into
+each class line, which the matcher reads as names never renamed and skips. A member renamed by that
+build (`mActivityContext` to `activityContext`) could then never be matched once the cached answer
+was lost. A class line now keeps only the names both builds share, and a `host.db` of an earlier
+format is set aside for the shipped one. The self-test counts a renamed member found under its
+current name as found. On `CP4A`: members 816 / 659 / 433 found, classes 171 / 163 / 150, none
+wrong at any level.
+
 ## Two launcher generations (GitHub issue 1, November 3, 2026)
 
 Pixel 11 Pro `CD1A.261005.003` runs Pixel Launcher `versionCode=907`, the same

@@ -13,7 +13,7 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 [![Release](https://img.shields.io/github/v/release/MrxSiN/PixelLauncherEvolved?include_prereleases&color=5B3DF5&label=release&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Downloads](https://img.shields.io/github/downloads/MrxSiN/PixelLauncherEvolved/total?color=3DDC84&logo=android&logoColor=fff&style=for-the-badge)](https://github.com/MrxSiN/PixelLauncherEvolved/releases)
 [![Android](https://img.shields.io/badge/Android-17%20QPR1-3DDC84?logo=android&logoColor=fff&style=for-the-badge)](https://developer.android.com)
-[![Compatibility](https://img.shields.io/badge/hooks-307%2F307%20resolved-3DDC84?style=for-the-badge)](#compatibility)
+[![Compatibility](https://img.shields.io/badge/hooks-309%2F309%20resolved-3DDC84?style=for-the-badge)](#compatibility)
 [![Licence](https://img.shields.io/github/license/MrxSiN/PixelLauncherEvolved?color=5B3DF5&style=for-the-badge)](LICENSE)
 
 </div>
@@ -21,9 +21,9 @@ Long press an empty part of the home screen → **Home settings** → **Pixel La
 ---
 
 > [!NOTE]
-> **Fully compatible with the latest Android release — Android 17 QPR1 (October 2026),
-> build `CP3A.261005.005`, Pixel Launcher `907`.** Every launcher member the module stands on
-> resolves (307 of 307, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
+> **Fully compatible with the latest Android release — Android 17, November 2026 update,
+> build `CP4A.261105.040.A1`, Pixel Launcher `907`.** Every launcher member the module stands on
+> resolves (309 of 309, no fallbacks), and every tweak is available. Tested on a Pixel 8 Pro with
 > Vector v2.2. The module checks this itself on every launcher start: see
 > [Compatibility](#compatibility).
 
@@ -279,6 +279,7 @@ does not assume they stayed put.
 
 | Device | Android build | Pixel Launcher | Checked | Not yet checked |
 |---|---|---|---|---|
+| Pixel 8 Pro | CP4A.261105.040.A1 (Android 17, November 2026) | 907 | every feature installs, 309 of 309 contracts with no fallback, DexKit self-test 0 wrong | Applying a new grid, dragging a widget onto a stack and resizing one on this build |
 | Pixel 8 Pro | CP3A.261005.005 (Android 17) | 907 | home, dock, Mode home screens and per-Mode choices, widget stacks (create, drag onto a widget, swipe both ways, Edit stack, Remove widget, Restore, restart), app drawer and search, icon packs, Overview, Home settings at 100% and 130% text, Diagnostics, recovery screen | TalkBack end to end (widget stack actions included), widget stack resizing and Smart rotate, work profile and Private Space, other screen sizes and foldables, landscape, RTL, more than one Android user |
 
 **Pixel 11 Pro (`CD1A.261005.003`, launcher 907): not tested on the phone.** Its launcher reports the
@@ -292,18 +293,18 @@ earlier launcher has no safe place to hook them. See HOOK_NOTES.md, "Two launche
 
 
 - **Launcher contracts.** Every class, method and field a tweak stands on is listed once, with the
-  signature this module expects and the older one it falls back to. They are checked against the
+  latest launcher's signature first and the older ones it falls back to. They are checked against the
   running launcher when it starts.
 - **Per-feature gating.** A tweak whose required members are missing is not installed at all. Its
   switch is greyed out and reads *Unavailable on Pixel Launcher 910. Launcher internals changed.
   Update Pixel Launcher Evolved.* Nothing stored changes, so the tweak comes back by itself once an
   update brings its members back.
-- **Automatic analysis.** The first time a new launcher `versionCode` starts, the full report is
+- **Automatic analysis.** The first time a new launcher `versionCode` or system build starts, the full report is
   written to logcat — `adb logcat -s PixelLauncherEvolved`:
 
   ```
   Pixel Launcher versionCode: 907
-  Resolved 307 / 307, fallback signatures 0, failed 0
+  Resolved 309 / 309, fallback signatures 0, failed 0
 
   Contracts
   ✓ TaskView.onFinishInflate()
@@ -333,7 +334,7 @@ earlier launcher has no safe place to hook them. See HOOK_NOTES.md, "Two launche
 
 | | |
 |---|---|
-| **Android** | 17 (API 37). Fully compatible with 17 QPR1, October 2026 (`CP3A.261005.005`) |
+| **Android** | 17 (API 37). Fully compatible with the November 2026 update (`CP4A.261105.040.A1`) and 17 QPR1, October 2026 (`CP3A.261005.005`) |
 | **Launcher** | Pixel Launcher (`com.google.android.apps.nexuslauncher`), tested on `versionCode` 907 |
 | **Device** | Pixel (tested on Pixel 8 Pro) |
 | **Framework** | [Vector](https://github.com/JingMatrix/Vector) v2.2+, or any framework implementing libxposed API 101+ |

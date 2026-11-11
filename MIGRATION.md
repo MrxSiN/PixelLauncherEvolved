@@ -1,7 +1,13 @@
 # Migration
 
-Upgrading to 0.1.6 from any earlier release keeps everything: identity is unchanged, and the state
+Upgrading to 0.1.7 from any earlier release keeps everything: identity is unchanged, and the state
 this release adds lives under new keys whose absence reads as the old behaviour.
+
+- **0.1.7:** no setting, key or backup format changes. Two caches change shape and rebuild by
+  themselves: `compatibility_analyzed_launcher_version` now holds `<versionCode>@<system build>`, so
+  the compatibility report is written once more after the upgrade; and the DexKit symbol cache
+  (`ple_host/host.map`, `host.db`) moves to FORMAT 3, so the first start after the upgrade matches
+  and records the launcher's symbols again, in the background.
 
 - **Package and module identity:** `applicationId` `io.github.mrxsin.pixellauncherevolved`, namespace,
   entry class `my.github.MrxSiN.pixellauncherevolved.PixelLauncherEvolvedModule`, `module.prop`

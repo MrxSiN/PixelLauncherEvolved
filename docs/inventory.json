@@ -499,6 +499,7 @@
     "com.android.launcher3.deviceprofile.DeviceProperties",
     "com.android.launcher3.deviceprofile.FolderProfile",
     "com.android.launcher3.deviceprofile.HotseatProfile",
+    "com.android.launcher3.deviceprofile.OverviewProfile",
     "com.android.launcher3.deviceprofile.TaskbarConfiguration",
     "com.android.launcher3.deviceprofile.WorkspaceProfile",
     "com.android.launcher3.deviceprofile.parser.DisplayOption",
@@ -508,6 +509,7 @@
     "com.android.launcher3.dragndrop.DragLayer",
     "com.android.launcher3.dragndrop.DragView",
     "com.android.launcher3.dragndrop.ItemDeleteHandler",
+    "com.android.launcher3.dragndrop.ResizeParams",
     "com.android.launcher3.folder.FolderIcon",
     "com.android.launcher3.icons.BaseIconFactory",
     "com.android.launcher3.icons.BitmapInfo",
@@ -537,6 +539,7 @@
     "com.android.launcher3.popup.ui.StringContainer\\$ResourceString",
     "com.android.launcher3.preview.PreviewSurfaceRenderer",
     "com.android.launcher3.qsb.OseWidgetController",
+    "com.android.launcher3.qsb.OseWidgetView",
     "com.android.launcher3.responsive.CellSpec",
     "com.android.launcher3.responsive.ResponsiveCellSpecsProvider",
     "com.android.launcher3.responsive.ResponsiveSpec",
@@ -567,11 +570,13 @@
     "com.android.launcher3.views.PredictedAppIcon",
     "com.android.launcher3.views.Snackbar",
     "com.android.launcher3.widget.LauncherAppWidgetHostView",
+    "com.android.launcher3.widget.LauncherAppWidgetProviderInfo",
     "com.android.launcher3.widget.LauncherWidgetHolder",
     "com.android.launcher3.widget.resize.ResizeManager",
     "com.android.launcher3.widget.resize.ResizeManager\\$ResizeConstraints",
     "com.android.launcher3.widget.util.WidgetSizeHandler",
     "com.android.quickstep.BaseContainerInterface",
+    "com.android.quickstep.LauncherActivityInterface",
     "com.android.quickstep.SystemUiProxy",
     "com.android.quickstep.util.BaseDepthControllerImpl",
     "com.android.quickstep.views.IconAppChipView",
@@ -713,8 +718,9 @@
   "feature/dock/DockFeature.kt": {
    "host_classes": [
     "com.android.launcher3.InvariantDeviceProfile",
-    "com.android.launcher3.deviceprofile.DeviceProfileBuilder",
-    "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec",
+    "com.android.launcher3.deviceprofile.FolderProfile",
+    "com.android.launcher3.deviceprofile.HotseatProfile",
+    "com.android.launcher3.deviceprofile.WorkspaceProfile",
     "com.android.launcher3.model.DeviceGridState",
     "com.android.launcher3.util.MultiValueAlpha"
    ],
@@ -723,18 +729,14 @@
     "borderSpace",
     "cellHeightPx",
     "cellLayoutHeightSpecification",
-    "deviceProperties",
-    "hotseatProfile",
     "inv",
     "isFixedLandscape",
     "isQsbInline",
-    "isVerticalBarLayout",
     "mTarget",
     "numRows",
-    "workspacePadding",
-    "workspaceProfile"
+    "workspacePadding"
    ],
-   "hooks": 8,
+   "hooks": 7,
    "threads": 0,
    "root": false,
    "binder": [],
@@ -751,15 +753,12 @@
     "borderSpace",
     "cellHeightPx",
     "folderIconOffsetYPx",
-    "folderProfile",
     "getDeviceProfile",
-    "hotseatProfile",
     "iconSizePx",
     "mActivity",
     "mNormalizedIconSize",
     "numShownIcons",
-    "widthPx",
-    "workspaceProfile"
+    "widthPx"
    ],
    "hooks": 1,
    "threads": 0,
@@ -886,7 +885,6 @@
    "host_classes": [
     "com.android.launcher3.InvariantDeviceProfile",
     "com.android.launcher3.deviceprofile.parser.DisplayOption",
-    "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec",
     "com.android.launcher3.deviceprofile.parser.GridOption",
     "com.android.launcher3.model.DbEntry",
     "com.android.launcher3.model.DeviceGridState",
@@ -911,7 +909,7 @@
     "mIsDualGrid",
     "numAllAppsColumns"
    ],
-   "hooks": 13,
+   "hooks": 12,
    "threads": 0,
    "root": false,
    "binder": [],
@@ -1147,11 +1145,19 @@
   "feature/layout/DeviceProfiles.kt": {
    "host_classes": [
     "com.android.launcher3.DeviceProfile",
+    "com.android.launcher3.DeviceProfile\\$Builder",
+    "com.android.launcher3.InvariantDeviceProfile",
+    "com.android.launcher3.InvariantDeviceProfile\\$DisplayOptionSpec",
     "com.android.launcher3.deviceprofile.DeviceProfileBuilder",
-    "com.android.launcher3.deviceprofile.DeviceProperties\\$Factory"
+    "com.android.launcher3.deviceprofile.DeviceProperties",
+    "com.android.launcher3.deviceprofile.DeviceProperties\\$Factory",
+    "com.android.launcher3.deviceprofile.TaskbarConfiguration",
+    "com.android.launcher3.deviceprofile.parser.DisplayOptionSpec"
    ],
-   "host_members": [],
-   "hooks": 0,
+   "host_members": [
+    "isVerticalBarLayout"
+   ],
+   "hooks": 2,
    "threads": 0,
    "root": false,
    "binder": [],
@@ -1173,6 +1179,17 @@
    "root": false,
    "binder": [],
    "preferences": true
+  },
+  "feature/layout/MinSpans.kt": {
+   "host_classes": [
+    "com.android.launcher3.widget.LauncherAppWidgetProviderInfo"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
   },
   "feature/layout/OverviewOnlyFeature.kt": {
    "host_classes": [
@@ -1209,7 +1226,6 @@
     "appTitle",
     "calculateCollapsedTextWidth",
     "collapsedMenuDefaultWidth",
-    "deviceProperties",
     "getBottomMargin",
     "getChipWidth",
     "getCollapsedBackgroundLtrBounds",
@@ -1297,7 +1313,7 @@
   },
   "feature/layout/TaskbarOnlyFeature.kt": {
    "host_classes": [
-    "com.android.launcher3.deviceprofile.DeviceProperties",
+    "com.android.launcher3.deviceprofile.HotseatProfile",
     "com.android.launcher3.taskbar.TaskbarActivityContext",
     "com.android.launcher3.taskbar.TaskbarLauncherStateController",
     "com.android.launcher3.taskbar.TaskbarView",
@@ -1306,7 +1322,6 @@
    "host_members": [
     "calculateMaxNumIcons",
     "getDeviceProfile",
-    "hotseatProfile",
     "isTaskbarPresent",
     "mActivityContext",
     "mDeviceProfile",
@@ -1316,7 +1331,7 @@
     "numShownIcons",
     "taskbarConfiguration"
    ],
-   "hooks": 5,
+   "hooks": 6,
    "threads": 0,
    "root": false,
    "binder": [],
@@ -1377,9 +1392,10 @@
    ],
    "host_members": [
     "onFinishInflate",
+    "updateActionButtonsVisibility",
     "updateForGroupedTask"
    ],
-   "hooks": 2,
+   "hooks": 3,
    "threads": 0,
    "root": false,
    "binder": [],
@@ -1529,6 +1545,7 @@
   },
   "feature/search/HomeSearchBarFeature.kt": {
    "host_classes": [
+    "com.android.launcher3.CheckLongPressHelper",
     "com.android.launcher3.ExtendedEditText",
     "com.android.launcher3.LauncherState",
     "com.android.launcher3.allapps.ActivityAllAppsContainerView",
@@ -1546,7 +1563,6 @@
     "getStateManager",
     "goToState",
     "mHasPerformedLongPress",
-    "mLongPressHelper",
     "mSearchUiManager",
     "onInterceptTouchEvent",
     "onTouchEvent",
@@ -1562,6 +1578,7 @@
   "feature/search/SearchBarWidgets.kt": {
    "host_classes": [
     "com.android.launcher3.qsb.OseWidgetController",
+    "com.android.launcher3.qsb.OseWidgetView",
     "com.android.launcher3.widget.LauncherAppWidgetHostView"
    ],
    "host_members": [
@@ -1759,6 +1776,7 @@
     "com.android.launcher3.Workspace",
     "com.android.launcher3.model.data.ItemInfo",
     "com.android.launcher3.util.ItemInflater",
+    "com.android.launcher3.views.ActivityContext",
     "com.android.launcher3.widget.LauncherAppWidgetHostView",
     "com.android.launcher3.widget.util.WidgetSizeHandler"
    ],
@@ -1806,8 +1824,6 @@
    ],
    "host_members": [
     "close",
-    "minSpanX",
-    "minSpanY",
     "onResume"
    ],
    "hooks": 12,
