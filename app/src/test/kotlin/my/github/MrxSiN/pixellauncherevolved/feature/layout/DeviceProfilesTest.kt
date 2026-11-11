@@ -18,6 +18,8 @@ import io.github.libxposed.api.XposedInterface.HookBuilder
 import io.github.libxposed.api.XposedInterface.HookHandle
 import io.github.libxposed.api.XposedInterface.Hooker
 
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -65,8 +67,8 @@ class DeviceProfilesTest {
 
     @Test
     fun `a part of the wrong type under every name is missing`() {
-        assertNull(DeviceProfiles.field(DeviceProfile::class.java, WorkspaceProfile::class.java, "workspaceProfile"))
-        assertNull(DeviceProfiles.field(DeviceProfile::class.java, HotseatProfile::class.java, "workspaceProfile", "mWorkspaceProfile"))
+        assertNull(Reflect.field(DeviceProfile::class.java, WorkspaceProfile::class.java, "workspaceProfile"))
+        assertNull(Reflect.field(DeviceProfile::class.java, HotseatProfile::class.java, "workspaceProfile", "mWorkspaceProfile"))
     }
 
     @Test

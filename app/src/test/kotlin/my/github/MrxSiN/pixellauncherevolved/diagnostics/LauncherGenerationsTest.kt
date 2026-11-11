@@ -19,8 +19,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The contract list read against what three launchers hold, all of them
+ * The contract list read against what four launchers hold, all of them
  * Pixel Launcher versionCode 907: the same version is not the same launcher.
+ * Primary signatures are the latest launcher's (`CP4A`); every other build is
+ * read through its alternatives.
  *
  * A fixture says which signatures a launcher has, as the analyzer would find
  * them. The Pixel 11 Pro fixture is GitHub issue 1's report and nothing more:
@@ -32,19 +34,22 @@ import org.junit.Test
  */
 class LauncherGenerationsTest {
 
-    /** Pixel 8 Pro, Android 17 QPR1 `CP3A`: every primary signature resolves (282 of 282 before this list grew). */
+    /** Pixel 8 Pro, Android 17 `CP4A.261105.040`, the latest: every primary signature resolves (308 of 308 on device). */
     private val pixel8 = Fixture { signature -> signature in primaries }
 
-    /** Pixel 11 Pro `CD1A.261005.003`, as issue 1 reports it: the 27 failures missing, nothing else known. */
-    private val pixel11Reported = Fixture { signature -> signature in primaries && signature.describe() !in REPORTED_MISSING }
+    /** Android 17 QPR1 `CP3A`: the primaries but the ones `CP4A` introduced, and `CP3A`'s own names. */
+    private val cp3a = Fixture(::isCp3a)
+
+    /** Pixel 11 Pro `CD1A.261005.003`, as issue 1 reports it: `CP3A`'s shape with the 27 failures missing, nothing else known. */
+    private val pixel11Reported = Fixture { signature -> isCp3a(signature) && signature.describe() !in REPORTED_MISSING }
 
     /** The same, with the earlier generation's members AOSP `android-17.0.0_r1` declares in its source. */
     private val pixel11IfAospShaped = Fixture { signature ->
-        (signature in primaries && signature.describe() !in REPORTED_MISSING) || signature.describe() in AOSP_R1_EARLIER
+        (isCp3a(signature) && signature.describe() !in REPORTED_MISSING) || signature.describe() in AOSP_R1_EARLIER
     }
 
     @Test
-    fun `the Pixel 8 Pro offers every feature, on primary signatures alone`() {
+    fun `the Pixel 8 Pro on the latest launcher offers every feature, on primary signatures alone`() {
         val report = pixel8.report()
 
         assertEquals(report.total, report.resolved)
@@ -53,8 +58,19 @@ class LauncherGenerationsTest {
     }
 
     @Test
+    fun `CP3A offers every feature, falling back only to its own names`() {
+        val report = cp3a.report()
+
+        assertEquals(report.total, report.resolved)
+        for (feature in CompatibilityFeature.entries) assertTrue("$feature", report.isCompatible(feature))
+        val fallbacks = report.results.filter { it.outcome == ContractOutcome.FALLBACK }
+        assertTrue(fallbacks.isNotEmpty())
+        assertTrue(fallbacks.all { it.alternative?.describe() in CP3A_EARLIER })
+    }
+
+    @Test
     fun `every failure issue 1 reports is a contract this list still checks`() {
-        val described = LauncherContracts.all.map { it.signature.describe() }.toSet()
+        val described = LauncherContracts.all.flatMap { listOf(it.signature) + it.alternatives }.map { it.describe() }.toSet()
         for (missing in REPORTED_MISSING) assertTrue("No contract describes $missing", missing in described)
     }
 
@@ -69,7 +85,7 @@ class LauncherGenerationsTest {
             APP_DRAWER_COLUMNS, OVERVIEW_ACTIONS, TASKBAR_ONLY, OVERVIEW_ONLY, FULL_TABLET_LAYOUT,
         )
         assertEquals(gated, CompatibilityFeature.entries.filterNot(report::isCompatible).toSet())
-        assertEquals(0, report.fallbacks)
+        assertTrue(report.results.filter { it.outcome == ContractOutcome.FALLBACK }.all { it.alternative?.describe() in CP3A_EARLIER })
     }
 
     @Test
@@ -85,7 +101,10 @@ class LauncherGenerationsTest {
         for (feature in listOf(GRID, GRID_ICON_SIZE, FULL_TABLET_LAYOUT, WIDGET_STACKS, HOME_SEARCH_BAR)) {
             assertFalse("$feature", feature in offered)
         }
-        assertTrue(report.results.filter { it.outcome == ContractOutcome.FALLBACK }.all { it.alternative?.describe() in AOSP_R1_EARLIER })
+        assertTrue(
+            report.results.filter { it.outcome == ContractOutcome.FALLBACK }
+                .all { it.alternative?.describe().let { name -> name in AOSP_R1_EARLIER || name in CP3A_EARLIER } },
+        )
     }
 
     @Test
@@ -113,6 +132,11 @@ class LauncherGenerationsTest {
 
     private val primaries = LauncherContracts.all.map { it.signature }.toSet()
 
+    private fun isCp3a(signature: Signature): Boolean {
+        val name = signature.describe()
+        return (signature in primaries && name !in CP4A_ONLY) || name in CP3A_EARLIER
+    }
+
     /** Reads the contract list the way [ContractAnalyzer] does: the primary, else the first alternative there. */
     private class Fixture(private val has: (Signature) -> Boolean) {
         fun report() = ContractReport(
@@ -128,6 +152,23 @@ class LauncherGenerationsTest {
     }
 
     private companion object {
+
+        /** Primaries `CP4A.261105.040` introduced, read off its dex. */
+        val CP4A_ONLY = setOf(
+            "OseWidgetView",
+            "LauncherAppWidgetHostView.activityContext",
+            "DbEntry.resizeParams",
+            "ResizeParams.minSpanX",
+            "ResizeParams.minSpanY",
+        )
+
+        /** Their `CP3A` alternatives, verified on a Pixel 8 Pro on `CP3A.260905.009`. */
+        val CP3A_EARLIER = setOf(
+            "OseWidgetController.applyTo(LauncherAppWidgetHostView, boolean)",
+            "LauncherAppWidgetHostView.mActivityContext",
+            "ItemInfo.minSpanX",
+            "ItemInfo.minSpanY",
+        )
 
         /** Issue 1's failed contracts, as the report printed them (duplicates once). */
         val REPORTED_MISSING = setOf(

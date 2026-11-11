@@ -51,7 +51,6 @@ class FocusHomeTest {
 
         assertEquals(listOf(9), focus.addedScreens(listOf(9)))
         assertEquals(listOf(0, 5, 9), FocusPages.order)
-        assertEquals(9, FocusPages.screenAt(3))
     }
 
     @Test

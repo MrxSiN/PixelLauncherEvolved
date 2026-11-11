@@ -19,6 +19,7 @@ import java.util.Calendar
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.MinSpans
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
@@ -343,8 +344,6 @@ class WidgetStacksFeature : ToggleFeature(Settings.WIDGET_STACKS), SharedPrefere
         val limits = Reflect.declaredField(manager, "resizeConstraints")
         val minH = Reflect.declaredField(constraints, "minHSpan")
         val minV = Reflect.declaredField(constraints, "minVSpan")
-        val minSpanX = Reflect.field(host.id.declaringClass, "minSpanX") ?: error("no minSpanX")
-        val minSpanY = Reflect.field(host.id.declaringClass, "minSpanY") ?: error("no minSpanY")
 
         fun narrow(resize: Any) {
             val view = widgetView.get(resize) as? View ?: return
@@ -356,8 +355,9 @@ class WidgetStacksFeature : ToggleFeature(Settings.WIDGET_STACKS), SharedPrefere
             var v = minV.getInt(bounds)
             for (id in stack.members) {
                 val item = host.modelItem(launcher, id) ?: continue
-                h = maxOf(h, minSpanX.getInt(item))
-                v = maxOf(v, minSpanY.getInt(item))
+                val min = host.minSpans.of(view.context, item)
+                h = maxOf(h, MinSpans.x(min))
+                v = maxOf(v, MinSpans.y(min))
             }
             minH.setInt(bounds, h)
             minV.setInt(bounds, v)

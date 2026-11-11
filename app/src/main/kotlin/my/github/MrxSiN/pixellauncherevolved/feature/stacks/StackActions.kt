@@ -44,7 +44,7 @@ internal class StackActions(
         val id = host.id.getInt(item)
         val targetId = host.id.getInt(target.tag)
         val existing = WidgetStacks.graph.stackOf(targetId)
-        if (existing?.isFull == true || WidgetStacks.graph.stackOf(id) != null || !host.fits(item, target.tag)) return false
+        if (existing?.isFull == true || WidgetStacks.graph.stackOf(id) != null || !host.fits(widget, target.tag)) return false
         val next = existing?.plus(id) ?: StackGraph.Stack(intArrayOf(targetId, id), 0)
         val page = maxOf(host.maxScreen(launcher), WidgetStacks.hiddenScreens.lastOrNull() ?: 0) + 1
         val width = host.spanX.getInt(target.tag)

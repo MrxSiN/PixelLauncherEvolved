@@ -79,6 +79,8 @@ object LauncherContracts {
     private const val LAUNCHER_STATE = "com.android.launcher3.LauncherState"
     private const val BASE_STATE = "com.android.launcher3.statemanager.BaseState"
     private const val ITEM_INFO = "com.android.launcher3.model.data.ItemInfo"
+    private const val WIDGET_PROVIDER_INFO = "com.android.launcher3.widget.LauncherAppWidgetProviderInfo"
+    private const val RESIZE_PARAMS = "com.android.launcher3.dragndrop.ResizeParams"
     private const val ITEM_INFO_WITH_ICON = "com.android.launcher3.model.data.ItemInfoWithIcon"
     private const val ITEM_INFO_WITH_ICON_VIEW = "com.android.launcher3.BubbleTextView"
     private const val APP_INFO = "com.android.launcher3.model.data.AppInfo"
@@ -173,7 +175,8 @@ object LauncherContracts {
         // Widget stacks
         contract(WIDGET_HOST, method("onInterceptTouchEvent", MOTION_EVENT), WIDGET_STACKS),
         contract(WIDGET_HOST, method("onTouchEvent", MOTION_EVENT), WIDGET_STACKS),
-        contract(WIDGET_HOST, Member.Field("mActivityContext"), WIDGET_STACKS),
+        // CP3A and earlier: mActivityContext.
+        contract(WIDGET_HOST, Member.Field("activityContext"), listOf(Signature(WIDGET_HOST, Member.Field("mActivityContext"))), WIDGET_STACKS),
         contract(LAUNCHER, Member.Field("mItemInflater"), WIDGET_STACKS),
         contract(LAUNCHER, Member.Field("mWorkspace"), WIDGET_STACKS),
         contract(LAUNCHER, method("getModelWriter"), WIDGET_STACKS),
@@ -184,7 +187,8 @@ object LauncherContracts {
         optional("com.android.launcher3.celllayout.CellLayoutLayoutParams", Member.Field("useTmpCoords"), WIDGET_STACKS),
         optional("com.android.launcher3.AbstractFloatingView", Member.Method("closeAllOpenViews"), WIDGET_STACKS),
         optional("com.android.launcher3.widget.util.WidgetSizeHandler", Member.Method("updateSizeRanges"), WIDGET_STACKS),
-        contract(ITEM_INFO, Member.Field("minSpanX"), WIDGET_STACKS),
+        // A widget's provider holds them (MinSpans); CP3A and earlier: on every ItemInfo.
+        contract(WIDGET_PROVIDER_INFO, Member.Field("minSpanX"), listOf(Signature(ITEM_INFO, Member.Field("minSpanX"))), WIDGET_STACKS),
         // Dropping a widget on another: optional, the menu row stacks without them
         optional(WORKSPACE, Member.Method("onDragOver"), WIDGET_STACKS),
         optional(WORKSPACE, Member.Method("onDragExit"), WIDGET_STACKS),
@@ -218,7 +222,7 @@ object LauncherContracts {
         optional("com.android.launcher3.widget.resize.ResizeManager", Member.Field("widgetView"), WIDGET_STACKS),
         optional("com.android.launcher3.widget.resize.ResizeManager\$ResizeConstraints", Member.Field("minHSpan"), WIDGET_STACKS),
         optional("com.android.launcher3.widget.LauncherWidgetHolder", Member.Method("startConfigActivity"), WIDGET_STACKS),
-        optional(ITEM_INFO, Member.Field("minSpanY"), WIDGET_STACKS),
+        optional(WIDGET_PROVIDER_INFO, Member.Field("minSpanY"), listOf(Signature(ITEM_INFO, Member.Field("minSpanY"))), WIDGET_STACKS),
         contract("com.android.launcher3.model.ModelWriter", Member.Method("modifyItemInDatabase"), WIDGET_STACKS),
         contract(LAUNCHER_MODEL, Member.Field("mBgDataModel"), WIDGET_STACKS),
         contract("com.android.launcher3.model.BgDataModel", Member.Field("itemsIdMap"), WIDGET_STACKS),
@@ -242,12 +246,11 @@ object LauncherContracts {
         contract("com.android.launcher3.touch.WorkspaceTouchListener", Member.Field("mLongPressState"), DOUBLE_TAP_TO_SLEEP),
 
         // Home screen search bar
-        // CP2A: the bar's own host class, told apart by type.
-        contract(
-            "com.android.launcher3.qsb.OseWidgetController",
-            method("applyTo", WIDGET_HOST, BOOLEAN),
-            listOf(Signature("com.android.launcher3.qsb.OseWidgetView")),
-            HOME_SEARCH_BAR,
+        // The bar's own host class, told apart by type; CP3A: the call that sets each bar up.
+        LauncherContract(
+            Signature("com.android.launcher3.qsb.OseWidgetView"),
+            setOf(HOME_SEARCH_BAR),
+            listOf(Signature("com.android.launcher3.qsb.OseWidgetController", method("applyTo", WIDGET_HOST, BOOLEAN))),
         ),
         contract(WIDGET_HOST, method("onInterceptTouchEvent", "android.view.MotionEvent"), HOME_SEARCH_BAR),
         contract("com.android.launcher3.statemanager.StateManager", Member.Method("goToState"), HOME_SEARCH_BAR, HIDDEN_APPS),
@@ -445,8 +448,17 @@ object LauncherContracts {
         contract(WORKSPACE_PROFILE, Member.Field("cellLayoutBorderSpacePx"), GRID),
         contract(WORKSPACE_PROFILE, Member.Field("iconTextSizePx"), GRID),
         contract(APP_STATE, Member.Field("model"), GRID),
-        contract(ITEM_INFO, Member.Field("minSpanX"), GRID),
-        contract(ITEM_INFO, Member.Field("minSpanY"), GRID),
+        // A migration entry's resizeParams, and the provider for a model widget (MinSpans);
+        // CP3A and earlier: on every ItemInfo.
+        contract("com.android.launcher3.model.DbEntry", Member.Field("resizeParams"), listOf(Signature(ITEM_INFO, Member.Field("minSpanX"))), GRID),
+        contract(RESIZE_PARAMS, Member.Field("minSpanX"), listOf(Signature(ITEM_INFO, Member.Field("minSpanX"))), GRID),
+        contract(RESIZE_PARAMS, Member.Field("minSpanY"), listOf(Signature(ITEM_INFO, Member.Field("minSpanY"))), GRID),
+        contract(
+            WIDGET_PROVIDER_INFO,
+            method("fromProviderInfo", CONTEXT, "android.appwidget.AppWidgetProviderInfo"),
+            listOf(Signature(ITEM_INFO, Member.Field("minSpanX"))),
+            GRID,
+        ),
         contract("com.android.launcher3.model.GridSizeMigrationLogic", Member.Method("solveGridPlacement"), GRID),
         contract("com.android.launcher3.model.GridSizeMigrationLogic", Member.Field("extraItemsProvider"), GRID),
         contract("com.android.launcher3.model.GridSizeMigrationLogic", Member.Method("getItemsToBeAdded"), GRID),

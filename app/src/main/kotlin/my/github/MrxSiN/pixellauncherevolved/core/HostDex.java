@@ -387,6 +387,10 @@ final class HostDex {
             HashSet<String> done = new HashSet<>();
             HashSet<String> written = new HashSet<>();
             HashMap<String, String> renamed = renamedMembers();
+            Db previous;
+            synchronized (LOCK) {
+                previous = db();
+            }
             for (String name : classes) {
                 // Only what already resolved: the recorder never matches, so a
                 // class another process has cannot be matched into this one.
@@ -395,13 +399,9 @@ final class HostDex {
                 for (Class<?> c = type; c != null && !platform(c.getName()); c = c.getSuperclass()) {
                     if (!done.add(c.getName())) break;
                     synchronized (LOCK) {
-                        recordClass(c, names, renamed, out, written);
+                        recordClass(c, names, renamed, previous, out, written);
                     }
                 }
-            }
-            Db previous;
-            synchronized (LOCK) {
-                previous = db();
             }
             for (Map.Entry<String, String[]> e : previous.classes.entrySet()) {
                 if (!written.contains(e.getKey())) out.append(String.join("\t", e.getValue())).append('\n');
@@ -465,6 +465,8 @@ final class HostDex {
                 for (ArrayList<String[]> list : d.members.values()) members.addAll(list);
                 classes = new ArrayList<>(d.classes.values());
             }
+            // A member this build renamed is found under its current name.
+            HashMap<String, String> renamed = renamedMembers();
             for (String[] fp : members) {
                 synchronized (LOCK) {
                     depth++;
@@ -476,7 +478,7 @@ final class HostDex {
                         String got = fp[0].equals("M")
                                 ? matchMethod(c, stable, "\0", drift(fp, drift, 6, 7, 8, 9), list(fp[3]), null)
                                 : matchField(c, stable, "\0", drift(fp, drift, 5, 6));
-                        if (fp[2].equals(got)) ok++;
+                        if (got != null && fp[2].equals(original(renamed, c, got))) ok++;
                         else if (got == null) none++;
                         else {
                             wrong++;
@@ -513,7 +515,7 @@ final class HostDex {
         }
     }
 
-    private static void recordClass(Class<?> c, HashSet<String> names, HashMap<String, String> renamed,
+    private static void recordClass(Class<?> c, HashSet<String> names, HashMap<String, String> renamed, Db previous,
                                     StringBuilder out, HashSet<String> written) {
         ClassData data = bridge().getClassData(c.getName());
         if (data == null) return;
@@ -522,8 +524,13 @@ final class HostDex {
         List<FieldData> fields = data.getFields();
         ArrayList<String> members = new ArrayList<>();
         ArrayList<String> interfaces = new ArrayList<>();
-        for (MethodData m : methods) if (m.isMethod()) members.add(m.getName());
-        for (FieldData f : fields) members.add(f.getName());
+        for (MethodData m : methods) if (m.isMethod()) members.add(original(renamed, c, m.getName()));
+        for (FieldData f : fields) members.add(original(renamed, c, f.getName()));
+        // The matcher skips these names as never renamed. A member fingerprint kept from an
+        // earlier build may have been renamed into one of this build's new names, so only
+        // the names both builds have count (CP4A: mActivityContext became activityContext).
+        String[] before = previous.classes.get(owner);
+        if (before != null) members.retainAll(set(before[8]));
         for (ClassData i : data.getInterfaces()) interfaces.add(Host.original(i.getName()));
         ClassData superType = data.getSuperClass();
         String source = data.getSourceFile();
@@ -594,7 +601,9 @@ final class HostDex {
         if (db != null) return db;
         Db loaded = new Db();
         File file = new File(Host.dir, "host.db");
-        if (file.isFile()) {
+        // A file of an earlier format may list member names the matcher must not trust.
+        String head = header(file);
+        if (head != null && head.endsWith("|" + Host.FORMAT)) {
             try (Reader in = new FileReader(file, StandardCharsets.UTF_8)) {
                 parse(in, loaded);
             }

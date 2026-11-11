@@ -30,7 +30,8 @@ import java.util.HashMap;
  */
 public final class Host {
 
-    static final int FORMAT = 2;
+    /** 3: class member names in {@code host.db} are the names the old and new builds share. */
+    static final int FORMAT = 3;
 
     static boolean on;
     /** A lookup reached {@link HostDex} this process. */

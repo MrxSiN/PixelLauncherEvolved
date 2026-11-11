@@ -56,6 +56,42 @@ object Reflect {
         Host.field(type, name)?.takeIf { it.declaringClass == type } ?: throw missing
     }.apply { isAccessible = true }
 
+    /**
+     * A field of [owner] of exactly [type]: under [name], or else under the
+     * first of [earlier] that is there. A field of another type under one of
+     * those names is not the one meant, and is passed over. Only [name], the
+     * latest build's, is matched by [Host]; [earlier] names are taken as written.
+     */
+    fun field(owner: Class<*>, type: Class<*>, name: String, vararg earlier: String): Field? {
+        field(owner, name)?.takeIf { it.type == type }?.let { return it }
+        for (each in earlier) exactField(owner, each)?.takeIf { it.type == type }?.let { return it }
+        return null
+    }
+
+    /** The class [name] exactly as written, never matched by [Host]. */
+    fun exactClass(loader: ClassLoader, name: String): Class<*>? =
+        runCatching { Class.forName(name, false, loader) }.getOrNull()
+
+    /** A field [owner] or a superclass declares under [name] exactly, accessible; never matched by [Host]. */
+    fun exactField(owner: Class<*>, name: String): Field? {
+        var current: Class<*>? = owner
+        while (current != null) {
+            runCatching { return current.getDeclaredField(name).apply { isAccessible = true } }
+            current = current.superclass
+        }
+        return null
+    }
+
+    /** A method of no arguments [owner] or a superclass declares under [name] exactly; never matched by [Host]. */
+    fun exactMethod(owner: Class<*>, name: String): Method? {
+        var current: Class<*>? = owner
+        while (current != null) {
+            runCatching { return current.getDeclaredMethod(name).apply { isAccessible = true } }
+            current = current.superclass
+        }
+        return null
+    }
+
     /** The first method [type] declares under [name], or the name [Host] matched it to, that passes [test]. */
     inline fun declared(type: Class<*>, name: String, test: (Method) -> Boolean): Method? {
         val current = Host.name(type, name)

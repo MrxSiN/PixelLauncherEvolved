@@ -11,6 +11,7 @@ S	com.android.launcher3.AbstractFloatingView
 S	com.android.launcher3.BaseActivity
 S	com.android.launcher3.BubbleTextView
 S	com.android.launcher3.CellLayout
+S	com.android.launcher3.CheckLongPressHelper
 S	com.android.launcher3.DeviceProfile
 S	com.android.launcher3.DeviceProfile$Builder
 S	com.android.launcher3.DropTarget$DragObject
@@ -63,6 +64,7 @@ S	com.android.launcher3.dragndrop.DragLayer
 S	com.android.launcher3.dragndrop.DragOptions
 S	com.android.launcher3.dragndrop.DragView
 S	com.android.launcher3.dragndrop.ItemDeleteHandler
+S	com.android.launcher3.dragndrop.ResizeParams
 S	com.android.launcher3.folder.FolderIcon
 S	com.android.launcher3.graphics.LauncherCustomizationProvider
 S	com.android.launcher3.icons.BaseIconFactory
@@ -391,6 +393,7 @@ N	folder_hint_text
 N	forceReload
 N	framework
 N	from
+N	fromProviderInfo
 N	fullTablet
 N	gadget_setup_text
 N	get
@@ -586,6 +589,7 @@ N	layout_mode_
 N	lock
 N	locked
 N	long
+N	longPressHelper
 N	mActivity
 N	mActivityContext
 N	mAdapterItems
@@ -833,6 +837,7 @@ N	requireContext
 N	resId
 N	resetLayout
 N	resizeConstraints
+N	resizeParams
 N	restart_launcher
 N	restore
 N	root

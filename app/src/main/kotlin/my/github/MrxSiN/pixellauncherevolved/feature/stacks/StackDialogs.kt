@@ -61,7 +61,7 @@ internal class StackDialogs(
                 val item = view.tag
                 if (view === main || !host.isWidget(item)) continue
                 // A stack does not go into another, and a widget joins only at a size its app allows.
-                if (WidgetStacks.graph.stackOf(host.id.getInt(item)) != null || !host.fits(item, main.tag)) continue
+                if (WidgetStacks.graph.stackOf(host.id.getInt(item)) != null || !host.fits(view, main.tag)) continue
                 candidates += view to page + 1
             }
         }

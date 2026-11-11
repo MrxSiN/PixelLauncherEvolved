@@ -11,6 +11,7 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.feature.dock.Dock
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.LiveLayout
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.MinSpans
 import my.github.MrxSiN.pixellauncherevolved.settings.SettingsSource
 
 /**
@@ -145,12 +146,14 @@ internal object Grid {
         val state = LiveLayout.singleton(classLoader, APP_STATE, context) ?: return null
         val model = field(state, "model") ?: return null
         val widgets = AppWidgetManager.getInstance(context)
+        val minSpans = MinSpans(classLoader)
         return Dock.modelItems(model).filter { int(it, "container") == Dock.CONTAINER_DESKTOP }.map { item ->
             val id = Reflect.field(item.javaClass, "appWidgetId")?.getInt(item)
             val title = field(item, "title") as? CharSequence
                 ?: id?.let { runCatching { widgets.getAppWidgetInfo(it)?.loadLabel(context.packageManager) }.getOrNull() }
                 ?: ""
-            GridSpec.Item(title, int(item, "minSpanX").coerceAtLeast(1), int(item, "minSpanY").coerceAtLeast(1))
+            val min = minSpans.of(context, item)
+            GridSpec.Item(title, MinSpans.x(min), MinSpans.y(min))
         }
     }
 

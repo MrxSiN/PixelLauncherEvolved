@@ -10,12 +10,13 @@ import java.lang.reflect.Method
 
 import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.MinSpans
 
 /**
  * The launcher members widget stacks move widgets with, resolved once at install.
  *
  * ```
- * LauncherAppWidgetHostView.mActivityContext          the Launcher
+ * LauncherAppWidgetHostView.activityContext           the Launcher (mActivityContext up to CP3A)
  * Launcher.mWorkspace, mModel, mItemInflater, getModelWriter()
  * ItemInflater.inflateItem$default(ItemInflater, ItemInfo, ViewGroup, int)   (info, null, 6) as the a11y delegate binds
  * WorkspaceLayoutManager.addInScreen(View, int container, int screenId, int x, int y, int spanX, int spanY)
@@ -39,8 +40,7 @@ internal class StackHost(
     val spanY: Field,
     val itemType: Field,
     val container: Field,
-    private val minSpanX: Field,
-    private val minSpanY: Field,
+    val minSpans: MinSpans,
     private val updateSizeRanges: Method?,
 ) {
 
@@ -144,10 +144,11 @@ internal class StackHost(
         operator fun get(owner: Any): Any? = of(owner)?.get(owner)
     }
 
-    /** Whether widget [item] can take [target]'s size: not below the smallest its app allows. */
-    fun fits(item: Any, target: Any): Boolean =
-        minSpanX.getInt(item).coerceAtLeast(1) <= spanX.getInt(target) &&
-            minSpanY.getInt(item).coerceAtLeast(1) <= spanY.getInt(target)
+    /** Whether [widget]'s item can take [target]'s size: not below the smallest its app allows. */
+    fun fits(widget: View, target: Any): Boolean {
+        val min = minSpans.of(widget.context, widget.tag, widget)
+        return MinSpans.x(min) <= spanX.getInt(target) && MinSpans.y(min) <= spanY.getInt(target)
+    }
 
     /** Tells [view]'s app its widget is now [width] x [height] cells, as a resize does. */
     fun resized(view: View, width: Int, height: Int) {
@@ -171,6 +172,7 @@ internal class StackHost(
         private const val INFLATE_DEFAULTS = 6
         private const val INFLATE = "inflateItem"
         private const val FLOATING_VIEW = "com.android.launcher3.AbstractFloatingView"
+        private const val ACTIVITY_CONTEXT = "com.android.launcher3.views.ActivityContext"
 
         fun resolve(classLoader: ClassLoader): StackHost {
             fun cls(name: String) = Class.forName(name, false, classLoader)
@@ -181,7 +183,9 @@ internal class StackHost(
             val cellLayout = cls("com.android.launcher3.CellLayout")
             val int = Int::class.javaPrimitiveType!!
             return StackHost(
-                activityContext = Reflect.declaredField(hostView, "mActivityContext"),
+                activityContext = requireNotNull(
+                    Reflect.field(hostView, cls(ACTIVITY_CONTEXT), "activityContext", "mActivityContext"),
+                ),
                 inflate = requireNotNull(Reflect.declared(inflater, "$INFLATE\$default") { it.parameterTypes.size == 4 }),
                 addInScreen = workspace.getMethod("addInScreen", View::class.java, int, int, int, int, int, int),
                 id = Reflect.declaredField(itemInfo, "id"),
@@ -192,8 +196,7 @@ internal class StackHost(
                 spanY = Reflect.declaredField(itemInfo, "spanY"),
                 itemType = Reflect.declaredField(itemInfo, "itemType"),
                 container = Reflect.declaredField(itemInfo, "container"),
-                minSpanX = Reflect.declaredField(itemInfo, "minSpanX"),
-                minSpanY = Reflect.declaredField(itemInfo, "minSpanY"),
+                minSpans = MinSpans(classLoader),
                 updateSizeRanges = runCatching {
                     Reflect.declaredMethod(
                         cls("com.android.launcher3.widget.util.WidgetSizeHandler"),

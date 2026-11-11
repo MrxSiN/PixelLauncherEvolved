@@ -64,7 +64,7 @@ internal object DeviceProfiles {
     private val BOOLEAN = Boolean::class.javaPrimitiveType!!
 
     /** The device profile builder, top-level (`CP3A`) or nested in `DeviceProfile` (earlier). */
-    fun builder(loader: ClassLoader): Class<*>? = Host.cls(loader, BUILDER) ?: exactClass(loader, NESTED_BUILDER)
+    fun builder(loader: ClassLoader): Class<*>? = Host.cls(loader, BUILDER) ?: Reflect.exactClass(loader, NESTED_BUILDER)
 
     /** The builder's `build()`: no arguments, answering a `DeviceProfile`. */
     fun build(loader: ClassLoader): Method? {
@@ -76,22 +76,11 @@ internal object DeviceProfiles {
             ?.apply { isAccessible = true }
     }
 
-    /**
-     * A field of [owner] of exactly [type]: under [name], or else under the
-     * first of [earlier] that is there. A field of another type under one of
-     * those names is not the one meant, and is passed over.
-     */
-    fun field(owner: Class<*>, type: Class<*>, name: String, vararg earlier: String): Field? {
-        Reflect.field(owner, name)?.takeIf { it.type == type }?.let { return it }
-        for (each in earlier) exactField(owner, each)?.takeIf { it.type == type }?.let { return it }
-        return null
-    }
-
-    /** One of a `DeviceProfile`'s parts, as [field] finds it, by the part's class. */
+    /** One of a `DeviceProfile`'s parts, as [Reflect.field] finds it, by the part's class. */
     fun part(loader: ClassLoader, partClass: String, name: String, vararg earlier: String): Field? {
         val profile = Host.cls(loader, PROFILE) ?: return null
         val type = Host.cls(loader, partClass) ?: return null
-        return field(profile, type, name, *earlier)
+        return Reflect.field(profile, type, name, *earlier)
     }
 
     /**
@@ -107,7 +96,7 @@ internal object DeviceProfiles {
         propertiesOf?.let { Reflect.method(it.type, VERTICAL_BAR) }
             ?.takeIf { it.returnType == BOOLEAN }
             ?.let { method -> return { method.invoke(propertiesOf.get(it)) as Boolean } }
-        exactMethod(profile, VERTICAL_BAR)
+        Reflect.exactMethod(profile, VERTICAL_BAR)
             ?.takeIf { it.returnType == BOOLEAN }
             ?.let { method -> return { method.invoke(it) as Boolean } }
         return null
@@ -154,7 +143,7 @@ internal object DeviceProfiles {
     }
 
     /** The class [onProfileSpec] hands its copies as: `CP3A`'s, else the earlier nested one. */
-    fun specClass(loader: ClassLoader): Class<*>? = Host.cls(loader, SPEC) ?: exactClass(loader, NESTED_SPEC)
+    fun specClass(loader: ClassLoader): Class<*>? = Host.cls(loader, SPEC) ?: Reflect.exactClass(loader, NESTED_SPEC)
 
     /**
      * Calls [edit] with each device profile's own copy of the grid spec as it
@@ -183,26 +172,5 @@ internal object DeviceProfiles {
         val make = spec.getDeclaredConstructor(grid, BOOLEAN, BOOLEAN).apply { isAccessible = true }
         keepCallsReal(xposed, loader, spec)
         xposed.hook(make).intercept { chain -> chain.proceed().also { chain.thisObject?.let(edit) } }
-    }
-
-    private fun exactClass(loader: ClassLoader, name: String): Class<*>? =
-        runCatching { Class.forName(name, false, loader) }.getOrNull()
-
-    private fun exactField(owner: Class<*>, name: String): Field? {
-        var current: Class<*>? = owner
-        while (current != null) {
-            runCatching { return current.getDeclaredField(name).apply { isAccessible = true } }
-            current = current.superclass
-        }
-        return null
-    }
-
-    private fun exactMethod(owner: Class<*>, name: String): Method? {
-        var current: Class<*>? = owner
-        while (current != null) {
-            runCatching { return current.getDeclaredMethod(name).apply { isAccessible = true } }
-            current = current.superclass
-        }
-        return null
     }
 }

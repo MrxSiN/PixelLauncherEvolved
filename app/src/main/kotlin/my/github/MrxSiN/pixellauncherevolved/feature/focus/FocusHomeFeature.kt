@@ -13,7 +13,6 @@ import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicLong
 
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
-import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
@@ -635,15 +634,9 @@ class FocusHomeFeature : ToggleFeature(Settings.FOCUS_HOME_SCREENS) {
         .onFailure { context.logger.warn("The workspace could not be rebuilt for the new focus", it) }
         .getOrDefault(false)
 
-    private fun Class<*>.method(name: String, vararg types: Class<*>): Method? =
-        runCatching { getMethod(name, *types) }.getOrNull()
-            ?: runCatching { getDeclaredMethod(name, *types) }.getOrNull()
-            ?: Host.method(this, name, types, false)
+    private fun Class<*>.method(name: String, vararg types: Class<*>): Method? = Reflect.method(this, name, *types)
 
-    private fun Class<*>.field(name: String): Field? =
-        runCatching { getField(name) }.getOrNull()
-            ?: runCatching { getDeclaredField(name).apply { isAccessible = true } }.getOrNull()
-            ?: Host.field(this, name)
+    private fun Class<*>.field(name: String): Field? = Reflect.field(this, name)
 
     private companion object {
         const val MODEL_CALLBACKS = "com.android.launcher3.ModelCallbacks"

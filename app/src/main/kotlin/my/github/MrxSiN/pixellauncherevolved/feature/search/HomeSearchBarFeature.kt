@@ -205,7 +205,9 @@ private class SearchBarTaps(
  */
 private class LongPress(context: FeatureContext, host: Class<*>) {
 
-    private val helperOf = Reflect.field(host, "mLongPressHelper")
+    // CP3A and earlier: mLongPressHelper.
+    private val helperOf = context.findClass(LONG_PRESS_HELPER)
+        ?.let { Reflect.field(host, it, "longPressHelper", "mLongPressHelper") }
     private val performed = helperOf?.type?.let { Reflect.field(it, "mHasPerformedLongPress") }
 
     init {
@@ -332,3 +334,5 @@ private class AppDrawerSearch private constructor(
         }
     }
 }
+
+private const val LONG_PRESS_HELPER = "com.android.launcher3.CheckLongPressHelper"

@@ -1,5 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.picker
 
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+
 import android.content.Context
 import android.content.res.Configuration
 
@@ -102,11 +104,7 @@ internal class PickerColors(
 
     private companion object {
         fun field(owner: Any, name: String): Any =
-            generateSequence(owner.javaClass as Class<*>?) { it.superclass }
-                .firstNotNullOfOrNull { type -> runCatching { type.getDeclaredField(name) }.getOrNull() }
-                ?.apply { isAccessible = true }
-                ?.get(owner)
-                ?: throw NoSuchFieldException(name)
+            Reflect.exactField(owner.javaClass, name)?.get(owner) ?: throw NoSuchFieldException(name)
 
         const val COLOR_BINDER = "com.android.wallpaper.picker.customization.ui.binder.ColorUpdateBinder"
     }

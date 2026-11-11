@@ -1,5 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.picker
 
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.drawable.Drawable
@@ -177,10 +179,7 @@ internal class PickerViews(private val colors: PickerColors) {
         }
     }
 
-    private fun field(type: Class<*>, name: String): Field? =
-        generateSequence(type as Class<*>?) { it.superclass }
-            .firstNotNullOfOrNull { runCatching { it.getDeclaredField(name) }.getOrNull() }
-            ?.apply { isAccessible = true }
+    private fun field(type: Class<*>, name: String): Field? = Reflect.exactField(type, name)
 
     private companion object {
         const val DISABLED_ALPHA = 0.38f

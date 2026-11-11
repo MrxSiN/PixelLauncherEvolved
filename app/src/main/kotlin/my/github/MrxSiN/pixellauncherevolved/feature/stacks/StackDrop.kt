@@ -111,7 +111,7 @@ internal class StackDrop(
         mapArgs[0] = null
         val under = widgetAt(cells, point[0], point[1], dragged) ?: return release(haptic = true)
         val full = WidgetStacks.graph.stackOf(host.id.getInt(under.tag))?.isFull == true
-        if (full || !host.fits(item, under.tag)) {
+        if (full || !host.fits(dragged, under.tag)) {
             release(haptic = false)
             if (refused !== under) {
                 refused = under

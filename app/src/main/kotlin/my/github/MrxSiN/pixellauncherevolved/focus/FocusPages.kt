@@ -52,9 +52,6 @@ object FocusPages {
         order = order.filterNot(screens::contains)
     }
 
-    /** The screen id shown as page [number], counting from one. */
-    fun screenAt(number: Int): Int? = order.getOrNull(number - 1)
-
     /** The page number a screen is shown at, counting from one, or null. */
     fun numberOf(screen: Int): Int? =
         order.indexOf(screen).takeIf { it >= 0 }?.let { it + 1 }

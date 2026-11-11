@@ -19,6 +19,7 @@ import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.DeviceProfiles
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.LiveLayout
+import my.github.MrxSiN.pixellauncherevolved.feature.layout.MinSpans
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
 import my.github.MrxSiN.pixellauncherevolved.layout.LayoutCheckpoints
@@ -409,8 +410,7 @@ class GridFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
         val yOf = Reflect.declaredField(item, "cellY")
         val spanXOf = Reflect.declaredField(item, "spanX")
         val spanYOf = Reflect.declaredField(item, "spanY")
-        val minXOf = Reflect.declaredField(item, "minSpanX")
-        val minYOf = Reflect.declaredField(item, "minSpanY")
+        val minSpans = MinSpans(context.classLoader)
 
         fun mark(taken: Array<BooleanArray>, entry: Any) {
             val x = xOf.getInt(entry)
@@ -434,9 +434,10 @@ class GridFeature : LauncherFeature, SharedPreferences.OnSharedPreferenceChangeL
 
                 val entries = remaining.filterNotNull()
                 val cells = entries.map {
+                    val min = minSpans.of(null, it)
                     GridSpec.Cell(
                         screenOf.getInt(it), xOf.getInt(it), yOf.getInt(it), spanXOf.getInt(it), spanYOf.getInt(it),
-                        minXOf.getInt(it).coerceAtLeast(1), minYOf.getInt(it).coerceAtLeast(1),
+                        MinSpans.x(min), MinSpans.y(min),
                     )
                 }
                 val placements = GridSpec.placeOnPage(screen, columns, rows, taken, cells)
