@@ -8,7 +8,8 @@ import my.github.MrxSiN.pixellauncherevolved.R
  * One choice a source offers about its own content, stored as `glance_option_<source id>_<name>`.
  * Absent is the default, so a source with nothing set behaves as before. A [Type.CHOICE] picks one
  * of [choices]; [Type.TEXT] is free text; [Type.CALENDAR] is the calendar filter, whose choices are
- * read from the calendar app when settings opens it.
+ * read from the calendar app when settings opens it; [Type.APPS] is a set of launchable apps, stored as
+ * comma-separated package names.
  */
 class GlanceOption(
     val name: String,
@@ -18,7 +19,7 @@ class GlanceOption(
     @param:StringRes val defaultRes: Int = 0,
     val choices: List<Choice> = emptyList(),
 ) {
-    enum class Type { CHOICE, TEXT, CALENDAR }
+    enum class Type { CHOICE, TEXT, CALENDAR, APPS }
 
     class Choice(val value: String, @param:StringRes val labelRes: Int)
 }

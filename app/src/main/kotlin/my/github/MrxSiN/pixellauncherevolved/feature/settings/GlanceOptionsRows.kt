@@ -1,12 +1,17 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.settings
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.text.InputType
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
 import kotlin.math.roundToInt
@@ -19,6 +24,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceOption
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSources
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.CalendarBridge
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.more.NotificationPick
 import my.github.MrxSiN.pixellauncherevolved.glance.CalendarList
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
 
@@ -60,6 +66,7 @@ internal object GlanceOptionsRows : SettingsRow {
             val shown = when (option.type) {
                 GlanceOption.Type.TEXT -> value
                 GlanceOption.Type.CALENDAR -> scope.string(R.string.glance_option_calendars_one)
+                GlanceOption.Type.APPS -> scope.string(R.string.glance_notification_apps_count, NotificationPick.apps(value).size)
                 GlanceOption.Type.CHOICE -> option.choices.firstOrNull { it.value == value }?.let { scope.string(it.labelRes) } ?: return@mapNotNull null
             }
             scope.string(R.string.glance_option_summary_entry, scope.string(option.titleRes), shown)
@@ -93,6 +100,7 @@ internal object GlanceOptionsRows : SettingsRow {
                 GlanceOption.Type.CHOICE -> option.choices.firstOrNull { it.value == value }?.let { scope.string(it.labelRes) } ?: scope.string(option.defaultRes)
                 GlanceOption.Type.CALENDAR -> calendarChoices(scope, option, calendars).firstOrNull { it.first == value }?.second
                     ?: if (value == null) scope.string(option.defaultRes) else scope.string(R.string.glance_option_calendars_one)
+                GlanceOption.Type.APPS -> if (value == null) scope.string(option.defaultRes) else scope.string(R.string.glance_notification_apps_count, NotificationPick.apps(value).size)
             }
         }
 
@@ -125,6 +133,9 @@ internal object GlanceOptionsRows : SettingsRow {
                 GlanceOption.Type.CALENDAR -> FocusPagesDialog.choose(
                     context, scope.resources, scope.string(option.titleRes), calendarChoices(scope, option, calendars), current(option), changed,
                 )
+                GlanceOption.Type.APPS -> FocusPagesDialog.readThen(context, { launchableApps(context) }) { apps ->
+                    pickApps(scope, context, option, apps, NotificationPick.apps(current(option))) { value -> store(option, value); values[index].text = label(option) }
+                }
             }
         }
 
@@ -142,6 +153,53 @@ internal object GlanceOptionsRows : SettingsRow {
             calendars?.ids?.indices?.map { i ->
                 calendars.ids[i].toString() to scope.string(R.string.glance_option_calendars_choice, calendars.names[i], calendars.accounts[i])
             }.orEmpty()
+
+    /** Every app with a launcher icon, by name; read off the main thread. */
+    private fun launchableApps(context: Context): List<Pair<String, CharSequence>> {
+        val manager = context.packageManager
+        val probe = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        return runCatching { manager.queryIntentActivities(probe, PackageManager.MATCH_ALL) }.getOrDefault(emptyList())
+            .map { it.activityInfo.packageName to it.activityInfo.applicationInfo.loadLabel(manager) }
+            .distinctBy { it.first }
+            .sortedBy { it.second.toString().lowercase() }
+    }
+
+    /** A checkbox row per app; Done stores the ticked ones, none ticked meaning every app. */
+    private fun pickApps(
+        scope: RowScope,
+        context: Context,
+        option: GlanceOption,
+        apps: List<Pair<String, CharSequence>>,
+        chosen: Set<String>,
+        onDone: (String?) -> Unit,
+    ) {
+        val ticked = HashSet(chosen)
+        val boxes = apps.map { (name, _) -> CheckBox(context).apply { isChecked = name in ticked; isClickable = false; isFocusable = false } }
+        val rows = apps.mapIndexed { index, (_, label) ->
+            LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                val dp = { v: Float -> (v * context.resources.displayMetrics.density).roundToInt() }
+                setPadding(dp(16f), dp(8f), dp(20f), dp(8f))
+                addView(TextView(context).apply {
+                    text = label
+                    ExpressiveType.TITLE_MEDIUM.applyTo(this, ExpressiveRole.ON_SURFACE)
+                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                addView(boxes[index])
+            }
+        }
+        val list = ExpressiveCardList.build(context, rows) { index ->
+            val name = apps[index].first
+            if (!ticked.remove(name)) ticked.add(name)
+            boxes[index].isChecked = name in ticked
+        }
+        ExpressiveDialog(context)
+            .title(scope.string(option.titleRes))
+            .content(ScrollView(context).apply { addView(list) })
+            .confirm(scope.string(R.string.glance_order_done)) { onDone(NotificationPick.encode(ticked).ifEmpty { null }) }
+            .dismiss(context.getString(android.R.string.cancel))
+            .show()
+    }
 
     private fun editText(scope: RowScope, context: Context, option: GlanceOption, current: String?, onDone: (String) -> Unit) {
         val input = EditText(context).apply {
