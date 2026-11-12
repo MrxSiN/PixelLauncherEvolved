@@ -11,6 +11,7 @@ import android.os.UserHandle
 import java.io.ByteArrayOutputStream
 import java.lang.reflect.Method
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
@@ -80,17 +81,17 @@ internal class LauncherIconRenderer private constructor(
     companion object {
 
         fun of(context: Context, classLoader: ClassLoader, logger: Logger): LauncherIconRenderer? = runCatching {
-            val icons = Class.forName(LAUNCHER_ICONS, false, classLoader)
-            val companionType = Class.forName("$LAUNCHER_ICONS\$Companion", false, classLoader)
+            val icons = Host.clsOrThrow(classLoader, LAUNCHER_ICONS)
+            val companionType = Host.clsOrThrow(classLoader, "$LAUNCHER_ICONS\$Companion")
             val companion = icons.declaredFields.firstOrNull { it.type == companionType }?.apply { isAccessible = true }?.get(null)
-            val info = Class.forName(BITMAP_INFO, false, classLoader)
-            val shape = Class.forName(ICON_SHAPE, false, classLoader)
+            val info = Host.clsOrThrow(classLoader, BITMAP_INFO)
+            val shape = Host.clsOrThrow(classLoader, ICON_SHAPE)
             LauncherIconRenderer(
                 context = context,
                 companion = companion,
                 obtain = requireNotNull(Reflect.method(companionType, "obtain", Context::class.java)),
                 create = requireNotNull(
-                    Reflect.method(Class.forName(ICON_FACTORY, false, classLoader), CREATE, icons, Drawable::class.java),
+                    Reflect.method(Host.clsOrThrow(classLoader, ICON_FACTORY), CREATE, icons, Drawable::class.java),
                 ),
                 newIcon = requireNotNull(
                     Reflect.method(info, "newIcon", Context::class.java, Int::class.javaPrimitiveType!!, shape),

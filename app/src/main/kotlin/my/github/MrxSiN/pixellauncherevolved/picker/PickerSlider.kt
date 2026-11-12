@@ -10,7 +10,9 @@ import android.widget.SeekBar
 
 import org.xmlpull.v1.XmlPullParser
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
 /**
  * A stepped slider drawn as Wallpaper & style draws its own.
@@ -75,8 +77,8 @@ internal class PickerSlider private constructor(val view: View, private val setS
             touching: (Boolean) -> Unit,
             released: (Int) -> Unit,
         ): PickerSlider {
-            val sliderClass = Class.forName(SLIDER, false, classLoader)
-            val base = Class.forName(BASE_SLIDER, false, classLoader)
+            val sliderClass = Host.clsOrThrow(classLoader, SLIDER)
+            val base = Host.clsOrThrow(classLoader, BASE_SLIDER)
             val layout = PickerPage.resource(context, "layout", ATTRIBUTES_LAYOUT)
             require(layout != 0) { "no $ATTRIBUTES_LAYOUT" }
             val parser = context.resources.getLayout(layout)
@@ -95,13 +97,13 @@ internal class PickerSlider private constructor(val view: View, private val setS
             }
             slider.id = View.NO_ID
 
-            fun field(name: String) = base.getDeclaredField(name).apply { isAccessible = true }
+            fun field(name: String) = Reflect.declaredField(base, name)
             field("valueFrom").setFloat(slider, range.first.toFloat())
             field("valueTo").setFloat(slider, range.last.toFloat())
             field("stepSize").setFloat(slider, 1f)
             field("dirtyConfig").setBoolean(slider, true)
-            val setValues = base.getMethod("setValuesInternal", ArrayList::class.java)
-            val getValues = base.getMethod("getValues")
+            val setValues = Reflect.methodOrThrow(base, "setValuesInternal", ArrayList::class.java)
+            val getValues = Reflect.methodOrThrow(base, "getValues")
             fun set(step: Int) {
                 setValues.invoke(slider, arrayListOf(step.toFloat()))
             }
@@ -111,7 +113,7 @@ internal class PickerSlider private constructor(val view: View, private val setS
             val trackInactive = field("trackColorInactive")
             val tickActive = field("tickColorActive")
             val tickInactive = field("tickColorInactive")
-            val thumbTint = base.getMethod("setThumbTintList", ColorStateList::class.java)
+            val thumbTint = Reflect.methodOrThrow(base, "setThumbTintList", ColorStateList::class.java)
             colors.paint(slider, "colorPrimary") { color ->
                 val tint = ColorStateList.valueOf(color)
                 trackActive.set(slider, tint)
@@ -148,7 +150,7 @@ internal class PickerSlider private constructor(val view: View, private val setS
 
         /** One of the picker's slider listener interfaces, handing its calls to [body]. */
         private fun listener(classLoader: ClassLoader, name: String, body: (String, Array<Any?>) -> Unit): Any =
-            pickerProxy(Class.forName(name, false, classLoader)) { method, args -> body(method, args); null }
+            pickerProxy(Host.clsOrThrow(classLoader, name)) { method, args -> body(method, args); null }
 
         private fun platform(
             context: Context,

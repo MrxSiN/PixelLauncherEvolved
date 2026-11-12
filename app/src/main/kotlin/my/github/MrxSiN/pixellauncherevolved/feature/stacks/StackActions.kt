@@ -4,6 +4,7 @@ import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.focus.ModeOverrides
@@ -69,7 +70,7 @@ internal class StackActions(
     fun pickInto(launcher: Any, target: View) {
         pendingTarget = host.id.getInt(target.tag)
         pendingUntil = SystemClock.uptimeMillis() + PICK_WINDOW_MS
-        val options = Class.forName(PICKER_OWNER, false, classLoader)
+        val options = Host.clsOrThrow(classLoader, PICKER_OWNER)
         Reflect.declaredMethod(options, "openWidgetPicker", android.content.Context::class.java)
             .apply { isAccessible = true }
             .invoke(null, launcher)

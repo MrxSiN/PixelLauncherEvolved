@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.feature.layout.MinSpans
@@ -76,7 +77,7 @@ internal class StackHost(
      */
     fun closeFloating(launcher: Any) {
         val close = closeAllOpenViews
-            ?: Reflect.declared(Class.forName(FLOATING_VIEW, false, launcher.javaClass.classLoader), "closeAllOpenViews") {
+            ?: Reflect.declared(Host.clsOrThrow(launcher.javaClass.classLoader, FLOATING_VIEW), "closeAllOpenViews") {
                 it.parameterTypes.size == 1
             }?.also { closeAllOpenViews = it }
         close?.invoke(null, launcher)
@@ -175,7 +176,7 @@ internal class StackHost(
         private const val ACTIVITY_CONTEXT = "com.android.launcher3.views.ActivityContext"
 
         fun resolve(classLoader: ClassLoader): StackHost {
-            fun cls(name: String) = Class.forName(name, false, classLoader)
+            fun cls(name: String) = Host.clsOrThrow(classLoader, name)
             val hostView = cls("com.android.launcher3.widget.LauncherAppWidgetHostView")
             val itemInfo = cls("com.android.launcher3.model.data.ItemInfo")
             val inflater = cls("com.android.launcher3.util.ItemInflater")
@@ -187,7 +188,7 @@ internal class StackHost(
                     Reflect.field(hostView, cls(ACTIVITY_CONTEXT), "activityContext", "mActivityContext"),
                 ),
                 inflate = requireNotNull(Reflect.declared(inflater, "$INFLATE\$default") { it.parameterTypes.size == 4 }),
-                addInScreen = workspace.getMethod("addInScreen", View::class.java, int, int, int, int, int, int),
+                addInScreen = Reflect.methodOrThrow(workspace, "addInScreen", View::class.java, int, int, int, int, int, int),
                 id = Reflect.declaredField(itemInfo, "id"),
                 screenId = Reflect.declaredField(itemInfo, "screenId"),
                 cellX = Reflect.declaredField(itemInfo, "cellX"),

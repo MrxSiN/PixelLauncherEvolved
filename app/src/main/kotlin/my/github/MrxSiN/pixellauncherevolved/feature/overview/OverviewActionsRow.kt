@@ -58,7 +58,7 @@ internal object OverviewActionsRow {
     /** Which recompute [row] has, as [onRecomputed] picks it; null for neither. */
     fun recompute(row: Class<*>): String? = when {
         Reflect.method(row, GROUPED_TASK, Boolean::class.javaPrimitiveType!!) != null -> GROUPED_TASK
-        runCatching { row.getDeclaredMethod(BUTTONS_VISIBILITY) }.isSuccess -> BUTTONS_VISIBILITY
+        runCatching { Reflect.declaredMethod(row, BUTTONS_VISIBILITY) }.isSuccess -> BUTTONS_VISIBILITY
         else -> null
     }
 

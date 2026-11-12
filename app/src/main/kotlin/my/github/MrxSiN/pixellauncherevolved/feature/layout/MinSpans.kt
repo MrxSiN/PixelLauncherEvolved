@@ -9,6 +9,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
 /**
@@ -83,7 +84,7 @@ class MinSpans(private val classLoader: ClassLoader) {
     private var provider: ProviderSpans? = null
 
     private fun providerSpans(): ProviderSpans? = provider ?: runCatching {
-        val type = Class.forName(PROVIDER_INFO, false, classLoader)
+        val type = Host.clsOrThrow(classLoader, PROVIDER_INFO)
         val from = Reflect.method(type, FROM_PROVIDER_INFO, Context::class.java, AppWidgetProviderInfo::class.java)
         val (x, y) = pair(type) ?: return null
         from?.let { ProviderSpans(type, it, x, y) }

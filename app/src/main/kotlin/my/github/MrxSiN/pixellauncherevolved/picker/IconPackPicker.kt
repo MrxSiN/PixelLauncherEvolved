@@ -15,7 +15,9 @@ import java.util.WeakHashMap
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.bridge.IconsBridge
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
 /**
  * Wallpaper & style → Home screen → Icon pack.
@@ -44,11 +46,9 @@ internal class IconPackPicker(
     private val followed = Collections.newSetFromMap(WeakHashMap<View, Boolean>())
 
     fun install() {
-        val fragment = runCatching { Class.forName(FRAGMENT, false, classLoader) }.getOrNull()
+        val fragment = runCatching { Host.clsOrThrow(classLoader, FRAGMENT) }.getOrNull()
             ?: return logger.warn("Picker: Wallpaper & style's option lists are gone; no icon pack entry")
-        val fill = fragment.declaredMethods.firstOrNull {
-            it.name == "initCustomizationOptionEntries" || it.name == "access\$initCustomizationOptionEntries"
-        } ?: return logger.warn("Picker: Wallpaper & style no longer fills its option lists here; no icon pack entry")
+        val fill = (Reflect.declared(fragment, FILL) { true } ?: Reflect.declared(fragment, "access\$$FILL") { true }) ?: return logger.warn("Picker: Wallpaper & style no longer fills its option lists here; no icon pack entry")
 
         xposed.hook(fill).intercept { chain ->
             val result = chain.proceed()
@@ -64,7 +64,7 @@ internal class IconPackPicker(
             result
         }
 
-        fragment.declaredMethods.firstOrNull { it.name == UPDATE_HEADER }?.let { update ->
+        Reflect.declared(fragment, UPDATE_HEADER) { true }?.let { update ->
             xposed.hook(update).intercept { chain ->
                 val args = chain.args.toTypedArray()
                 val page = args.getOrNull(PAGE) as? View
@@ -170,6 +170,7 @@ internal class IconPackPicker(
     private companion object {
         const val FRAGMENT = "com.android.wallpaper.picker.customization.ui.CustomizationPickerFragment"
         const val UPDATE_HEADER = "updateHeaderHeightConstraints"
+        const val FILL = "initCustomizationOptionEntries"
         const val HOME_SCREEN = "HOME_SCREEN"
         const val LIST = "home_customization_option_container"
         const val ICON_ENTRY = "customization_option_entry_app_icons"

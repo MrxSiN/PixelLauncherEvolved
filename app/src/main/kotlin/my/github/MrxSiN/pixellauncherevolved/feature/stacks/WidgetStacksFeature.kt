@@ -165,7 +165,7 @@ class WidgetStacksFeature : ToggleFeature(Settings.WIDGET_STACKS), SharedPrefere
         val categoryOf = Reflect.declaredField(popupItem, "category")
         // A widget with nothing to set up hands the menu no rows to borrow a category from.
         val fixed = requireNotNull(context.findClass("com.android.launcher3.popup.PopupCategory"))
-            .getField("SYSTEM_SHORTCUT_FIXED").get(null)
+            .let { Reflect.declaredField(it, "SYSTEM_SHORTCUT_FIXED") }.get(null)
         val originalView = Reflect.declaredField(container, "originalView")
 
         val launcher = context.appContext

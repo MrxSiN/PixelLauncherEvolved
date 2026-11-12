@@ -273,7 +273,7 @@ internal class StackDrop(
                 dragLayerOf = requireNotNull(Reflect.method(launcher, "getDragLayer")),
                 stateManagerOf = Reflect.declaredField(launcher, "mStateManager"),
                 goToState = method(stateManager, "goToState", baseState),
-                normal = launcherState.getField("NORMAL").get(null)!!,
+                normal = Reflect.declaredField(launcherState, "NORMAL").get(null)!!,
             )
 
             context.xposed.hook(method(workspace, "onDragOver", dragObject)).intercept { chain ->

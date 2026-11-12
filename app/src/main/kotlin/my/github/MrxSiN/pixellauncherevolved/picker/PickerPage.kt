@@ -23,6 +23,8 @@ import android.window.BackEvent
 import android.window.OnBackAnimationCallback
 import android.window.OnBackInvokedDispatcher
 
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
+
 /**
  * A page of this module's, opened from Wallpaper & style's Home screen list the
  * way the picker opens its own: over the whole screen, under the picker's own
@@ -195,10 +197,10 @@ internal class PickerPage(
 
     /** Gives the picker's `MaterialButton` [icon]: its setters are shrunk away, so the field is set and the button redrawn. */
     private fun setIcon(button: View, icon: Drawable?) {
-        val type = generateSequence(button.javaClass as Class<*>?) { it.superclass }
-            .firstOrNull { type -> type.declaredFields.any { it.name == "icon" } } ?: return
-        type.getDeclaredField("icon").apply { isAccessible = true }.set(button, icon?.mutate())
-        type.getDeclaredMethod("updateIcon", Boolean::class.javaPrimitiveType).apply { isAccessible = true }.invoke(button, true)
+        val field = Reflect.field(button.javaClass, "icon") ?: return
+        field.set(button, icon?.mutate())
+        Reflect.declaredMethod(field.declaringClass, "updateIcon", Boolean::class.javaPrimitiveType!!)
+            .apply { isAccessible = true }.invoke(button, true)
     }
 
     companion object {

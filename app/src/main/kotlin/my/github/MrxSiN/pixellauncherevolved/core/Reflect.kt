@@ -30,6 +30,14 @@ object Reflect {
         return Host.method(type, name, parameterTypes, false)
     }
 
+    /** [method] that throws, for callers written around [Class.getMethod]. */
+    fun methodOrThrow(type: Class<*>, name: String, vararg parameterTypes: Class<*>): Method =
+        method(type, name, *parameterTypes) ?: throw NoSuchMethodException("${type.name}.$name")
+
+    /** [declared] that throws, for callers written around a scan of `declaredMethods`. */
+    inline fun declaredOrThrow(type: Class<*>, name: String, test: (Method) -> Boolean): Method =
+        declared(type, name, test) ?: throw NoSuchMethodException("${type.name}.$name")
+
     fun field(type: Class<*>, name: String): Field? {
         var current: Class<*>? = type
         while (current != null) {

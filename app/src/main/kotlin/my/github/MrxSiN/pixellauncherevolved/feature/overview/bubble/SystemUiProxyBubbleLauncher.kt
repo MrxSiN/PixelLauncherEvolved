@@ -98,7 +98,7 @@ class SystemUiProxyBubbleLauncher(
         /** Falls back to the first constant when the expected name is gone. */
         fun readEntryPoint(entryPointClass: Class<*>): Any =
             runCatching {
-                entryPointClass.getDeclaredField(ENTRY_POINT_NAME).apply { isAccessible = true }.get(null)!!
+                Reflect.declaredField(entryPointClass, ENTRY_POINT_NAME).get(null)!!
             }.getOrElse {
                 entryPointClass.enumConstants?.firstOrNull() ?: throw it
             }

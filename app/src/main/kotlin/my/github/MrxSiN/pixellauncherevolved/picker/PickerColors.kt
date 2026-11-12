@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.picker
 
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
 import android.content.Context
@@ -37,12 +38,12 @@ internal class PickerColors(
         context,
         classLoader,
         kotlin.runCatching { field(fragment, "colorUpdateViewModel") }.getOrNull(),
-        kotlin.runCatching { fragment.javaClass.getMethod("getViewLifecycleOwner").invoke(fragment) }.getOrNull() ?: fragment,
+        kotlin.runCatching { Reflect.methodOrThrow(fragment.javaClass, "getViewLifecycleOwner").invoke(fragment) }.getOrNull() ?: fragment,
         logger,
     )
 
     private val binder: Method? = runCatching {
-        Class.forName(COLOR_BINDER, false, classLoader).declaredMethods.first { it.name == "bind" && it.parameterCount == 4 }
+        Reflect.declaredOrThrow(Host.clsOrThrow(classLoader, COLOR_BINDER), "bind") { it.parameterCount == 4 }
     }.getOrNull()
 
     private class Tone(var color: Int? = null) {

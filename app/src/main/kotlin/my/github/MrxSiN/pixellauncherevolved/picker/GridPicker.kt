@@ -30,7 +30,9 @@ import java.util.WeakHashMap
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.bridge.GridBridge
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
+import my.github.MrxSiN.pixellauncherevolved.core.Host
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
+import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.feature.grid.GridSpec
 
 /**
@@ -70,9 +72,9 @@ internal class GridPicker(
 
     /** Keeps the Custom tile last; the picker orders Google's by cell count, largest first. */
     private fun installOrder() {
-        val comparator = Class.forName(ORDER, false, classLoader)
-        val compare = comparator.declaredMethods.first { it.name == "compare" && it.parameterCount == 2 }
-        val keyOf = Class.forName(GRID_OPTION, false, classLoader).getDeclaredField("key").apply { isAccessible = true }
+        val comparator = Host.clsOrThrow(classLoader, ORDER)
+        val compare = Reflect.declaredOrThrow(comparator, "compare") { it.parameterCount == 2 }
+        val keyOf = Reflect.declaredField(Host.clsOrThrow(classLoader, GRID_OPTION), "key")
         xposed.hook(compare).intercept { chain ->
             val first = chain.args[0]?.let { keyOf.get(it) }
             val second = chain.args[1]?.let { keyOf.get(it) }
@@ -85,8 +87,8 @@ internal class GridPicker(
     }
 
     private fun installSheets() {
-        val binder = Class.forName(SHEETS_BINDER, false, classLoader)
-        val bind = binder.declaredMethods.first { it.name == "bind" && it.parameterTypes.any { type -> type == View::class.java } }
+        val binder = Host.clsOrThrow(classLoader, SHEETS_BINDER)
+        val bind = Reflect.declaredOrThrow(binder, "bind") { it.parameterTypes.any { type -> type == View::class.java } }
         xposed.hook(bind).intercept { chain ->
             chain.proceed().also {
                 runCatching {
@@ -110,8 +112,8 @@ internal class GridPicker(
     }
 
     private fun installTabs() {
-        val adapter = Class.forName(TAB_ADAPTER, false, classLoader)
-        val submit = adapter.getDeclaredMethod("submitList", List::class.java)
+        val adapter = Host.clsOrThrow(classLoader, TAB_ADAPTER)
+        val submit = Reflect.declaredMethod(adapter, "submitList", List::class.java)
         xposed.hook(submit).intercept { chain ->
             val tab = synchronized(sizeTabs) { sizeTabs.entries.firstOrNull { adapterOf(it.key) === chain.thisObject }?.value }
             val list = chain.args[0] as? List<*>
@@ -125,8 +127,8 @@ internal class GridPicker(
 
         // static bindViewHolder(holder, icon, text, isSelected, onClick): the tab list is the holder's owner,
         // which RecyclerView sets before it binds (the view itself is not attached yet).
-        val bindHolder = adapter.declaredMethods.first { it.name == "bindViewHolder" && it.parameterCount == 5 }
-        val ownerOf = Class.forName(VIEW_HOLDER, false, classLoader).getDeclaredField("mOwnerRecyclerView").apply { isAccessible = true }
+        val bindHolder = Reflect.declaredOrThrow(adapter, "bindViewHolder") { it.parameterCount == 5 }
+        val ownerOf = Reflect.declaredField(Host.clsOrThrow(classLoader, VIEW_HOLDER), "mOwnerRecyclerView")
         xposed.hook(bindHolder).intercept { chain ->
             val list = chain.args[0]?.let { ownerOf.get(it) } as? View
             val tab = list?.let { synchronized(sizeTabs) { sizeTabs[it] } }
@@ -374,7 +376,7 @@ internal class GridPicker(
         private var selected = false
         private val hidden = HashMap<View, Int>()
         private val pane = sizePane()
-        private val tabModel = Class.forName(TAB_MODEL, false, classLoader)
+        private val tabModel = Host.clsOrThrow(classLoader, TAB_MODEL)
         private val iconOf: Field = tabModel.field("icon")
         private val textOf: Field = tabModel.field("text")
         private val selectedOf: Field = tabModel.field("isSelected")
@@ -391,9 +393,9 @@ internal class GridPicker(
         }
 
         private fun ownTab(): Any {
-            val icon = Class.forName(LOADED_ICON, false, classLoader)
+            val icon = Host.clsOrThrow(classLoader, LOADED_ICON)
             val label = text.getString(R.string.feature_grid_size_tab)
-            val description = Class.forName(LOADED_TEXT, false, classLoader).getConstructor(String::class.java).newInstance(label)
+            val description = Host.clsOrThrow(classLoader, LOADED_TEXT).getConstructor(String::class.java).newInstance(label)
             val glyph = text.getDrawable(R.drawable.ic_grid_icon_size, null)
             val model = icon.declaredConstructors.first { it.parameterCount == 2 }.newInstance(glyph, description)
             return tabModel.declaredConstructors.first { it.parameterCount == 4 }
@@ -421,7 +423,7 @@ internal class GridPicker(
             val tab = original.firstOrNull { it != null && textOf.get(it) == label }
             if (selected) leave(toOwnPane = tab == null || selectedOf.getBoolean(tab))
             // The picker's selected tab has no action of its own.
-            tab?.let { clickOf.get(it) }?.let { it.javaClass.getMethod("invoke").invoke(it) }
+            tab?.let { clickOf.get(it) }?.let { Reflect.methodOrThrow(it.javaClass, "invoke").invoke(it) }
         }
 
         private var savedHeight = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -512,7 +514,7 @@ internal class GridPicker(
             val adapter = adapterOf(tabList) ?: return
             resubmitting = true
             try {
-                adapter.javaClass.getMethod("submitList", List::class.java).invoke(adapter, decorate(original))
+                Reflect.methodOrThrow(adapter.javaClass, "submitList", List::class.java).invoke(adapter, decorate(original))
             } finally {
                 resubmitting = false
             }
@@ -583,7 +585,7 @@ internal class GridPicker(
         synchronized(sizeTabs) { sizeTabs[tabList] = tab }
         // The picker may have listed its tabs already; list them again with Size.
         adapterOf(tabList)?.let { adapter ->
-            val current = runCatching { adapter.javaClass.getMethod("getCurrentList").invoke(adapter) as? List<*> }.getOrNull()
+            val current = runCatching { Reflect.methodOrThrow(adapter.javaClass, "getCurrentList").invoke(adapter) as? List<*> }.getOrNull()
             if (!current.isNullOrEmpty()) {
                 tab.original = current
                 tab.resubmit()
@@ -618,10 +620,7 @@ internal class GridPicker(
 
     /** A RecyclerView's adapter; the picker's build keeps the field but not `getAdapter`. */
     private fun adapterOf(list: View): Any? = runCatching {
-        generateSequence(list.javaClass as Class<*>?) { it.superclass }
-            .firstNotNullOf { type -> runCatching { type.getDeclaredField("mAdapter") }.getOrNull() }
-            .apply { isAccessible = true }
-            .get(list)
+        Reflect.field(list.javaClass, "mAdapter")!!.get(list)
     }.getOrNull()
 
     private fun Class<*>.field(name: String): Field = getDeclaredField(name).apply { isAccessible = true }

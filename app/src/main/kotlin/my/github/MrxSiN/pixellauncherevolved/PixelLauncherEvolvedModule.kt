@@ -150,8 +150,10 @@ class PixelLauncherEvolvedModule : XposedModule() {
         val text = runCatching { application.packageManager.getResourcesForApplication(moduleApplicationInfo) }
             .onFailure { logger.warn("Picker: this module's text is unreachable; no icon pack entry", it) }
             .getOrNull() ?: return
+        Host.init(application, classLoader, moduleApplicationInfo.sourceDir, logger)
         IconPackPicker(this, classLoader, text, logger).install()
         GridPicker(this, classLoader, text, logger).install()
+        Host.settle()
     }
 
     /**
