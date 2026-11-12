@@ -36,6 +36,11 @@
 - **Options** for each source: **Hide after** 5 to 60 minutes once its content last changed
   (Smartspacer issue 394), a name for the Greeting card, and one calendar or all for the calendar
   card and extra. Options are backed up with the rest.
+- **Notification** card: the newest notification from apps you pick (or any app), while notification
+  dots are on, through Pixel Launcher's own notification listener.
+- **Widget** card: one app widget of your choice drawn inside At a Glance (Smartspacer's widget
+  target), hosted by this module with its own widget host; switching it off releases the widget.
+- The calendar sources can read several chosen calendars at once.
 
 ## 0.1.7
 

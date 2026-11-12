@@ -3346,3 +3346,13 @@ provider (`registerContentObserver` on `CalendarContract.CONTENT_URI` from the l
 module app's `glance.CalendarProvider` (launcher-only caller check, today and tomorrow, at most 512
 rows); the launcher reads again on screen on and unlock. Pixel Launcher does hold
 `PACKAGE_USAGE_STATS`, which the screen-time sources use in its own process.
+
+Notifications (CP4A): `com.android.launcher3.notification.NotificationListener` keeps no static
+instance and no change-listener list (`getInstanceIfConnected`, `addNotificationsChangeListener`
+are gone). `NotificationFeed` hooks its `onListenerConnected`, `onListenerDisconnected`,
+`onNotificationPosted(StatusBarNotification)` and `onNotificationRemoved(StatusBarNotification)`
+once from `GlanceContentFeature`; the system binds that listener only while notification dots are on.
+
+Widget card: a module `AppWidgetHost` with id `0x40000000 | (module package hash & 0xFFFFFF)` (never
+Launcher3's 1024) captures each `updateAppWidget(RemoteViews)`; the card hands it to the framework
+through `SmartspaceTarget.setRemoteViews`, which the card adapter keeps as its own page.

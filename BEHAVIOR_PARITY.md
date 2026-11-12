@@ -290,3 +290,9 @@ earlier-generation fallbacks (HOOK_NOTES, "Two launcher generations").
   it was gone. While headphones are connected: not tested on device.
 - Options: Greeting with name Tester showed "Good night, Tester" live; the calendar choice listed the
   phone's calendars (read off the main thread through the module app). Hide after: not timed on device.
+- Hide after: the Date extra, set to 5 minutes, was gone 5 min 50 s after it appeared (01:17:30 to
+  01:23:23). The clock lives in memory, so a launcher restart shows it again.
+- Widget card with the Battery widget: its own page showing "Until 6:15 AM" and 43%. The page dots
+  overlap the widget's bottom edge (size is an estimate). Switching it off released the widget id.
+- Notification card: not tested; notification dots are off on the test phone.
+- Several calendars: builds; the checkbox dialog was not opened on the device.
