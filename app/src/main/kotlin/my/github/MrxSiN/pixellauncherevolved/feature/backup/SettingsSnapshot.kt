@@ -1,5 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.backup
 
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceChoices
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlancePrefs
 import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.catalog.IntSetting
@@ -55,6 +57,8 @@ data class SettingsSnapshot(
     val appLabels: List<PortableAppLabel> = emptyList(),
     /** How a widget stack's dots show; the stacks themselves name this phone's widgets and stay on it. */
     val stackIndicator: Int = Settings.WIDGET_STACKS_INDICATOR.default,
+    /** At a Glance content: sources on, when each shows, their order, by source id. */
+    val glance: GlanceChoices = GlanceChoices(),
 ) {
     companion object {
         /** What a fresh install has. */
@@ -83,6 +87,7 @@ class TweakStores(
     private val icons: IconSourceSettings,
     private val iconOverrides: IconOverrideStore,
     private val appLabels: AppLabelStore? = null,
+    private val glance: GlancePrefs? = null,
     /** This device's profile kind for a user id, and its user id for a kind; null where it has none. */
     private val kindOf: (Int) -> ProfileKind? = { if (it == 0) ProfileKind.PERSONAL else null },
     private val idOf: (ProfileKind) -> Int? = { if (it == ProfileKind.PERSONAL) 0 else null },
@@ -103,6 +108,7 @@ class TweakStores(
         appLabels = appLabels?.labels().orEmpty().mapNotNull { label ->
             kindOf(label.userId)?.let { PortableAppLabel(it.portable, label) }
         },
+        glance = glance?.choices() ?: GlanceChoices(),
     )
 
     /** Replaces every tweak with [snapshot]'s. */
@@ -124,6 +130,7 @@ class TweakStores(
                 ProfileKind.of(portable.profile)?.let(idOf)?.let { portable.label.copy(userId = it) }
             },
         )
+        glance?.replace(snapshot.glance)
         // The generation is not part of a snapshot: it is how the launcher's own
         // stored icons are keyed, and it only ever goes up.
         icons.bump()

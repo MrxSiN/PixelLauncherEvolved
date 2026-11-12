@@ -10,6 +10,7 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.BoolSetting
 import my.github.MrxSiN.pixellauncherevolved.catalog.LayoutMode
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.icons.IconOverride
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceChoices
 import my.github.MrxSiN.pixellauncherevolved.labels.AppLabel
 import my.github.MrxSiN.pixellauncherevolved.labels.AppLabelFormat
 
@@ -86,6 +87,10 @@ object SettingsBackupFormat {
     private const val KEY_ICON_OVERRIDES = "iconOverrides"
     private const val KEY_GRID = "grid"
     private const val KEY_APP_LABELS = "appLabels"
+    private const val KEY_GLANCE = "glance"
+    private const val KEY_GLANCE_ON = "on"
+    private const val KEY_GLANCE_WHEN = "when"
+    private const val KEY_GLANCE_ORDER = "order"
     private const val KEY_LABEL_PROFILE = "profile"
     private const val KEY_LABEL_NAME = "name"
     private const val KEY_LABEL_HIDE_HOME = "hideHome"
@@ -121,7 +126,24 @@ object SettingsBackupFormat {
         put(KEY_ICON_OVERRIDES, writeOverrides(snapshot.iconOverrides))
         put(KEY_GRID, JSONObject().apply { for ((name, setting) in GRID) put(name, snapshot.grid[setting] ?: setting.default) })
         put(KEY_APP_LABELS, writeLabels(snapshot.appLabels))
+        put(KEY_GLANCE, JSONObject().apply {
+            put(KEY_GLANCE_ON, JSONArray(snapshot.glance.on.sorted()))
+            put(KEY_GLANCE_WHEN, JSONObject(snapshot.glance.whens.toSortedMap() as Map<*, *>))
+            put(KEY_GLANCE_ORDER, JSONArray(snapshot.glance.order))
+        })
     }.toString(INDENT)
+
+    /** At a Glance content by source id; a missing or malformed part reads as its default. */
+    private fun readGlance(json: JSONObject?): GlanceChoices {
+        json ?: return GlanceChoices()
+        fun strings(array: JSONArray?) = array?.let { (0 until it.length()).mapNotNull { i -> it.optString(i).takeIf(String::isNotBlank) } }.orEmpty()
+        val whens = json.optJSONObject(KEY_GLANCE_WHEN)
+        return GlanceChoices(
+            on = strings(json.optJSONArray(KEY_GLANCE_ON)).toSet(),
+            whens = whens?.keys()?.asSequence()?.mapNotNull { id -> whens.optString(id).takeIf(String::isNotBlank)?.let { id to it } }?.toMap().orEmpty(),
+            order = strings(json.optJSONArray(KEY_GLANCE_ORDER)),
+        )
+    }
 
     /** Labels by component and kind of profile; the user number stays on the device that wrote it. */
     private fun writeLabels(labels: List<PortableAppLabel>): JSONArray = JSONArray().apply {
@@ -248,6 +270,7 @@ object SettingsBackupFormat {
                 GRID.entries.associate { (name, setting) -> setting to (grid?.optInt(name, setting.default) ?: setting.default).coerceIn(setting.range) }
             },
             appLabels = readLabels(json.optJSONArray(KEY_APP_LABELS)),
+            glance = readGlance(json.optJSONObject(KEY_GLANCE)),
         )
     }
 

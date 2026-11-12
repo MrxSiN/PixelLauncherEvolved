@@ -1,12 +1,17 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.settings
 
 import android.content.pm.PackageManager
+import android.view.Gravity
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.TextView
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagesDialog
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlancePrefs
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSources
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceWhen
@@ -84,6 +89,77 @@ internal class GlanceSourceRows(private val kind: GlanceSource.Kind) : SettingsR
             if (!allowed) scope.api.setEnabled(row, false)
             scope.requires(CompatibilityFeature.AT_A_GLANCE, row)
         }
+    }
+}
+
+/**
+ * "Change order" for the At a Glance sources of [kind]: a dialog listing them with up and down
+ * buttons; Done stores the new order (`glance_order`), which the content feature follows live.
+ */
+internal class GlanceOrderRow(private val kind: GlanceSource.Kind) : SettingsRow {
+
+    override fun addTo(group: Any, scope: RowScope) {
+        val row = scope.link(
+            key = SettingsKeys.row("glance_order_" + kind.name.lowercase()),
+            title = R.string.glance_order_title,
+            summary = scope.string(R.string.glance_order_summary),
+        ) { show(scope) }
+        scope.api.add(group, row)
+        scope.requires(CompatibilityFeature.AT_A_GLANCE, row)
+    }
+
+    private fun show(scope: RowScope) {
+        val context = scope.context
+        val prefs = GlancePrefs(LauncherSettings.preferences(context))
+        val all = GlancePrefs.ordered(GlanceSources.all, prefs.order()) { it.id }
+        val mine = all.filter { it.kind == kind }.toMutableList()
+        val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        val density = context.resources.displayMetrics.density
+
+        fun button(drawable: Int, label: Int, onClick: () -> Unit) = ImageButton(context).apply {
+            setImageDrawable(scope.resources.getDrawable(drawable, context.theme))
+            contentDescription = scope.string(label)
+            background = null
+            minimumWidth = (48 * density).toInt()
+            minimumHeight = (48 * density).toInt()
+            setOnClickListener { onClick() }
+        }
+
+        fun render() {
+            list.removeAllViews()
+            mine.forEachIndexed { index, source ->
+                list.addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    addView(TextView(context).apply {
+                        text = scope.string(source.titleRes)
+                        setTextAppearance(android.R.style.TextAppearance_Material_Body1)
+                    }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                    addView(button(R.drawable.ic_stack_up, R.string.glance_order_up) {
+                        if (index > 0) { mine.add(index - 1, mine.removeAt(index)); render() }
+                    }.apply { isEnabled = index > 0; alpha = if (isEnabled) 1f else DISABLED })
+                    addView(button(R.drawable.ic_stack_down, R.string.glance_order_down) {
+                        if (index < mine.lastIndex) { mine.add(index + 1, mine.removeAt(index)); render() }
+                    }.apply { isEnabled = index < mine.lastIndex; alpha = if (isEnabled) 1f else DISABLED })
+                })
+            }
+        }
+        render()
+
+        ExpressiveDialog(context)
+            .title(scope.string(R.string.glance_order_title))
+            .content(list)
+            .confirm(scope.string(R.string.glance_order_done)) {
+                // The other kind keeps its own order; only this kind's places change.
+                val others = all.filter { it.kind != kind }
+                prefs.setOrder((mine + others).map { it.id })
+            }
+            .dismiss(context.getString(android.R.string.cancel))
+            .show()
+    }
+
+    private companion object {
+        const val DISABLED = 0.38f
     }
 }
 

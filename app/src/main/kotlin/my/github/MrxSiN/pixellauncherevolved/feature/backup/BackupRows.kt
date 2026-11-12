@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.backup
 
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlancePrefs
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -40,6 +41,7 @@ internal object BackupRows : SettingsRow {
             icons = IconSourceSettings(LauncherSettings.preferences(scope.context)),
             iconOverrides = IconOverrideStore(LauncherSettings.preferences(scope.context)),
             appLabels = AppLabelStore(LauncherSettings.preferences(scope.context)),
+            glance = GlancePrefs(LauncherSettings.preferences(scope.context)),
             kindOf = profiles::kindOf,
             idOf = profiles::idOf,
         )

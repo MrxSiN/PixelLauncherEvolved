@@ -100,7 +100,9 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
     }
 
     override fun onSharedPreferenceChanged(preferences: SharedPreferences, key: String?) {
-        if (key != null && (key.startsWith(GlanceSources.KEY_PREFIX) || key.startsWith(GlanceWhen.KEY_PREFIX))) main.post { sync() }
+        if (key != null && (key.startsWith(GlanceSources.KEY_PREFIX) || key.startsWith(GlanceWhen.KEY_PREFIX) || key == GlancePrefs.ORDER)) {
+            main.post { sync() }
+        }
     }
 
     /** Starts the sources switched on and stops the ones switched off, then refreshes. */
@@ -118,7 +120,7 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
                 runCatching { source.stop() }.onFailure { host.logger.warn("At a Glance source ${source.id} could not stop", it) }
             }
         }
-        active = running.values.toList()
+        active = GlancePrefs.ordered(running.values.toList(), GlancePrefs(preferences).order()) { it.id }
         whenOf = running.values.mapNotNull { source -> preferences.getString(GlanceWhen.key(source), null)?.let { source.id to it } }.toMap()
         conditions.update(whenOf.values)
         refresh()
