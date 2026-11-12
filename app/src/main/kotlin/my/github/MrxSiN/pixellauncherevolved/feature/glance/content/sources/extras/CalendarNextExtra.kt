@@ -16,6 +16,7 @@ import java.util.Date
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceItem
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceOptions
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.CalendarBridge
 
@@ -33,6 +34,11 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.Cale
  */
 class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.glance_extra_calendar_title, R.string.glance_extra_calendar_description) {
 
+    override val options = listOf(GlanceOptions.calendars)
+
+    /** The stored calendar ids ([GlanceOptions.CALENDARS]); null reads every calendar. */
+    @Volatile private var calendars: String? = null
+
     @Volatile private var begin = 0L
     @Volatile private var text = ""
 
@@ -47,7 +53,15 @@ class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.gla
         }
     }
 
+    override fun onOptionsChanged() {
+        val chosen = option(GlanceOptions.CALENDARS)
+        if (chosen == calendars) return
+        calendars = chosen
+        worker?.let { it.removeCallbacks(query); it.post(query) }
+    }
+
     override fun start() {
+        calendars = option(GlanceOptions.CALENDARS)
         val started = HandlerThread("ple-glance-calendar").also { it.start() }
         thread = started
         worker = Handler(started.looper).also { it.post(query) }
@@ -69,7 +83,7 @@ class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.gla
         handler.removeCallbacks(query)
         val now = System.currentTimeMillis()
         var found = 0L
-        val events = CalendarBridge.read(host.context.contentResolver, host.modulePackage, host.logger)
+        val events = CalendarBridge.read(host.context.contentResolver, host.modulePackage, host.logger, calendars)
         if (events != null) {
             for (i in events.begins.indices) {
                 val start = events.begins[i]

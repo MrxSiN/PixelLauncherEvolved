@@ -16,6 +16,7 @@ import java.util.TimeZone
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceItem
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceOptions
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.CalendarBridge
 
@@ -23,7 +24,8 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.Cale
  * The current or next calendar event. Rewritten from Smartspacer's `CalendarTarget` with its default
  * settings: every visible calendar, events starting within 15 minutes or already started and not yet
  * over, no all-day or cancelled events. Title (with "in 12m" for the last hour), the time range as
- * subtitle, and a tap that opens the event. Without its per-calendar choices, dismissing, location
+ * subtitle, and a tap that opens the event. The calendars option narrows it to one calendar (Smartspacer
+ * allows several). Without dismissing, location
  * line and several events at once: the earliest event that qualifies is shown.
  *
  * The launcher's process holds no Calendar permission, so the events come from this module's app
@@ -48,6 +50,11 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
         val ends: LongArray,
     )
 
+    override val options = listOf(GlanceOptions.calendars)
+
+    /** The stored calendar ids ([GlanceOptions.CALENDARS]); null reads every calendar. */
+    @Volatile private var calendars: String? = null
+
     @Volatile private var events: Events? = null
     private var thread: HandlerThread? = null
     @Volatile private var worker: Handler? = null
@@ -67,8 +74,16 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
         }
     }
 
+    override fun onOptionsChanged() {
+        val chosen = option(GlanceOptions.CALENDARS)
+        if (chosen == calendars) return
+        calendars = chosen
+        reload()
+    }
+
     override fun start() {
         val context = host.context
+        calendars = option(GlanceOptions.CALENDARS)
         val looper = HandlerThread("ple-glance-calendar").also { it.start() }
         thread = looper
         worker = Handler(looper.looper)
@@ -104,7 +119,7 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
         val now = System.currentTimeMillis()
         val zone = TimeZone.getDefault()
         val begin = GlanceCardTimes.startOfDay(now, zone)
-        val read = CalendarBridge.read(host.context.contentResolver, host.modulePackage, host.logger)
+        val read = CalendarBridge.read(host.context.contentResolver, host.modulePackage, host.logger, calendars)
         events = if (read == null) {
             Events(begin, LongArray(0), emptyArray(), LongArray(0), LongArray(0))
         } else {

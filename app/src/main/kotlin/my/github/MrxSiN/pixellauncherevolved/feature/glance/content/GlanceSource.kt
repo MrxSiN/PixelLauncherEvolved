@@ -36,6 +36,9 @@ abstract class GlanceSource(
     /** A permission the launcher's process must hold for this source to show anything, or null. */
     open val permission: String? = null
 
+    /** What this source lets the person choose about its content; Hide after applies to every source besides. */
+    open val options: List<GlanceOption> = emptyList()
+
     /** Set before [start]; valid until [stop]. */
     lateinit var host: GlanceHost
 
@@ -44,6 +47,12 @@ abstract class GlanceSource(
     abstract fun stop()
 
     abstract fun content(): GlanceItem?
+
+    /** Main thread: one of the `glance_option_` values changed. Cache what is needed in `@Volatile` fields. */
+    open fun onOptionsChanged() {}
+
+    /** This source's stored value for option [name], or null for the default. */
+    protected fun option(name: String): String? = host.option(id, name)
 }
 
 /**
@@ -81,6 +90,9 @@ interface GlanceHost {
 
     /** Tells At a Glance this source's [GlanceSource.content] may have changed. Main thread or not. */
     fun changed()
+
+    /** The stored value of [source]'s option [name] (`glance_option_<source>_<name>`), or null. */
+    fun option(source: String, name: String): String?
 
     /** One of this module's drawables as an Icon the launcher can draw. */
     fun icon(drawable: Int): Icon = Icon.createWithResource(modulePackage, drawable)

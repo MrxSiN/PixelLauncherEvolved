@@ -96,6 +96,7 @@ internal object SettingsPages {
             ),
             SettingsGroup(R.string.settings_group_glance_extras, listOf(GlanceSourceRows(GlanceSource.Kind.EXTRA), GlanceOrderRow(GlanceSource.Kind.EXTRA))),
             SettingsGroup(R.string.settings_group_glance_when, listOf(GlanceWhenRows)),
+            SettingsGroup(R.string.settings_group_glance_options, listOf(GlanceOptionsRows)),
         ),
     )
 

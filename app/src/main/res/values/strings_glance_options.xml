@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_group_glance_options">Options</string>
+    <string name="glance_option_summary_default">Default</string>
+    <string name="glance_option_summary_entry">%1$s: %2$s</string>
+    <string name="glance_option_hide_after_title">Hide after</string>
+    <string name="glance_option_hide_after_never">Never</string>
+    <string name="glance_option_hide_after_5">5 minutes</string>
+    <string name="glance_option_hide_after_15">15 minutes</string>
+    <string name="glance_option_hide_after_30">30 minutes</string>
+    <string name="glance_option_hide_after_60">60 minutes</string>
+    <string name="glance_option_greeting_name">Name</string>
+    <string name="glance_option_greeting_named">%1$s, %2$s</string>
+    <string name="glance_option_text_empty">Not set</string>
+    <string name="glance_option_calendars_title">Calendar</string>
+    <string name="glance_option_calendars_all">All calendars</string>
+    <string name="glance_option_calendars_one">One calendar</string>
+    <string name="glance_option_calendars_choice">%1$s (%2$s)</string>
+</resources>
