@@ -5,6 +5,8 @@ import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagesDialog
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSources
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagePreviewSource
 import my.github.MrxSiN.pixellauncherevolved.feature.pages.ReorganizePagesScreen
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
@@ -50,6 +52,33 @@ internal object BlurStrengthRow : SettingsRow {
 
     private fun summary(scope: RowScope, strength: Int): String =
         scope.string(R.string.feature_home_blur_strength_summary, strength)
+}
+
+/**
+ * One switch per At a Glance source of [kind] ([GlanceSources]), in the order they show.
+ *
+ * A switch writes `glance_source_<id>`; the content feature starts or stops that source as it
+ * changes, with no launcher restart.
+ */
+internal class GlanceSourceRows(private val kind: GlanceSource.Kind) : SettingsRow {
+
+    override fun addTo(group: Any, scope: RowScope) {
+        val preferences = LauncherSettings.preferences(scope.context)
+        for (source in GlanceSources.all) {
+            if (source.kind != kind) continue
+            val key = GlanceSources.key(source)
+            val row = scope.api.createSwitch(
+                context = scope.context,
+                key = SettingsKeys.row(key),
+                title = scope.string(source.titleRes),
+                summary = scope.string(source.descriptionRes),
+                checked = preferences.getBoolean(key, false),
+                onChange = { on -> preferences.edit().putBoolean(key, on).apply() },
+            )
+            scope.api.add(group, row)
+            scope.requires(CompatibilityFeature.AT_A_GLANCE, row)
+        }
+    }
 }
 
 /**

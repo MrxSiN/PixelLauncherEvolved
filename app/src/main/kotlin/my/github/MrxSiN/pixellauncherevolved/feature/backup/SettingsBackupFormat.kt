@@ -42,6 +42,7 @@ object SettingsBackupFormat {
     val SWITCHES: Map<String, BoolSetting> = linkedMapOf(
         "blur" to Settings.HOME_BLUR_WALLPAPER,
         "modesHomeScreens" to Settings.FOCUS_HOME_SCREENS,
+        "glanceAllScreens" to Settings.HOME_GLANCE_ALL_SCREENS,
         "widgetStacks" to Settings.WIDGET_STACKS,
         "widgetStacksSideways" to Settings.WIDGET_STACKS_SIDEWAYS,
         "widgetStacksRemember" to Settings.WIDGET_STACKS_REMEMBER,

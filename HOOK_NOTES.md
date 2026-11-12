@@ -3273,3 +3273,45 @@ LauncherAppWidgetHostView.onInitializeAccessibilityNodeInfo(AccessibilityNodeInf
 - Not run: TalkBack actions, Swipe sideways, Smart rotate, resizing a stack, promotion after the
   launcher's own Remove. A widget whose info has no label (Photos People & pets before setup) shows
   as "Widget" in Edit stack.
+
+## At a Glance (Android 17 `CP4A.261105.040.A1`, launcher 907, read from the DEX November 12, 2026)
+
+At a Glance is not a workspace view any more. It is a model item made in memory:
+
+```
+z9.n.a(InvariantDeviceProfile) -> SmartspaceItemInfo     // obfuscated factory, not hooked
+  new-instance SmartspaceItemInfo; ItemInfo.<init>()     // the subclass has no constructor
+  itemType 14, container -100, screenId 0, cellX 0, cellY 0,
+  spanX IDP.numSearchContainerColumns, spanY 1, id R.id.search_container_workspace
+AppModule_ProvideSmartspaceItemFactory.get()             // the item set the loader adds
+SmartspaceToggledTask (z9.u)                             // the stock switch: adds or removes it,
+                                                         // moving items off row 0 of screen 0
+com.android.launcher3.util.ItemInflater.inflateItem(ItemInfo, ViewGroup, int)
+  instanceof SmartspaceItemInfo -> new SmartspaceViewContainer(BcSmartspaceView, uiSurface "home")
+```
+
+`GlanceFeature` hooks the complete bind (`WorkspaceBinding`) twice: at `PRIORITY_HIGHEST` to keep
+the original item from the full model, at `PRIORITY_LOWEST` (inside the Mode filter) to add copies
+to a second `MutableWorkspaceData`. Copies are allocated with `sun.misc.Unsafe.allocateInstance` and
+every inherited instance field is copied, because the class has no constructor to call.
+
+Observed on device: Home settings' At a Glance "Turn off" (home and lock screen) did not remove the
+item; the launcher's own view and every copy switched live to the date alone. `GlanceFeature` still
+binds again after `BgDataModel.removeItems` or `ModelCallbacks.bindItems` carries a
+`SmartspaceItemInfo`, which is what `SmartspaceToggledTask` does when it adds or removes the item.
+
+New apps: `WorkspaceItemSpaceFinder.findSpaceForItem(ArrayList itemsBeingAdded, int, int, IntSet,
+WorkspaceItemCoordinates)` lays out each screen from `BgDataModel.itemsIdMap` plus `itemsBeingAdded`.
+`GlanceFeature` hands it a new list holding the caller's items and the bound copies, so a copy's cells
+count as taken; the caller's list is never changed.
+
+Per-Mode placement: `focus_glance_<modeId>` = `all` | a screen id (an older `main` = the Mode's first page), won by `ModeOverrides` like the other
+per-Mode keys. A change saved in settings binds again (`ModeOverrides.onGlanceChanged`); a change with
+the Modes that are on rides the Mode pages feature's own bind.
+
+Smartspacer (1.11.5, GPL-3; its `sdk-client` is Apache 2.0): its client grant is kept in its own
+database, keyed by the calling package (`SmartspaceManager.checkCallingPermission`), not an Android
+permission, so the launcher process could use the client SDK after the person approves it. Its
+cards, complications, requirements and plugins have no API for launchers to change. Its Native
+Smartspace setting replaces the system Smartspace service, which this launcher's own At a Glance
+already reads, so no client SDK is bundled.

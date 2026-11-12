@@ -35,6 +35,11 @@ object FeatureCatalog {
         titleRes = R.string.feature_focus_home_screens_title,
         summaryRes = R.string.feature_focus_home_screens_summary,
     )
+    val GLANCE_ALL_SCREENS = CatalogEntry(
+        setting = Settings.HOME_GLANCE_ALL_SCREENS,
+        titleRes = R.string.feature_glance_all_screens_title,
+        summaryRes = R.string.feature_glance_all_screens_summary,
+    )
     val WIDGET_STACKS = CatalogEntry(
         setting = Settings.WIDGET_STACKS,
         titleRes = R.string.feature_widget_stacks_title,
@@ -159,6 +164,7 @@ object FeatureCatalog {
     val entries: List<CatalogEntry> = listOf(
         HOME_BLUR_WALLPAPER,
         FOCUS_HOME_SCREENS,
+        GLANCE_ALL_SCREENS,
         WIDGET_STACKS,
         WIDGET_STACKS_SIDEWAYS,
         WIDGET_STACKS_REMEMBER,

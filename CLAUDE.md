@@ -66,6 +66,8 @@ Build-time Gradle Kotlin DSL, shell, Python and generator tooling may remain.
     compatibility report key, and latest-first contracts and lookups).
   - 2026-11-12: Kotlin for the Modes dump source (CP4A `contextual_mode`), for routing direct
     reflection through `Reflect`/`Host` so DexKit covers it, and for the Layout Recovery page redesign.
+  - 2026-11-12: Kotlin for the At a Glance / Smartspacer integration (launcher hooks for At a Glance
+    placement on home screens and Mode pages, and its settings page).
 - Device tools: adb is at `D:\Android\platform-tools`.
 - Every other rule in this file still applies to XAX code: behavior parity, failure isolation,
   hot-path invariants and measurement.

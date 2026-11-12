@@ -1,5 +1,13 @@
 # Performance
 
+## At a Glance placement (2026-11-12): unmeasured
+
+`GlanceFeature` runs only on a complete workspace bind (launcher start, a Mode change, a setting
+change), on new-app placement and on model item updates, never in a frame, draw, layout or touch
+callback. Each complete bind walks the bound item map once and, when copies are needed, builds one
+`SparseArray` and one model object. No timing, allocation or memory figures were taken; no
+performance claim is made for it.
+
 ## Run 2026-09-26: hot-path pass vs v0.1.1
 
 - **Baseline:** `031d5e5` release APK (v0.1.1), SHA-256 `f758c368…4e54356`.

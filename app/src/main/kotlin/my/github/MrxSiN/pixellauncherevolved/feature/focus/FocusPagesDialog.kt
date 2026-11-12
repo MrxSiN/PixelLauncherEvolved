@@ -194,6 +194,25 @@ internal object FocusPagesDialog {
         val withOrdinary = toggle(context, store.withOrdinary(mode.id))
         val ordinary = CardRow(context, resources, R.drawable.ic_mode_home, resources.getString(R.string.feature_focus_with_ordinary), withOrdinary)
 
+        // Null follows Home settings' At a Glance placement.
+        var glanceValue: String? = preferences.getString(ModeOverrides.GLANCE_KEY + mode.id, null)
+        // One choice per home screen this Mode has, by the number settings shows it under.
+        val glanceChoices = listOf<Pair<String?, CharSequence>>(
+            null to resources.getString(R.string.feature_focus_inherit),
+            ModeOverrides.GLANCE_EVERY_SCREEN to resources.getString(R.string.feature_focus_glance_every),
+        ) + store.assignments()[mode.id].orEmpty().mapNotNull { screen -> FocusPages.numberOf(screen)?.let { screen to it } }
+            .sortedBy { it.second }
+            .map { (screen, number) ->
+                screen.toString() to resources.getString(
+                    R.string.feature_focus_glance_selected,
+                    resources.getString(R.string.feature_focus_page, number),
+                )
+            }
+        // An older "main", or a page no longer this Mode's, reads as its first page.
+        if (glanceValue != null && glanceChoices.none { it.first == glanceValue }) glanceValue = glanceChoices.getOrNull(2)?.first
+        val glanceRow = CardRow(context, resources, R.drawable.ic_mode_home, resources.getString(R.string.settings_page_glance))
+        glanceRow.value(glanceChoices.firstOrNull { it.first == glanceValue }?.second ?: glanceValue.orEmpty())
+
         val hiddenStore = SharedPreferencesHiddenAppsStore.forMode(preferences, mode.id)
         val hiddenApps = CardRow(context, resources, R.drawable.ic_mode_hidden_apps, resources.getString(R.string.feature_focus_hidden_apps))
         hiddenApps.value(appCount(resources, hiddenStore, R.plurals.feature_focus_hidden_apps_count))
@@ -260,7 +279,16 @@ internal object FocusPagesDialog {
             orientation = LinearLayout.VERTICAL
             // The home screens first: choosing them is what this page is for.
             addView(gallery)
-            addView(card(context, listOf(ordinary)) { withOrdinary.toggle() }, gap(context, 16f))
+            addView(card(context, listOf(ordinary, glanceRow)) { index ->
+                if (index == 0) {
+                    withOrdinary.toggle()
+                } else {
+                    choose(context, resources, resources.getString(R.string.settings_page_glance), glanceChoices, glanceValue) { value, label ->
+                        glanceValue = value
+                        glanceRow.value(label)
+                    }
+                }
+            }, gap(context, 16f))
             addView(heading(context, resources.getString(R.string.feature_focus_section_apps)))
             addView(card(context, listOf(hiddenApps, drawerApps)) { index ->
                 page.dismiss()
@@ -320,6 +348,9 @@ internal object FocusPagesDialog {
                     val shade = shadeValue
                     if (shade == null) remove(ModeOverrides.SHADE_KEY + mode.id)
                     else putString(ModeOverrides.SHADE_KEY + mode.id, shade)
+                    val glance = glanceValue
+                    if (glance == null) remove(ModeOverrides.GLANCE_KEY + mode.id)
+                    else putString(ModeOverrides.GLANCE_KEY + mode.id, glance)
                     val labels = labelsValue
                     if (labels == null) remove(ModeOverrides.LABELS_KEY + mode.id)
                     else putString(ModeOverrides.LABELS_KEY + mode.id, labels)

@@ -11,6 +11,7 @@ import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.BU
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.DOCK
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.DOCK_ICONS
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.DOUBLE_TAP_TO_SLEEP
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.AT_A_GLANCE
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.FOCUS_HOME_SCREENS
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.FULL_TABLET_LAYOUT
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.GRID
@@ -31,6 +32,7 @@ import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature.WI
 enum class CompatibilityFeature(@param:StringRes val titleRes: Int) {
     BLUR_WALLPAPER(R.string.feature_home_blur_wallpaper_title),
     FOCUS_HOME_SCREENS(R.string.feature_focus_home_screens_title),
+    AT_A_GLANCE(R.string.settings_page_glance),
     WIDGET_STACKS(R.string.feature_widget_stacks_title),
     ORGANIZE_PAGES(R.string.pages_reorganize_title),
     DOUBLE_TAP_TO_SLEEP(R.string.feature_home_double_tap_to_sleep_title),
@@ -155,11 +157,11 @@ object LauncherContracts {
         // Focus home screens
         LauncherContract(
             Signature(MODEL_CALLBACKS, Member.Method("bindModelWithAsyncInflation")),
-            setOf(FOCUS_HOME_SCREENS, WIDGET_STACKS),
+            setOf(FOCUS_HOME_SCREENS, WIDGET_STACKS, AT_A_GLANCE),
             alternatives = listOf(Signature(MODEL_CALLBACKS, Member.Method("bindCompleteModelAsync"))),
         ),
         contract(MODEL_CALLBACKS, Member.Method("bindAddScreens"), FOCUS_HOME_SCREENS),
-        optional(MODEL_CALLBACKS, Member.Method("bindItems"), FOCUS_HOME_SCREENS),
+        optional(MODEL_CALLBACKS, Member.Method("bindItems"), FOCUS_HOME_SCREENS, AT_A_GLANCE),
         contract(
             "com.android.launcher3.model.data.WorkspaceData\$MutableWorkspaceData",
             method("collectWorkspaceScreens"),
@@ -169,8 +171,12 @@ object LauncherContracts {
         contract(WORKSPACE, Member.Field("mScreenOrder"), FOCUS_HOME_SCREENS),
         optional(WORKSPACE, Member.Method("stripEmptyScreens"), FOCUS_HOME_SCREENS),
         optional(WORKSPACE, Member.Method("insertNewWorkspaceScreen"), FOCUS_HOME_SCREENS),
-        optional("com.android.launcher3.model.WorkspaceItemSpaceFinder", Member.Method("findSpaceForItem"), FOCUS_HOME_SCREENS),
+        optional("com.android.launcher3.model.WorkspaceItemSpaceFinder", Member.Method("findSpaceForItem"), FOCUS_HOME_SCREENS, AT_A_GLANCE),
         contract(LAUNCHER, Member.Field("mModel"), FOCUS_HOME_SCREENS, WIDGET_STACKS),
+
+        // At a Glance
+        contract("com.google.android.apps.nexuslauncher.smartspace.SmartspaceItemInfo", Member.Field("screenId"), AT_A_GLANCE),
+        optional("com.android.launcher3.model.BgDataModel", Member.Method("removeItems"), AT_A_GLANCE),
 
         // Widget stacks
         contract(WIDGET_HOST, method("onInterceptTouchEvent", MOTION_EVENT), WIDGET_STACKS),

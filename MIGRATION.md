@@ -3,6 +3,13 @@
 Upgrading to 0.1.7 from any earlier release keeps everything: identity is unchanged, and the state
 this release adds lives under new keys whose absence reads as the old behaviour.
 
+- **Unreleased, At a Glance (new state):** `home_glance_all_screens` (bool, default false, backed up as
+  `glanceAllScreens`) and the per-Mode `focus_glance_<mode>` (`all`, or the id of the selected screen; absent = Use
+  main setting; an older `main` reads as the Mode's first page; device-bound like the other per-Mode keys, not in backups). A missing key reads as before:
+  At a Glance only on the first page. Nothing is written to the launcher database; At a Glance copies
+  live only in the bound model, so removing or disabling the module leaves the stock home screen.
+  One visible change on upgrade: while a Mode hides screen 0, At a Glance now shows on that Mode's
+  first page when its top row is free, instead of disappearing.
 - **0.1.7:** no setting, key or backup format changes. Two caches change shape and rebuild by
   themselves: `compatibility_analyzed_launcher_version` now holds `<versionCode>@<system build>`, so
   the compatibility report is written once more after the upgrade; and the DexKit symbol cache

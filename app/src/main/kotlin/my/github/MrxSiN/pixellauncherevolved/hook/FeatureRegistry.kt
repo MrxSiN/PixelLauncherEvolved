@@ -10,6 +10,8 @@ import my.github.MrxSiN.pixellauncherevolved.feature.safemode.SafeModeFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.HiddenAppsFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.apps.ModeDrawerSectionFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusHomeFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.GlanceFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceContentFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.gesture.DoubleTapToSleepFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.grid.GridFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.icons.IconPackFeature
@@ -64,6 +66,8 @@ object FeatureRegistry {
         AppDrawerSearchFeature(),
         WebSearchAppFeature(),
         FocusHomeFeature(),
+        GlanceFeature(),
+        GlanceContentFeature(),
         WidgetStacksFeature(),
         OverviewBubbleFeature(),
         OverviewSplitButtonFeature(),

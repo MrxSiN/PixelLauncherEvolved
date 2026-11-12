@@ -55,6 +55,24 @@ object ModeOverrides {
     var shade: Int = 0
         private set
 
+    /** Whether the winning Mode puts At a Glance on every home screen ([GLANCE_KEY]), or null to follow Home settings. */
+    @Volatile
+    var glanceEveryScreen: Boolean? = null
+        private set
+
+    /** The home screen the winning Mode puts At a Glance on ([GLANCE_KEY] holding a screen id), or null for the first. */
+    @Volatile
+    var glanceScreen: Int? = null
+        private set
+
+    /**
+     * Told on any thread when [glanceEveryScreen] changes after a Mode's settings are
+     * saved. Not told when it changes with the Modes that are on: the Mode pages
+     * feature binds the workspace again for that already.
+     */
+    @Volatile
+    var onGlanceChanged: (() -> Unit)? = null
+
     /** Surfaces ([AppLabels.HIDE_HOME] and the rest) whose labels the winning Mode leaves off ([LABELS_KEY]); -1 to follow the everywhere switches. */
     @Volatile
     var labels: Int = -1
@@ -92,11 +110,11 @@ object ModeOverrides {
 
     fun update(preferences: SharedPreferences, active: Map<String, Long>) {
         this.active = active
-        recompute(preferences)
+        recompute(preferences, saved = false)
     }
 
-    /** After a Mode's settings are saved: it may now change something, or nothing. */
-    fun recompute(preferences: SharedPreferences) {
+    /** After a Mode's settings are saved ([saved]): it may now change something, or nothing. */
+    fun recompute(preferences: SharedPreferences, saved: Boolean = true) {
         val all = preferences.all
         val priority = SharedPreferencesFocusStore(preferences).priority()
         fun winner(prefix: String) = FocusPlan.winner(candidates(all, prefix), priority, active)
@@ -120,6 +138,15 @@ object ModeOverrides {
         if (shadeNow != shade) {
             shade = shadeNow
             onShadeChanged?.invoke()
+        }
+
+        val glanceValue = winner(GLANCE_KEY)?.let { all[GLANCE_KEY + it] as? String }
+        val glanceNow = glanceValue?.let { it == GLANCE_EVERY_SCREEN }
+        val glanceScreenNow = glanceValue?.toIntOrNull()
+        if (glanceNow != glanceEveryScreen || glanceScreenNow != glanceScreen) {
+            glanceEveryScreen = glanceNow
+            glanceScreen = glanceScreenNow
+            if (saved) onGlanceChanged?.invoke()
         }
 
         val labelsNow = winner(LABELS_KEY)?.let { (all[LABELS_KEY + it] as? String)?.toIntOrNull()?.and(LABEL_SURFACES) } ?: -1
@@ -165,6 +192,13 @@ object ModeOverrides {
 
     /** `focus_shade_<modeId>`: ARGB in hex laid over the home screen while that Mode wins (dim or tint). */
     const val SHADE_KEY = "focus_shade_"
+
+    /**
+     * `focus_glance_<modeId>` while that Mode wins: [GLANCE_EVERY_SCREEN], or the id of the one home
+     * screen that shows At a Glance. Any other value (an older "main") means the Mode's first page.
+     */
+    const val GLANCE_KEY = "focus_glance_"
+    const val GLANCE_EVERY_SCREEN = "all"
 
     /** `focus_labels_<modeId>`: the surfaces whose labels that Mode leaves off, as a decimal bit set; "0" shows them all. */
     const val LABELS_KEY = "focus_labels_"

@@ -17,6 +17,9 @@ reproduced here.
 
 ## Third-party code
 
+No Smartspacer code is included. The At a Glance page only opens Smartspacer
+(GPL-3.0, Kieron Quinn) when it is installed, or its releases page.
+
 The module packages [DexKit](https://github.com/LuckyPray/DexKit) (LGPL-3.0),
 with its native library `libdexkit.so`, and FlatBuffers for Java (Apache-2.0),
 which DexKit uses to pass queries. DexKit is only loaded after a launcher update

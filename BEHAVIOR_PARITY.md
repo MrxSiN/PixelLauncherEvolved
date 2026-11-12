@@ -225,3 +225,47 @@ earlier-generation fallbacks (HOOK_NOTES, "Two launcher generations").
   and spacing install through that layout's own members. None of that was run on such a launcher.
 - **Tests:** `LauncherGenerationsTest` (three fixtures), `DeviceProfilesTest`,
   `TabletModeFeatureTest`, new `HookRecorderTest` and `ContractAnalyzerTest` cases; 250 unit tests pass.
+
+## At a Glance placement (2026-11-12, intentional change)
+
+- Before: At a Glance is the launcher's in-memory `SmartspaceItemInfo` on screen 0. A Mode whose
+  home screens hide screen 0 took At a Glance away with it.
+- Now: with Modes on and screen 0 hidden, a copy shows on the Mode's first page when its top row
+  (the item's span) is free. With **Show on every home screen** on, a copy shows on every other
+  shown page whose top row is free. Off (default) and no Mode on: unchanged, nothing is added.
+- Copies are bound only; ids are negative (`GlancePlacement.copyId`) so no database row or resource
+  id can match. The database and the shared model are never written.
+- Device, Pixel 8 Pro, `CP4A.261105.040.A1`, launcher 907 (test Mode: Do Not Disturb given page 7,
+  whose top row is free; prefs restored byte for byte afterwards, md5 `b467d97c…`):
+  - DND on, main only: one page (7) with a copy (view id `#fffefff9`) showing the same weather card
+    and pager dots; tap opened Google Weather, long-press showed Dismiss / Settings / About this content.
+  - DND on, **Also show regular home screens** + every home screen: page 0 with the launcher's own
+    item (`app:id/search_container_workspace`) and page 7 with a copy.
+  - DND off: page 0 only, the launcher's own item, no copy left behind.
+  - Per-Mode `focus_glance_MANUAL_RULE=all` with the Home settings switch off: page 0 with the
+    original and page 7 with a copy.
+  - Home settings' own At a Glance switch, Turn off: on this build the item stays and every view,
+    copies included, changed live from the weather card to the date alone. Turn on brought the
+    weather back. So copies receive content updates.
+  - Test trap: editing the prefs file right after `force-stop` races the home activity's automatic
+    restart, which then runs on the old values. Write the file first, then `force-stop`.
+
+### With Smartspacer (device, 2026-11-12)
+
+- Smartspacer 1.11.5 from its GitHub release, Enhanced Mode through Shizuku (already running as
+  root), Native Smartspace on (SystemUI restarts once; the phone was unlocked by hand).
+- Targets: Smartspacer's built-in At a Glance (Smartspace). Complications: Health Connect add-on,
+  Distance, whose own setup screen ran and returned to Smartspacer.
+- Home: the launcher's own At a Glance showed the date with "1203m" from the add-on. With Do Not
+  Disturb given page 7, the copy on page 7 showed the same. No module change was needed: copies are
+  the launcher's own view, fed by the same Smartspace session Native Smartspace replaces.
+- Google's weather card did not come through Smartspacer on `CP4A.261105.040.A1`: neither its
+  At a Glance (Smartspace) target, nor its At a Glance (Widget) target, nor a restart of Smartspacer
+  brought it back. Both targets are Smartspacer's; this module only draws what the system Smartspace
+  session hands the launcher.
+- Turning Native Smartspace off put the system service back on Android System Intelligence, but the
+  weather stayed away until ASI itself was restarted (`am force-stop com.google.android.as`, then
+  the launcher). ASI not answering may also be why Smartspacer's At a Glance targets were empty.
+- Smartspacer's process dying drops Native Smartspace: At a Glance went blank on home until it was
+  re-enabled (which restarts SystemUI). Smartspacer posts a "Re-enable Native Smartspace" notification.
+- Not tested: the Tasker add-on (needs a Tasker profile), RemoteViews targets, work profile.

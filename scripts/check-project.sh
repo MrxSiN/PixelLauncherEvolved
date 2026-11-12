@@ -596,7 +596,8 @@ grep -q 'focus.forget' "$SRC/feature/focus/FocusHomeFeature.kt"
 # Modes are read in this module's own app, which is the process that holds root,
 # and answered to the launcher alone. The platform API is not used: since Android
 # 15 it reports only the rules the calling app owns, so it returns nothing.
-grep -q '"dumpsys notification --zen' "$SRC/focus/ZenModes.kt"
+grep -q '"dumpsys "' "$SRC/focus/ZenModes.kt"
+grep -q '"contextual_mode", "notification --zen"' "$SRC/focus/ZenModes.kt"
 grep -q 'ProcessBuilder(su)' "$SRC/focus/ZenModes.kt"
 grep -q 'callingPackage != LAUNCHER_PACKAGE' "$SRC/focus/FocusProvider.kt"
 

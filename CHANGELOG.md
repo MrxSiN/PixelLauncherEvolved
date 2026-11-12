@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `scripts/check-project.sh` looked for the old `dumpsys notification --zen` string after Modes moved
+  to `contextual_mode` first; it now checks both sources.
+
+### Added
+
+- **At a Glance** page under Home screen. **Show on every home screen** puts At a Glance on every
+  home screen whose top row is free, not only the first. The launcher's own item is copied into the
+  bound model in memory only; the database is never written and nothing is moved to make room.
+- At a Glance now follows a Mode: when a Mode's home screens hide the first page, it shows on the
+  Mode's first page instead of disappearing (when that page's top row is free).
+- Each Mode's page in **Assign home screens to Modes** has an **At a Glance** choice: Use main
+  setting, All home screens, or one Selected home screen of that Mode's. When several Modes set it, the one that came
+  on last wins, as with the other per-Mode settings.
+- A new app is never placed under an At a Glance copy: the copies count as taken cells when the
+  launcher looks for room.
+- **Information cards and extra information** opens Smartspacer, or its releases page when it is
+  not installed. Smartspacer has no API for launchers to change its cards, so they are changed there.
+
 ## 0.1.7
 
 ### Fixed
