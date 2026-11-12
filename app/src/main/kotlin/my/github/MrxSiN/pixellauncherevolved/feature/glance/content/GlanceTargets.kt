@@ -34,7 +34,8 @@ internal class GlanceTargets(private val component: ComponentName) {
             .setPendingIntent(item.tap)
             .setIntent(item.tapIntent)
             .build()
-        val template = BaseTemplateData.Builder(constant(UI_TEMPLATE_DEFAULT))
+        // A card of remote views (a hosted widget) carries no text template; the adapter keeps it for its remote views.
+        val template = if (item.remoteViews != null) null else BaseTemplateData.Builder(constant(UI_TEMPLATE_DEFAULT))
             .setPrimaryItem(subItem("${id}_primary", item.title, null, item))
             .setSubtitleItem(subItem("${id}_subtitle", item.subtitle ?: "", item.icon, item))
             .build()
@@ -44,7 +45,8 @@ internal class GlanceTargets(private val component: ComponentName) {
             .setFeatureType(constant(item.feature))
             .setHeaderAction(header)
             .setBaseAction(SmartspaceAction.Builder("${id}_base", "").build())
-            .setTemplateData(template)
+            .apply { if (template != null) setTemplateData(template) }
+            .setRemoteViews(item.remoteViews)
             .build()
     }
 

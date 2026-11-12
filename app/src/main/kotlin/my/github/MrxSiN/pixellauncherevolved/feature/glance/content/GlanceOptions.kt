@@ -19,7 +19,8 @@ class GlanceOption(
     @param:StringRes val defaultRes: Int = 0,
     val choices: List<Choice> = emptyList(),
 ) {
-    enum class Type { CHOICE, TEXT, CALENDAR, APPS }
+    /** [APPS] is a set of package names, comma-separated; [WIDGET] is an installed app widget, stored "component|id". */
+    enum class Type { CHOICE, TEXT, CALENDAR, APPS, WIDGET }
 
     class Choice(val value: String, @param:StringRes val labelRes: Int)
 }

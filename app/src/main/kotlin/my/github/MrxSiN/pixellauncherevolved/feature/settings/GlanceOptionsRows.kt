@@ -67,6 +67,7 @@ internal object GlanceOptionsRows : SettingsRow {
                 GlanceOption.Type.TEXT -> value
                 GlanceOption.Type.CALENDAR -> scope.string(R.string.glance_option_calendars_one)
                 GlanceOption.Type.APPS -> scope.string(R.string.glance_notification_apps_count, NotificationPick.apps(value).size)
+                GlanceOption.Type.WIDGET -> GlanceWidgetOption.label(scope.context, value)?.toString() ?: return@mapNotNull null
                 GlanceOption.Type.CHOICE -> option.choices.firstOrNull { it.value == value }?.let { scope.string(it.labelRes) } ?: return@mapNotNull null
             }
             scope.string(R.string.glance_option_summary_entry, scope.string(option.titleRes), shown)
@@ -98,6 +99,7 @@ internal object GlanceOptionsRows : SettingsRow {
             return when (option.type) {
                 GlanceOption.Type.TEXT -> value ?: scope.string(R.string.glance_option_text_empty)
                 GlanceOption.Type.CHOICE -> option.choices.firstOrNull { it.value == value }?.let { scope.string(it.labelRes) } ?: scope.string(option.defaultRes)
+                GlanceOption.Type.WIDGET -> GlanceWidgetOption.label(context, value) ?: scope.string(option.defaultRes)
                 GlanceOption.Type.CALENDAR -> calendarChoices(scope, option, calendars).firstOrNull { it.first == value }?.second
                     ?: if (value == null) scope.string(option.defaultRes) else scope.string(R.string.glance_option_calendars_one)
                 GlanceOption.Type.APPS -> if (value == null) scope.string(option.defaultRes) else scope.string(R.string.glance_notification_apps_count, NotificationPick.apps(value).size)
@@ -130,6 +132,7 @@ internal object GlanceOptionsRows : SettingsRow {
                     listOf<Pair<String?, CharSequence>>(null to scope.string(option.defaultRes)) + option.choices.map { it.value to scope.string(it.labelRes) },
                     current(option), changed,
                 )
+                GlanceOption.Type.WIDGET -> GlanceWidgetOption.choose(scope, option, current(option)) { value -> store(option, value); values[index].text = label(option) }
                 GlanceOption.Type.CALENDAR -> FocusPagesDialog.choose(
                     context, scope.resources, scope.string(option.titleRes), calendarChoices(scope, option, calendars), current(option), changed,
                 )
