@@ -16,4 +16,5 @@
     <string name="glance_option_calendars_all">All calendars</string>
     <string name="glance_option_calendars_one">One calendar</string>
     <string name="glance_option_calendars_choice">%1$s (%2$s)</string>
+    <string name="glance_option_calendars_many">%1$d calendars</string>
 </resources>

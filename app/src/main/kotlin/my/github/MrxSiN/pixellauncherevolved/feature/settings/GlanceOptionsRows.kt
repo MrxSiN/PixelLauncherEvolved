@@ -100,8 +100,15 @@ internal object GlanceOptionsRows : SettingsRow {
                 GlanceOption.Type.TEXT -> value ?: scope.string(R.string.glance_option_text_empty)
                 GlanceOption.Type.CHOICE -> option.choices.firstOrNull { it.value == value }?.let { scope.string(it.labelRes) } ?: scope.string(option.defaultRes)
                 GlanceOption.Type.WIDGET -> GlanceWidgetOption.label(context, value) ?: scope.string(option.defaultRes)
-                GlanceOption.Type.CALENDAR -> calendarChoices(scope, option, calendars).firstOrNull { it.first == value }?.second
-                    ?: if (value == null) scope.string(option.defaultRes) else scope.string(R.string.glance_option_calendars_one)
+                GlanceOption.Type.CALENDAR -> {
+                    val ids = NotificationPick.apps(value)
+                    when {
+                        ids.isEmpty() -> scope.string(option.defaultRes)
+                        ids.size == 1 -> calendarChoices(scope, option, calendars).firstOrNull { it.first == ids.first() }?.second
+                            ?: scope.string(R.string.glance_option_calendars_one)
+                        else -> scope.string(R.string.glance_option_calendars_many, ids.size)
+                    }
+                }
                 GlanceOption.Type.APPS -> if (value == null) scope.string(option.defaultRes) else scope.string(R.string.glance_notification_apps_count, NotificationPick.apps(value).size)
             }
         }
@@ -133,11 +140,14 @@ internal object GlanceOptionsRows : SettingsRow {
                     current(option), changed,
                 )
                 GlanceOption.Type.WIDGET -> GlanceWidgetOption.choose(scope, option, current(option)) { value -> store(option, value); values[index].text = label(option) }
-                GlanceOption.Type.CALENDAR -> FocusPagesDialog.choose(
-                    context, scope.resources, scope.string(option.titleRes), calendarChoices(scope, option, calendars), current(option), changed,
-                )
+                // Several calendars at once; none ticked reads every calendar, as before.
+                GlanceOption.Type.CALENDAR -> pickMany(
+                    scope, context, option,
+                    calendarChoices(scope, option, calendars).mapNotNull { (id, label) -> id?.let { it to label } },
+                    NotificationPick.apps(current(option)),
+                ) { value -> store(option, value); values[index].text = label(option) }
                 GlanceOption.Type.APPS -> FocusPagesDialog.readThen(context, { launchableApps(context) }) { apps ->
-                    pickApps(scope, context, option, apps, NotificationPick.apps(current(option))) { value -> store(option, value); values[index].text = label(option) }
+                    pickMany(scope, context, option, apps, NotificationPick.apps(current(option))) { value -> store(option, value); values[index].text = label(option) }
                 }
             }
         }
@@ -167,8 +177,8 @@ internal object GlanceOptionsRows : SettingsRow {
             .sortedBy { it.second.toString().lowercase() }
     }
 
-    /** A checkbox row per app; Done stores the ticked ones, none ticked meaning every app. */
-    private fun pickApps(
+    /** A checkbox row per item (apps, calendars); Done stores the ticked ones, none ticked meaning all of them. */
+    private fun pickMany(
         scope: RowScope,
         context: Context,
         option: GlanceOption,
