@@ -1,12 +1,10 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.cards
 
-import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.HandlerThread
@@ -20,6 +18,7 @@ import java.util.TimeZone
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceItem
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.CalendarBridge
 
 /**
  * The current or next calendar event. Rewritten from Smartspacer's `CalendarTarget` with its default
@@ -28,10 +27,12 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
  * subtitle, and a tap that opens the event. Without its per-calendar choices, dismissing, location
  * line and several events at once: the earliest event that qualifies is shown.
  *
- * Needs the Calendar permission (`READ_CALENDAR`), which the launcher's process may not hold and a
- * module cannot grant it. It is checked when the card starts; without it the card shows nothing.
+ * The launcher's process holds no Calendar permission, so the events come from this module's app
+ * ([CalendarBridge]), which the person lets read the calendar from the At a Glance settings; without
+ * that the card shows nothing. The launcher still watches the calendar provider itself: observers
+ * need no read permission.
  *
- * `CalendarContract.Instances` is read on one background thread owned by the card, for today and
+ * The events are read on one background thread owned by the card, for today and
  * tomorrow, whenever the calendar provider changes (a [ContentObserver], debounced), the time or
  * zone changes, or the day turns. The events are kept in `@Volatile` arrays; [content] only picks
  * from them. A callback is scheduled for the next moment the card can differ (an event coming
@@ -39,9 +40,6 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
  * polling.
  */
 class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_calendar_title, R.string.glance_card_calendar_description) {
-
-    override val permission: String = Manifest.permission.READ_CALENDAR
-
 
     private class Events(
         val day: Long,
@@ -76,10 +74,6 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
 
     override fun start() {
         val context = host.context
-        if (context.checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
-            host.logger.info("The calendar card has no Calendar permission in this process")
-            return
-        }
         val looper = HandlerThread("ple-glance-calendar").also { it.start() }
         thread = looper
         worker = Handler(looper.looper)
@@ -113,39 +107,12 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
         val now = System.currentTimeMillis()
         val zone = TimeZone.getDefault()
         val begin = GlanceCardTimes.startOfDay(now, zone)
-        val uri = CalendarContract.Instances.CONTENT_URI.buildUpon()
-            .appendEncodedPath(begin.toString())
-            .appendEncodedPath((begin + 2 * GlanceCardTimes.DAY).toString())
-            .build()
-        val ids = ArrayList<Long>()
-        val titles = ArrayList<String>()
-        val starts = ArrayList<Long>()
-        val ends = ArrayList<Long>()
-        runCatching {
-            host.context.contentResolver.query(
-                uri,
-                arrayOf(
-                    CalendarContract.Instances.EVENT_ID,
-                    CalendarContract.Instances.TITLE,
-                    CalendarContract.Instances.BEGIN,
-                    CalendarContract.Instances.END,
-                    CalendarContract.Instances.ALL_DAY,
-                    CalendarContract.Instances.STATUS,
-                ),
-                "${CalendarContract.Instances.VISIBLE}=1",
-                null,
-                "${CalendarContract.Instances.BEGIN} ASC",
-            )?.use {
-                while (it.moveToNext()) {
-                    if (it.getInt(4) == 1 || it.getInt(5) == CalendarContract.Events.STATUS_CANCELED) continue
-                    ids += it.getLong(0)
-                    titles += it.getString(1).orEmpty()
-                    starts += it.getLong(2)
-                    ends += it.getLong(3)
-                }
-            }
-        }.onFailure { host.logger.warn("The calendar could not be read", it) }
-        events = Events(begin, ids.toLongArray(), titles.toTypedArray(), starts.toLongArray(), ends.toLongArray())
+        val read = CalendarBridge.read(host.context.contentResolver, host.modulePackage, host.logger)
+        events = if (read == null) {
+            Events(begin, LongArray(0), emptyArray(), LongArray(0), LongArray(0))
+        } else {
+            Events(begin, read.ids, read.titles, read.begins, read.ends)
+        }
         host.main.post { reschedule() }
     }
 

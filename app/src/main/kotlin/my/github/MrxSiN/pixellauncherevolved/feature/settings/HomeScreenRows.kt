@@ -1,5 +1,8 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.settings
 
+import android.Manifest
+import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.view.Gravity
 import android.widget.ImageButton
@@ -18,6 +21,7 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceWhen
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagePreviewSource
 import my.github.MrxSiN.pixellauncherevolved.feature.pages.ReorganizePagesScreen
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
+import my.github.MrxSiN.pixellauncherevolved.glance.CalendarAccessActivity
 import my.github.MrxSiN.pixellauncherevolved.focus.ProviderFocusSource
 import my.github.MrxSiN.pixellauncherevolved.focus.SharedPreferencesFocusStore
 import my.github.MrxSiN.pixellauncherevolved.focus.forgetModesMissingFrom
@@ -160,6 +164,30 @@ internal class GlanceOrderRow(private val kind: GlanceSource.Kind) : SettingsRow
 
     private companion object {
         const val DISABLED = 0.38f
+    }
+}
+
+/**
+ * Lets the person give this module's app the Calendar permission, which the calendar sources read
+ * through (Pixel Launcher has none). Opens the module's one-purpose activity that shows the system
+ * dialog. The summary is read when the page opens.
+ */
+internal object CalendarAccessRow : SettingsRow {
+
+    override fun addTo(group: Any, scope: RowScope) {
+        val module = scope.environment.modulePackage
+        val granted = scope.context.packageManager.checkPermission(Manifest.permission.READ_CALENDAR, module) == PackageManager.PERMISSION_GRANTED
+        val row = scope.link(
+            key = SettingsKeys.row("glance_calendar_access"),
+            title = R.string.glance_calendar_access_title,
+            summary = scope.string(if (granted) R.string.glance_calendar_access_granted else R.string.glance_calendar_access_denied),
+        ) {
+            scope.context.startActivity(
+                Intent().setComponent(ComponentName(module, CalendarAccessActivity::class.java.name)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }
+        scope.api.add(group, row)
+        scope.requires(CompatibilityFeature.AT_A_GLANCE, row)
     }
 }
 

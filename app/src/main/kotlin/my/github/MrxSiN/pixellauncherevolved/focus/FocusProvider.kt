@@ -97,7 +97,8 @@ class FocusProvider : ContentProvider() {
     private fun modeRow(mode: FocusMode): Array<Any?> =
         arrayOf(mode.id, mode.name, if (mode.isActive) 1 else 0, mode.icon, if (mode.isEnabled) 1 else 0, mode.activatedAt)
 
-    private companion object {
+    internal companion object {
+        /** The one caller this module's providers answer. */
         const val LAUNCHER_PACKAGE = "com.google.android.apps.nexuslauncher"
 
         /** Rewritten by the notification service on every change to the Modes; not public API. */

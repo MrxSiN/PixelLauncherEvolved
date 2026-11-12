@@ -6,6 +6,12 @@
     </queries>
 
     <!--
+        Pixel Launcher does not hold the Calendar permission and a module cannot give it one, so the
+        At a Glance calendar sources read the calendar here and ask this app (CalendarProvider).
+    -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+
+    <!--
         Every tweak is in the launcher's own Home settings, beside the launcher
         that reads it. What remains is what Home settings cannot host: the two
         providers below, which run here because this is the process that holds
@@ -50,6 +56,22 @@
                 <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
             </intent-filter>
         </activity>
+
+        <!-- Answers only the launcher, with today's and tomorrow's calendar events. -->
+        <provider
+            android:name=".glance.CalendarProvider"
+            android:authorities="${applicationId}.calendar"
+            android:exported="true" />
+
+        <!--
+            Shows the system Calendar permission dialog and closes. Exported so the launcher's
+            At a Glance settings can start it; it changes nothing but that one permission prompt.
+        -->
+        <activity
+            android:name=".glance.CalendarAccessActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <!-- Double tap is recognised by the launcher; this root-backed endpoint locks it. -->
         <provider

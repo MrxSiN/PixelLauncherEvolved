@@ -1,9 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.extras
 
-import android.Manifest
 import android.content.ContentUris
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.HandlerThread
@@ -17,21 +15,20 @@ import java.util.Date
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceItem
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.CalendarBridge
 
 /**
  * The start time of the next calendar event within 24 hours. Rewritten from the behaviour of
  * Smartspacer's calendar target, as a short item.
  *
- * Needs `READ_CALENDAR`, which the launcher process may not hold (a module cannot grant it); without
- * it the source shows nothing. The query runs on one `HandlerThread` owned by the source (started in
+ * The launcher process holds no Calendar permission, so the events come from this module's app
+ * ([CalendarBridge]), which the person lets read the calendar from the At a Glance settings; without
+ * that the source shows nothing. The read runs on one `HandlerThread` owned by the source (started in
  * [start], quit in [stop]), never the main thread. It reruns when the calendar provider changes
- * (`ContentObserver`), when the next event starts, and at midnight when no event is in the window;
+ * (`ContentObserver`, which needs no read permission), when the next event starts, and at midnight when no event is in the window;
  * there is no polling. All-day events are skipped.
  */
 class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.glance_extra_calendar_title, R.string.glance_extra_calendar_description) {
-
-    override val permission: String = Manifest.permission.READ_CALENDAR
-
 
     @Volatile private var begin = 0L
     @Volatile private var text = ""
@@ -68,19 +65,11 @@ class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.gla
         handler.removeCallbacks(query)
         val now = System.currentTimeMillis()
         var found = 0L
-        if (host.context.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
-            val uri = CalendarContract.Instances.CONTENT_URI.buildUpon()
-                .also { ContentUris.appendId(it, now); ContentUris.appendId(it, now + DAY_MILLIS) }
-                .build()
-            runCatching {
-                host.context.contentResolver.query(
-                    uri, PROJECTION, "${CalendarContract.Instances.ALL_DAY}=0", null, "${CalendarContract.Instances.BEGIN} ASC",
-                )?.use { c ->
-                    while (c.moveToNext()) {
-                        val start = c.getLong(0)
-                        if (start > now) { found = start; break }
-                    }
-                }
+        val events = CalendarBridge.read(host.context.contentResolver, host.modulePackage, host.logger)
+        if (events != null) {
+            for (i in events.begins.indices) {
+                val start = events.begins[i]
+                if (start > now && start <= now + DAY_MILLIS) { found = start; break }
             }
         }
         val shown = if (found == 0L) "" else DateFormat.getTimeFormat(host.context).format(Date(found))
@@ -106,6 +95,5 @@ class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.gla
 
     private companion object {
         const val DAY_MILLIS = 24L * 60 * 60 * 1000
-        val PROJECTION = arrayOf(CalendarContract.Instances.BEGIN)
     }
 }
