@@ -16,6 +16,7 @@ import java.util.WeakHashMap
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.more.NotificationFeed
 import my.github.MrxSiN.pixellauncherevolved.hook.FeatureContext
 import my.github.MrxSiN.pixellauncherevolved.hook.LauncherFeature
 import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
@@ -108,6 +109,9 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
                 .getOrNull() ?: given
             chain.proceed(chain.args.toTypedArray().also { it[0] = merged })
         }
+
+        // The notification card's source of notifications; hooked once, whether or not the card is on.
+        context.part { NotificationFeed.install(context) }?.let { context.logger.warn("The notification feed could not be hooked", it) }
 
         main.post { sync() }
         preferences.registerOnSharedPreferenceChangeListener(this)

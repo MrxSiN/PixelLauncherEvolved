@@ -31,7 +31,7 @@ class NotificationCard : GlanceSource("notifications", Kind.CARD, R.string.glanc
     @Volatile private var worker: Handler? = null
     private var shown: String? = null
     private var thread: HandlerThread? = null
-    private var feed: NotificationFeed? = null
+    private val changed: () -> Unit = { schedule() }
 
     private val read = Runnable { recompute() }
 
@@ -40,13 +40,12 @@ class NotificationCard : GlanceSource("notifications", Kind.CARD, R.string.glanc
         val handlerThread = HandlerThread("ple-glance-notifications").apply { start() }
         thread = handlerThread
         worker = Handler(handlerThread.looper)
-        feed = NotificationFeed(host.context.classLoader) { schedule() }.takeIf { it.register() }
+        NotificationFeed.register(changed)
         schedule()
     }
 
     override fun stop() {
-        feed?.unregister()
-        feed = null
+        NotificationFeed.unregister(changed)
         worker = null
         thread?.quitSafely()
         thread = null
@@ -69,7 +68,7 @@ class NotificationCard : GlanceSource("notifications", Kind.CARD, R.string.glanc
 
     /** Worker thread. */
     private fun recompute() {
-        val list = feed?.active()
+        val list = NotificationFeed.active()
         val own = host.context.packageName
         val at = if (list == null) -1 else NotificationPick.newest(
             list.size, apps, { list[it].packageName }, { list[it].postTime },

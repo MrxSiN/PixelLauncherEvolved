@@ -178,9 +178,10 @@ object LauncherContracts {
         contract("com.google.android.apps.nexuslauncher.smartspace.SmartspaceItemInfo", Member.Field("screenId"), AT_A_GLANCE),
         optional("com.android.launcher3.model.BgDataModel", Member.Method("removeItems"), AT_A_GLANCE),
         // The Notification card reads the launcher's own listener, bound only while notification dots are on
-        optional("com.android.launcher3.notification.NotificationListener", Member.Method("getInstanceIfConnected"), AT_A_GLANCE),
-        optional("com.android.launcher3.notification.NotificationListener", Member.Method("addNotificationsChangeListener"), AT_A_GLANCE),
-        optional("com.android.launcher3.notification.NotificationListener", Member.Method("removeNotificationsChangeListener"), AT_A_GLANCE),
+        optional("com.android.launcher3.notification.NotificationListener", Member.Method("onListenerConnected"), AT_A_GLANCE),
+        optional("com.android.launcher3.notification.NotificationListener", Member.Method("onListenerDisconnected"), AT_A_GLANCE),
+        optional("com.android.launcher3.notification.NotificationListener", Member.Method("onNotificationPosted"), AT_A_GLANCE),
+        optional("com.android.launcher3.notification.NotificationListener", Member.Method("onNotificationRemoved"), AT_A_GLANCE),
 
         // Widget stacks
         contract(WIDGET_HOST, method("onInterceptTouchEvent", MOTION_EVENT), WIDGET_STACKS),
