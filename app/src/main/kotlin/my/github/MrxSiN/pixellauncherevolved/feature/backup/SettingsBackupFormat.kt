@@ -91,6 +91,7 @@ object SettingsBackupFormat {
     private const val KEY_GLANCE_ON = "on"
     private const val KEY_GLANCE_WHEN = "when"
     private const val KEY_GLANCE_ORDER = "order"
+    private const val KEY_GLANCE_OPTIONS = "options"
     private const val KEY_LABEL_PROFILE = "profile"
     private const val KEY_LABEL_NAME = "name"
     private const val KEY_LABEL_HIDE_HOME = "hideHome"
@@ -130,6 +131,9 @@ object SettingsBackupFormat {
             put(KEY_GLANCE_ON, JSONArray(snapshot.glance.on.sorted()))
             put(KEY_GLANCE_WHEN, JSONObject(snapshot.glance.whens.toSortedMap() as Map<*, *>))
             put(KEY_GLANCE_ORDER, JSONArray(snapshot.glance.order))
+            put(KEY_GLANCE_OPTIONS, JSONObject().apply {
+                for ((id, named) in snapshot.glance.options.toSortedMap()) put(id, JSONObject(named.toSortedMap() as Map<*, *>))
+            })
         })
     }.toString(INDENT)
 
@@ -138,10 +142,17 @@ object SettingsBackupFormat {
         json ?: return GlanceChoices()
         fun strings(array: JSONArray?) = array?.let { (0 until it.length()).mapNotNull { i -> it.optString(i).takeIf(String::isNotBlank) } }.orEmpty()
         val whens = json.optJSONObject(KEY_GLANCE_WHEN)
+        val options = json.optJSONObject(KEY_GLANCE_OPTIONS)
         return GlanceChoices(
             on = strings(json.optJSONArray(KEY_GLANCE_ON)).toSet(),
             whens = whens?.keys()?.asSequence()?.mapNotNull { id -> whens.optString(id).takeIf(String::isNotBlank)?.let { id to it } }?.toMap().orEmpty(),
             order = strings(json.optJSONArray(KEY_GLANCE_ORDER)),
+            options = options?.keys()?.asSequence()?.mapNotNull { id ->
+                val named = options.optJSONObject(id)?.let { n ->
+                    n.keys().asSequence().mapNotNull { name -> n.optString(name).takeIf(String::isNotBlank)?.let { name to it } }.toMap()
+                }.orEmpty()
+                named.takeIf { it.isNotEmpty() }?.let { id to it }
+            }?.toMap().orEmpty(),
         )
     }
 

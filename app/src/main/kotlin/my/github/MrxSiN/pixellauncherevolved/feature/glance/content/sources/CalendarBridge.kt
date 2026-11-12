@@ -4,6 +4,7 @@ import android.content.ContentResolver
 
 import my.github.MrxSiN.pixellauncherevolved.core.Logger
 import my.github.MrxSiN.pixellauncherevolved.glance.CalendarEvents
+import my.github.MrxSiN.pixellauncherevolved.glance.CalendarList
 import my.github.MrxSiN.pixellauncherevolved.glance.CalendarWire
 
 /**
@@ -13,7 +14,14 @@ import my.github.MrxSiN.pixellauncherevolved.glance.CalendarWire
  */
 internal object CalendarBridge {
 
-    fun read(resolver: ContentResolver, modulePackage: String, logger: Logger): CalendarEvents? = runCatching {
-        CalendarWire.decode(resolver.call(CalendarWire.authority(modulePackage), CalendarWire.METHOD_EVENTS, null, null))
+    /** [calendars] is the stored option value (calendar ids, comma-separated); null or empty reads every calendar. */
+    fun read(resolver: ContentResolver, modulePackage: String, logger: Logger, calendars: String? = null): CalendarEvents? = runCatching {
+        val filter = CalendarWire.filter(CalendarWire.parseIds(calendars))
+        CalendarWire.decode(resolver.call(CalendarWire.authority(modulePackage), CalendarWire.METHOD_EVENTS, null, filter))
     }.onFailure { logger.warn("The calendar could not be read from this module's app", it) }.getOrNull()
+
+    /** The visible calendars, for settings; same rules as [read]. */
+    fun calendars(resolver: ContentResolver, modulePackage: String, logger: Logger): CalendarList? = runCatching {
+        CalendarWire.decodeCalendars(resolver.call(CalendarWire.authority(modulePackage), CalendarWire.METHOD_CALENDARS, null, null))
+    }.onFailure { logger.warn("The calendars could not be listed from this module's app", it) }.getOrNull()
 }

@@ -29,11 +29,36 @@ class CalendarProvider : ContentProvider() {
     override fun onCreate(): Boolean = true
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
-        if (callingPackage != FocusProvider.LAUNCHER_PACKAGE || method != CalendarWire.METHOD_EVENTS) return null
+        if (callingPackage != FocusProvider.LAUNCHER_PACKAGE || (method != CalendarWire.METHOD_EVENTS && method != CalendarWire.METHOD_CALENDARS)) return null
         val context = context ?: return null
         if (context.checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
             return CalendarWire.denied()
         }
+        return if (method == CalendarWire.METHOD_CALENDARS) calendars(context) else events(context, CalendarWire.filterOf(extras))
+    }
+
+    /** The visible calendars, for the launcher's settings to offer as a choice. */
+    private fun calendars(context: android.content.Context): Bundle {
+        val ids = ArrayList<Long>()
+        val names = ArrayList<String>()
+        val accounts = ArrayList<String>()
+        runCatching {
+            context.contentResolver.query(
+                CalendarContract.Calendars.CONTENT_URI,
+                arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, CalendarContract.Calendars.ACCOUNT_NAME),
+                "${CalendarContract.Calendars.VISIBLE}=1", null,
+                "${CalendarContract.Calendars.ACCOUNT_NAME} ASC, ${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME} ASC",
+            )?.use {
+                while (it.moveToNext() && ids.size < LIMIT) {
+                    ids += it.getLong(0); names += it.getString(1).orEmpty(); accounts += it.getString(2).orEmpty()
+                }
+            }
+        }.onFailure { Log.w(AndroidLogger.TAG, "The calendars could not be listed", it) }
+        return CalendarWire.calendars(ids.toLongArray(), names.toTypedArray(), accounts.toTypedArray())
+    }
+
+    /** Today's and tomorrow's events; [calendars] empty reads every visible calendar, otherwise only those ids. */
+    private fun events(context: android.content.Context, calendars: LongArray): Bundle {
         val begin = GlanceCardTimes.startOfDay(System.currentTimeMillis(), TimeZone.getDefault())
         val uri = CalendarContract.Instances.CONTENT_URI.buildUpon()
             .appendEncodedPath(begin.toString())
@@ -48,7 +73,9 @@ class CalendarProvider : ContentProvider() {
             context.contentResolver.query(
                 uri, PROJECTION,
                 "${CalendarContract.Instances.VISIBLE}=1 AND ${CalendarContract.Instances.ALL_DAY}=0 AND " +
-                    "${CalendarContract.Instances.STATUS}!=${CalendarContract.Events.STATUS_CANCELED}",
+                    "${CalendarContract.Instances.STATUS}!=${CalendarContract.Events.STATUS_CANCELED}" +
+                    // Longs only, so inlining them cannot inject anything.
+                    if (calendars.isEmpty()) "" else " AND ${CalendarContract.Instances.CALENDAR_ID} IN (${calendars.joinToString(",")})",
                 null, "${CalendarContract.Instances.BEGIN} ASC",
             )?.use {
                 while (it.moveToNext() && n < LIMIT) {

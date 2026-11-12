@@ -1,0 +1,166 @@
+package my.github.MrxSiN.pixellauncherevolved.feature.settings
+
+import android.content.Context
+import android.content.SharedPreferences
+import android.text.InputType
+import android.view.View
+import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
+
+import kotlin.math.roundToInt
+
+import my.github.MrxSiN.pixellauncherevolved.R
+import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
+import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagesDialog
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceOption
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceOptions
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSources
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.CalendarBridge
+import my.github.MrxSiN.pixellauncherevolved.glance.CalendarList
+import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
+
+/**
+ * "Options" for every At a Glance source: one row each, its summary the values that are not the
+ * default, a tap opening a dialog with a row per option ([GlanceOption]; Hide after is on every
+ * source). Stored as `glance_option_<id>_<name>`; absent is the default. The calendar choice is a
+ * single calendar or all (Smartspacer allows several); the calendar names are read from this module's
+ * app off the main thread before the dialog opens.
+ */
+internal object GlanceOptionsRows : SettingsRow {
+
+    override fun addTo(group: Any, scope: RowScope) {
+        val preferences = LauncherSettings.preferences(scope.context)
+        for (source in GlanceSources.all) {
+            val options = GlanceOptions.of(source)
+            lateinit var row: Any
+            row = scope.link(
+                key = SettingsKeys.row("glance_options_${source.id}"),
+                title = source.titleRes,
+                summary = summary(scope, preferences, source, options),
+            ) {
+                if (options.any { it.type == GlanceOption.Type.CALENDAR }) {
+                    FocusPagesDialog.readThen(scope.context, {
+                        CalendarBridge.calendars(scope.context.contentResolver, scope.environment.modulePackage, scope.environment.logger)
+                    }) { calendars -> show(scope, preferences, source, options, calendars) { scope.api.setSummary(row, summary(scope, preferences, source, options)) } }
+                } else {
+                    show(scope, preferences, source, options, null) { scope.api.setSummary(row, summary(scope, preferences, source, options)) }
+                }
+            }
+            scope.api.add(group, row)
+            scope.requires(CompatibilityFeature.AT_A_GLANCE, row)
+        }
+    }
+
+    private fun summary(scope: RowScope, preferences: SharedPreferences, source: GlanceSource, options: List<GlanceOption>): String {
+        val set = options.mapNotNull { option ->
+            val value = preferences.getString(GlanceOptions.key(source.id, option.name), null)?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            val shown = when (option.type) {
+                GlanceOption.Type.TEXT -> value
+                GlanceOption.Type.CALENDAR -> scope.string(R.string.glance_option_calendars_one)
+                GlanceOption.Type.CHOICE -> option.choices.firstOrNull { it.value == value }?.let { scope.string(it.labelRes) } ?: return@mapNotNull null
+            }
+            scope.string(R.string.glance_option_summary_entry, scope.string(option.titleRes), shown)
+        }
+        return if (set.isEmpty()) scope.string(R.string.glance_option_summary_default) else set.joinToString(", ")
+    }
+
+    /** The dialog: a card row per option, its value under its name; a tap changes it and stores it at once. */
+    private fun show(
+        scope: RowScope,
+        preferences: SharedPreferences,
+        source: GlanceSource,
+        options: List<GlanceOption>,
+        calendars: CalendarList?,
+        onClosed: () -> Unit,
+    ) {
+        val context = scope.context
+        val values = options.map { TextView(context) }
+
+        fun store(option: GlanceOption, value: String?) {
+            val key = GlanceOptions.key(source.id, option.name)
+            preferences.edit().apply { if (value.isNullOrEmpty()) remove(key) else putString(key, value) }.apply()
+        }
+
+        fun current(option: GlanceOption): String? = preferences.getString(GlanceOptions.key(source.id, option.name), null)?.takeIf { it.isNotEmpty() }
+
+        fun label(option: GlanceOption): CharSequence {
+            val value = current(option)
+            return when (option.type) {
+                GlanceOption.Type.TEXT -> value ?: scope.string(R.string.glance_option_text_empty)
+                GlanceOption.Type.CHOICE -> option.choices.firstOrNull { it.value == value }?.let { scope.string(it.labelRes) } ?: scope.string(option.defaultRes)
+                GlanceOption.Type.CALENDAR -> calendarChoices(scope, option, calendars).firstOrNull { it.first == value }?.second
+                    ?: if (value == null) scope.string(option.defaultRes) else scope.string(R.string.glance_option_calendars_one)
+            }
+        }
+
+        val rows = options.mapIndexed { index, option ->
+            LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                val dp = { v: Float -> (v * context.resources.displayMetrics.density).roundToInt() }
+                setPadding(dp(16f), dp(12f), dp(20f), dp(12f))
+                addView(TextView(context).apply {
+                    text = scope.string(option.titleRes)
+                    ExpressiveType.TITLE_MEDIUM.applyTo(this, ExpressiveRole.ON_SURFACE)
+                })
+                addView(values[index].apply {
+                    text = label(option)
+                    ExpressiveType.BODY_MEDIUM.applyTo(this, ExpressiveRole.ON_SURFACE_VARIANT)
+                })
+            }
+        }
+
+        val list = ExpressiveCardList.build(context, rows) { index ->
+            val option = options[index]
+            val changed = { value: String?, text: CharSequence -> store(option, value); values[index].text = text }
+            when (option.type) {
+                GlanceOption.Type.TEXT -> editText(scope, context, option, current(option)) { text -> store(option, text); values[index].text = label(option) }
+                GlanceOption.Type.CHOICE -> FocusPagesDialog.choose(
+                    context, scope.resources, scope.string(option.titleRes),
+                    listOf<Pair<String?, CharSequence>>(null to scope.string(option.defaultRes)) + option.choices.map { it.value to scope.string(it.labelRes) },
+                    current(option), changed,
+                )
+                GlanceOption.Type.CALENDAR -> FocusPagesDialog.choose(
+                    context, scope.resources, scope.string(option.titleRes), calendarChoices(scope, option, calendars), current(option), changed,
+                )
+            }
+        }
+
+        ExpressiveDialog(context)
+            .title(scope.string(source.titleRes))
+            .content(list)
+            .confirm(scope.string(R.string.glance_order_done))
+            .show()
+            .setOnDismissListener { onClosed() }
+    }
+
+    /** "All calendars", then each visible calendar by name and account; just the first when none could be read. */
+    private fun calendarChoices(scope: RowScope, option: GlanceOption, calendars: CalendarList?): List<Pair<String?, CharSequence>> =
+        listOf<Pair<String?, CharSequence>>(null to scope.string(option.defaultRes)) +
+            calendars?.ids?.indices?.map { i ->
+                calendars.ids[i].toString() to scope.string(R.string.glance_option_calendars_choice, calendars.names[i], calendars.accounts[i])
+            }.orEmpty()
+
+    private fun editText(scope: RowScope, context: Context, option: GlanceOption, current: String?, onDone: (String) -> Unit) {
+        val input = EditText(context).apply {
+            setText(current.orEmpty())
+            setSelection(text.length)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            setSingleLine()
+            ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
+        }
+        val holder = LinearLayout(context).apply {
+            val side = (24f * context.resources.displayMetrics.density).roundToInt()
+            setPadding(side, 0, side, 0)
+            addView(input, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        ExpressiveDialog(context)
+            .title(scope.string(option.titleRes))
+            .content(holder as View)
+            .confirm(scope.string(R.string.glance_order_done)) { onDone(input.text.toString().trim()) }
+            .dismiss(context.getString(android.R.string.cancel))
+            .show()
+    }
+}
