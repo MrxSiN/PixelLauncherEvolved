@@ -81,8 +81,27 @@ class ZenModes(
         return failed(FocusFailure.STALE)
     }
 
+    /** Index into [DUMP_SOURCES] of the service that last held the Zen section; tried first. */
+    @Volatile private var source = 0
+
+    /**
+     * The first service, latest build first, whose dump holds the Zen section. A source
+     * with no section prints nothing through the filter, an absent service included, so
+     * the next is tried; a refusal or timeout is root's answer for all of them.
+     */
+    private fun readOnce(): FocusSnapshot {
+        for (step in DUMP_SOURCES.indices) {
+            val index = (source + step) % DUMP_SOURCES.size
+            val result = shell.run(DUMP_PREFIX + DUMP_SOURCES[index] + SECTION_FILTER)
+            if (result is RootResult.Output && result.text.isBlank()) continue
+            source = index
+            return snapshotOf(result)
+        }
+        return failed(FocusFailure.MALFORMED)
+    }
+
     /** A failure is said as one, never as an empty list of Modes. */
-    private fun readOnce(): FocusSnapshot = when (val result = shell.run(DUMP_COMMAND)) {
+    private fun snapshotOf(result: RootResult): FocusSnapshot = when (result) {
         is RootResult.Failed -> failed(result.reason)
         is RootResult.Output -> {
             val config = result.text.substringBefore(CONFIG_END, missingDelimiterValue = "").let(::ownConfig)
@@ -193,7 +212,15 @@ class ZenModes(
          * the current user's again, then a log of changes in which a rule that came
          * on hours ago still reads as on. Only what comes before `mUser=` is read.
          */
-        const val DUMP_COMMAND = "dumpsys notification --zen | sed -n '/Zen Mode:/,/mUser=/p'"
+        const val DUMP_PREFIX = "dumpsys "
+        const val SECTION_FILTER = " | sed -n '/Zen Mode:/,/mUser=/p'"
+
+        /**
+         * The services that dump the Zen section, latest build first. `CP4A.261105.040.A1` moved
+         * it to `contextual_mode` (`IContextualModeManager`); earlier builds print it in
+         * `notification`. Same layout in both, measured.
+         */
+        val DUMP_SOURCES = arrayOf("contextual_mode", "notification --zen")
 
         /** The line that follows the first configuration block. */
         const val CONFIG_END = "mUser="

@@ -158,6 +158,26 @@ class ZenModesTest {
         }
     }
 
+    /** CP4A dumps the Zen section from `contextual_mode`; earlier builds from `notification`. */
+    @Test
+    fun theServiceHoldingTheSectionIsFoundLatestFirstAndRemembered() {
+        val dump = dump("ZenRule[id=a,state=STATE_TRUE,enabled=TRUE,name=Work,zenMode=ZEN_MODE_OFF,pkg=android]")
+        val commands = mutableListOf<String>()
+        val earlier = ZenModes(0, CommandRunner { command ->
+            commands += command
+            RootResult.Output(if ("notification" in command) dump else "")
+        })
+        assertEquals(FocusStatus.VALID, earlier.snapshot().status)
+        assertTrue("contextual_mode" in commands[0])
+        assertEquals(2, commands.size)
+        earlier.snapshot()
+        assertTrue("notification" in commands[2])
+        assertEquals(3, commands.size)
+
+        val nowhere = ZenModes(0, CommandRunner { RootResult.Output("") }).snapshot()
+        assertEquals(FocusFailure.MALFORMED, nowhere.failure)
+    }
+
     @Test
     fun concurrentReadsShareOneShell() {
         val started = java.util.concurrent.CountDownLatch(1)

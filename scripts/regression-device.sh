@@ -79,14 +79,18 @@ case_home() {
 
 # ---- The Modes dump still has the layout ZenModes reads: a build that changes it shows here first.
 case_modes_format() {
-    local dump
-    dump=$(su_ "dumpsys notification --zen | sed -n \"/Zen Mode:/,/mUser=/p\"")
+    # Same sources as ZenModes.DUMP_SOURCES, latest build first.
+    local dump source
+    for source in "contextual_mode" "notification --zen"; do
+        dump=$(su_ "dumpsys $source | sed -n \"/Zen Mode:/,/mUser=/p\"")
+        [ -n "$dump" ] && break
+    done
     local missing=()
     for marker in "mConfigs\[u=0\]" "automaticRules=" "manualRule=" "deletedRules=" "mUser="; do
         grep -q "$marker" <<<"$dump" || missing+=("$marker")
     done
     if [ ${#missing[@]} -eq 0 ]; then
-        record modes_dump_format PASS "$(grep -c 'ZenRule\[' <<<"$dump") rules, $(wc -c <<<"$dump") bytes"
+        record modes_dump_format PASS "$source: $(grep -c 'ZenRule\[' <<<"$dump") rules, $(wc -c <<<"$dump") bytes"
     else
         record modes_dump_format FAIL "missing ${missing[*]}"
     fi
