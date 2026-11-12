@@ -31,6 +31,8 @@
   asks for the Calendar permission once; Pixel Launcher itself still has none.
 - **Change order** for information cards and for extra information. Backups and reset now carry
   which sources are on, when each shows and their order.
+- **When to show** also offers while on Wi-Fi, while on mobile data and while headphones are
+  connected (wired, USB or Bluetooth).
 
 ## 0.1.7
 
