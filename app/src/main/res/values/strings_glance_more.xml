@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glance_more_wellbeing_title">Screen time</string>
+    <string name="glance_more_wellbeing_description">Today\'s screen time and the three apps used most. Needs the launcher to hold usage access</string>
+    <string name="glance_more_wellbeing_time_title">Screen time (short)</string>
+    <string name="glance_more_wellbeing_time_description">Today\'s screen time beside the date line. Needs the launcher to hold usage access</string>
+    <string name="glance_more_wellbeing_screen_time">%1$s screen time</string>
+    <string name="glance_more_wellbeing_hm">%1$dh %2$dm</string>
+    <string name="glance_more_wellbeing_m">%1$dm</string>
+</resources>
