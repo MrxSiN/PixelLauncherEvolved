@@ -40,6 +40,9 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
  */
 class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_calendar_title, R.string.glance_card_calendar_description) {
 
+    override val permission: String = Manifest.permission.READ_CALENDAR
+
+
     private class Events(
         val day: Long,
         val ids: LongArray,
@@ -50,7 +53,7 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
 
     @Volatile private var events: Events? = null
     private var thread: HandlerThread? = null
-    private var worker: Handler? = null
+    @Volatile private var worker: Handler? = null
 
     private val observer = object : ContentObserver(null) {
         override fun onChange(selfChange: Boolean) = reload()

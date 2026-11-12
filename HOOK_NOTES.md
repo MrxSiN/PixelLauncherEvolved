@@ -3315,3 +3315,27 @@ permission, so the launcher process could use the client SDK after the person ap
 cards, complications, requirements and plugins have no API for launchers to change. Its Native
 Smartspace setting replaces the system Smartspace service, which this launcher's own At a Glance
 already reads, so no client SDK is bundled.
+
+### At a Glance content (read from the DEX and tested on device, November 13, 2026)
+
+```
+com.google.android.systemui.smartspace.BcSmartspaceView
+  onSmartspaceTargetsUpdated(List)                 // public; calls the next with a null Runnable
+  onSmartspaceTargetsUpdated(List, Runnable)       // every view, home and copies; called on the
+                                                   // main thread and on a background one
+com.google.android.systemui.smartspace.w           // the card adapter
+  l(List, Runnable)  keeps a target when featureType != 34 and (remoteViews != null, or
+                     featureType == 1, or vb.b.a(templateData): templateType not 0 and not 8);
+                     else logs "No card can be created for target"
+```
+
+`GlanceContentFeature` hooks the two-argument method and hands the view the system targets plus its
+own (`GlanceTargets.merge`): cards as pages after the first, extras into the first free
+`subtitleItem` / `subtitleSupplementalItem` of the first templated target (the date card, which is
+`FEATURE_WEATHER` with template 1). The framework's `SubItemInfo.Builder.build()` throws "SubItem
+data is empty" for an item with no text, icon or tap, so such items are left out. The accessibility
+label "Page 1 of N" lags behind the pager after a refresh; the page dots are right.
+
+Smartspacer add-ons check `callingPackage == "com.kieronquinn.app.smartspacer"`
+(`sdk-plugin` `BaseProvider.verifySecurity`), and their providers need signature permissions
+Smartspacer defines, so no other package can host them unchanged.

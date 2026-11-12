@@ -130,11 +130,12 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
         val whens = whenOf
         for (source in active) {
             if (!conditions.holds(whens[source.id])) continue
-            val item = runCatching { source.content() }
-                .onFailure { host.logger.warn("At a Glance source ${source.id} failed", it) }
-                .getOrNull() ?: continue
-            val id = ID_PREFIX + source.id
-            if (source.kind == GlanceSource.Kind.CARD) cards += targets.card(id, item) else extras += id to item
+            // One source failing, in its own code or in the framework's builders, leaves out only its content.
+            runCatching {
+                val item = source.content() ?: return@runCatching
+                val id = ID_PREFIX + source.id
+                if (source.kind == GlanceSource.Kind.CARD) cards += targets.card(id, item) else extras += id to item
+            }.onFailure { host.logger.warn("At a Glance source ${source.id} failed", it) }
         }
         return targets.merge(given, cards, extras)
     }

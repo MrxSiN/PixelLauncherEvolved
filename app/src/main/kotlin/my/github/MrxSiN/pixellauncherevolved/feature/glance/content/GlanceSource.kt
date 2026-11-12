@@ -33,6 +33,9 @@ abstract class GlanceSource(
 ) {
     enum class Kind { CARD, EXTRA }
 
+    /** A permission the launcher's process must hold for this source to show anything, or null. */
+    open val permission: String? = null
+
     /** Set before [start]; valid until [stop]. */
     lateinit var host: GlanceHost
 

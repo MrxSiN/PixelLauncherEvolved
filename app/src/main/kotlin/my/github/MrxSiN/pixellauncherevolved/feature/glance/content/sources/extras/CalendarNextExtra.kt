@@ -30,6 +30,9 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
  */
 class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.glance_extra_calendar_title, R.string.glance_extra_calendar_description) {
 
+    override val permission: String = Manifest.permission.READ_CALENDAR
+
+
     @Volatile private var begin = 0L
     @Volatile private var text = ""
 

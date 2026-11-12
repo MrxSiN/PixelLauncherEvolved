@@ -38,6 +38,8 @@ internal class GlanceTargets(private val component: ComponentName) {
             .setPrimaryItem(subItem("${id}_primary", item.title, null, item))
             .setSubtitleItem(subItem("${id}_subtitle", item.subtitle ?: "", item.icon, item))
             .build()
+        // The framework refuses a sub-item with no text, icon or tap, so a card with only a title
+        // (a greeting, say) leaves its subtitle out rather than passing an empty one.
         return SmartspaceTarget.Builder(id, component, Process.myUserHandle())
             .setFeatureType(constant(item.feature))
             .setHeaderAction(header)
@@ -114,7 +116,8 @@ internal class GlanceTargets(private val component: ComponentName) {
             .setRemoteViews(target.remoteViews)
             .build()
 
-    private fun subItem(id: String, text: CharSequence, icon: android.graphics.drawable.Icon?, item: GlanceItem): BaseTemplateData.SubItemInfo {
+    private fun subItem(id: String, text: CharSequence, icon: android.graphics.drawable.Icon?, item: GlanceItem): BaseTemplateData.SubItemInfo? {
+        if (text.isEmpty() && icon == null) return null
         val builder = BaseTemplateData.SubItemInfo.Builder().setText(Text.Builder(text).build())
         if (icon != null) builder.setIcon(TemplateIcon.Builder(icon).setShouldTint(item.tintIcon).build())
         if (item.tap != null || item.tapIntent != null) {

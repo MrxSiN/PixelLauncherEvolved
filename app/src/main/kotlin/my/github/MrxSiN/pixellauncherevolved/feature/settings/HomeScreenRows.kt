@@ -1,5 +1,7 @@
 package my.github.MrxSiN.pixellauncherevolved.feature.settings
 
+import android.content.pm.PackageManager
+
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.catalog.Settings
@@ -68,15 +70,18 @@ internal class GlanceSourceRows(private val kind: GlanceSource.Kind) : SettingsR
         for (source in GlanceSources.all) {
             if (source.kind != kind) continue
             val key = GlanceSources.key(source)
+            // Shown but greyed out when Pixel Launcher lacks what the source reads, so its absence is explained.
+            val allowed = source.permission?.let { scope.context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED } ?: true
             val row = scope.api.createSwitch(
                 context = scope.context,
                 key = SettingsKeys.row(key),
                 title = scope.string(source.titleRes),
-                summary = scope.string(source.descriptionRes),
-                checked = preferences.getBoolean(key, false),
+                summary = if (allowed) scope.string(source.descriptionRes) else scope.string(R.string.glance_source_no_permission),
+                checked = allowed && preferences.getBoolean(key, false),
                 onChange = { on -> preferences.edit().putBoolean(key, on).apply() },
             )
             scope.api.add(group, row)
+            if (!allowed) scope.api.setEnabled(row, false)
             scope.requires(CompatibilityFeature.AT_A_GLANCE, row)
         }
     }

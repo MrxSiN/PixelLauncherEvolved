@@ -128,6 +128,7 @@
     <string name="glance_when_afternoon">Afternoons, noon to 5 PM</string>
     <string name="glance_when_evening">Evenings, 5 PM to 10 PM</string>
     <string name="glance_when_night">Nights, 10 PM to 5 AM</string>
+    <string name="glance_source_no_permission">Unavailable: Pixel Launcher has no access to this information</string>
     <string name="glance_source_torch_title">Torch</string>
     <string name="glance_source_torch_description">A card while the torch is on, to turn it off</string>
     <string name="glance_source_torch_on">Torch on</string>

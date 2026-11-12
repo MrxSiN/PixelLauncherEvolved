@@ -10,6 +10,9 @@ this release adds lives under new keys whose absence reads as the old behaviour.
   live only in the bound model, so removing or disabling the module leaves the stock home screen.
   One visible change on upgrade: while a Mode hides screen 0, At a Glance now shows on that Mode's
   first page when its top row is free, instead of disappearing.
+- **Unreleased, At a Glance content (new state):** `glance_source_<id>` (bool, absent = off) and
+  `glance_when_<id>` (text, absent = always) per source. Not in backups yet. A missing key changes
+  nothing, so an upgrade shows no new content until a source is switched on.
 - **0.1.7:** no setting, key or backup format changes. Two caches change shape and rebuild by
   themselves: `compatibility_analyzed_launcher_version` now holds `<versionCode>@<system build>`, so
   the compatibility report is written once more after the upgrade; and the DexKit symbol cache

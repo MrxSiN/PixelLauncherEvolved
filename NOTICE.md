@@ -17,8 +17,12 @@ reproduced here.
 
 ## Third-party code
 
-No Smartspacer code is included. The At a Glance page only opens Smartspacer
-(GPL-3.0, Kieron Quinn) when it is installed, or its releases page.
+At a Glance's information cards, extra information and When to show are
+rewritten from Smartspacer's built-in Targets, Complications and Requirements
+(https://github.com/KieronQuinn/Smartspacer, GPL-3.0, Kieron Quinn); several
+of its vector icons are copied, each marked in its file. This module is GPL-3.0
+as well. Smartspacer's third-party add-ons are not supported: they only answer
+Smartspacer's own package.
 
 The module packages [DexKit](https://github.com/LuckyPray/DexKit) (LGPL-3.0),
 with its native library `libdexkit.so`, and FlatBuffers for Java (Apache-2.0),

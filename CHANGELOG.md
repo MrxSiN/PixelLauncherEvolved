@@ -19,8 +19,12 @@
   on last wins, as with the other per-Mode settings.
 - A new app is never placed under an At a Glance copy: the copies count as taken cells when the
   launcher looks for room.
-- **Information cards and extra information** opens Smartspacer, or its releases page when it is
-  not installed. Smartspacer has no API for launchers to change its cards, so they are changed there.
+- **Information cards** and **Extra information** in At a Glance, rewritten from Smartspacer's
+  built-ins and drawn by the launcher's own At a Glance on the home screen, no Smartspacer needed:
+  cards Torch, Calendar, Date, Clock and Greeting; extras Next alarm, Battery level, Date, Time and
+  Next calendar event. Each has a switch and a **When to show** choice (always, while music plays,
+  while charging, or a part of the day). A card the system already shows (Pixel's own torch card)
+  is not shown twice. The calendar sources are greyed out: Pixel Launcher has no calendar access.
 
 ## 0.1.7
 

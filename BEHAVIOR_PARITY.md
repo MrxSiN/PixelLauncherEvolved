@@ -269,3 +269,14 @@ earlier-generation fallbacks (HOOK_NOTES, "Two launcher generations").
 - Smartspacer's process dying drops Native Smartspace: At a Glance went blank on home until it was
   re-enabled (which restarts SystemUI). Smartspacer posts a "Re-enable Native Smartspace" notification.
 - Not tested: the Tasker add-on (needs a Tasker profile), RemoteViews targets, work profile.
+
+### Native At a Glance content (device, 2026-11-13)
+
+- Next alarm extra: "7:30 AM" beside the weather; set to Mornings after midnight it disappeared.
+- Battery level extra: "47%" with the battery icon beside the weather.
+- Torch card: added as its own page while the torch was on; once the merge skipped a card whose
+  feature type the system already sent, only Pixel's own "Flashlight on" card showed.
+- Greeting ("Good night") and Clock ("12:52 AM" with a clock icon) cards: pages 2 and 3.
+- Calendar sources: greyed out with "Unavailable", as Pixel Launcher lacks `READ_CALENDAR`.
+- Afterwards every `glance_source_*` and `glance_when_*` key was removed again, which is stock.
+- Not tested on device: Date card, Date and Time extras, While music plays / While charging.
