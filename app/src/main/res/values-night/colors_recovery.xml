@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Layout recovery: the system dynamic color roles Settings draws with (Material 3 Expressive). -->
+<resources>
+    <color name="recovery_page">@android:color/system_surface_container_dark</color>
+    <color name="recovery_card">@android:color/system_surface_bright_dark</color>
+    <color name="recovery_on_surface">@android:color/system_on_surface_dark</color>
+    <color name="recovery_on_surface_variant">@android:color/system_on_surface_variant_dark</color>
+    <color name="recovery_primary">@android:color/system_primary_dark</color>
+    <color name="recovery_on_primary">@android:color/system_on_primary_dark</color>
+    <color name="recovery_banner">@android:color/system_secondary_container_dark</color>
+    <color name="recovery_on_banner">@android:color/system_on_secondary_container_dark</color>
+</resources>

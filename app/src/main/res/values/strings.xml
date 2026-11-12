@@ -437,8 +437,8 @@
     <string name="recovery_copy_latest">Last launcher start</string>
     <string name="recovery_copy_none">No backup available</string>
     <string name="recovery_copy_detail">%1$d items · Saved %2$s</string>
-    <string name="recovery_restore_before">Restore previous layout</string>
-    <string name="recovery_restore_latest">Restore layout from last launch</string>
+    <string name="recovery_backups">Layout backups</string>
+    <string name="recovery_back">Back</string>
     <string name="recovery_restore">Restore</string>
     <string name="recovery_confirm_before">Pixel Launcher will restart with the layout saved before this module changed it. Grid and dock settings will return to system defaults. Home screen items added since that backup won\'t be included. The current layout will be kept as a backup.</string>
     <string name="recovery_confirm_latest">Pixel Launcher will restart with the layout saved at its last launch with this module. The current layout will be kept as a backup.</string>

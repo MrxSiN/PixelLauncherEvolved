@@ -40,7 +40,7 @@
             android:name=".recovery.RecoveryActivity"
             android:exported="true"
             android:label="@string/recovery_title"
-            android:theme="@android:style/Theme.DeviceDefault.DayNight">
+            android:theme="@style/Theme.Recovery">
             <intent-filter>
                 <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
                 <category android:name="android.intent.category.DEFAULT" />

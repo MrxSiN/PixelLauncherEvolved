@@ -5,12 +5,7 @@ import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Process
 import android.text.format.DateFormat
-import android.util.TypedValue
-import android.view.ViewGroup
-import android.view.WindowInsets
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.ScrollView
+import android.view.View
 import android.widget.TextView
 import java.util.Date
 import java.util.concurrent.Executors
@@ -36,6 +31,8 @@ import my.github.MrxSiN.pixellauncherevolved.layout.Manifest
  * that file as the launcher's own and stops the launcher, for this Android user
  * only. Nothing is done from the intent alone: every change is a tap here,
  * confirmed, on a screen that ignores taps made through another window.
+ *
+ * Drawn by [RecoveryPage] the way Settings draws a page.
  */
 class RecoveryActivity : Activity() {
 
@@ -43,7 +40,10 @@ class RecoveryActivity : Activity() {
     private val shell: CommandRunner = RootShell(globalNamespace = true)
     private val worker = Executors.newSingleThreadExecutor()
     private lateinit var status: TextView
-    private lateinit var buttons: List<Button>
+    private lateinit var rows: Map<String, RecoveryPage.Row>
+
+    /** What the banner says now; a later read of the copies hides it only while it says "checking". */
+    private var message = R.string.recovery_checking
 
     /** The launcher's copies, for this Android user only. */
     private val folder = "/data/user/${Process.myUid() / PER_USER_RANGE}/$LAUNCHER/no_backup/ple_layout"
@@ -52,29 +52,17 @@ class RecoveryActivity : Activity() {
         super.onCreate(savedInstanceState)
         setTitle(R.string.recovery_title)
 
-        val pad = dp(24)
-        val column = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad, pad, pad)
-            filterTouchesWhenObscured = true
+        val page = RecoveryPage(this)
+        page.header(getString(R.string.recovery_title))
+        page.intro(getString(R.string.recovery_intro))
+        status = page.banner(getString(R.string.recovery_checking))
+        page.groupTitle(getString(R.string.recovery_backups))
+        val restore = getString(R.string.recovery_restore)
+        rows = SLOTS.associate { (slot, title, confirm) ->
+            slot to page.row(R.drawable.ic_recovery_history, getString(title), restore) { confirm(slot, confirm) }
         }
-        column.addView(text(getString(R.string.recovery_intro)))
-        status = text(getString(R.string.recovery_checking)).also(column::addView)
-        buttons = listOf(
-            button(R.string.recovery_restore_before) { confirm(SLOT_BEFORE, R.string.recovery_confirm_before) },
-            button(R.string.recovery_restore_latest) { confirm(SLOT_LATEST, R.string.recovery_confirm_latest) },
-        ).onEach(column::addView)
-        column.addView(text(getString(R.string.recovery_limits)))
-        setContentView(ScrollView(this).apply {
-            addView(column)
-            clipToPadding = false
-            // Drawn edge to edge (target SDK 35+): keep the text clear of the title and system bars.
-            setOnApplyWindowInsetsListener { view, insets ->
-                val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-                view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-                insets
-            }
-        })
+        page.shapeGroup(rows.values.toList())
+        page.footer(getString(R.string.recovery_limits))
 
         refresh()
     }
@@ -86,7 +74,7 @@ class RecoveryActivity : Activity() {
 
     /** Reads which copies exist, off the main thread: root can take a while to answer. */
     private fun refresh() {
-        buttons.forEach { it.isEnabled = false }
+        rows.values.forEach { it.button.isEnabled = false }
         worker.execute {
             val result = shell.run(
                 "for s in $SLOT_BEFORE $SLOT_LATEST; do echo \"$MARK\$s \$(stat -c %Y $folder/\$s.db 2>/dev/null)\"; " +
@@ -98,21 +86,25 @@ class RecoveryActivity : Activity() {
 
     private fun show(result: RootResult) {
         if (result !is RootResult.Output) {
-            status.setText(R.string.recovery_no_root)
+            say(R.string.recovery_no_root)
             return
         }
+        if (message == R.string.recovery_checking) status.visibility = View.GONE
         val copies = parse(result.text)
-        status.text = listOf(SLOT_BEFORE to R.string.recovery_copy_before, SLOT_LATEST to R.string.recovery_copy_latest)
-            .joinToString("\n\n") { (slot, title) ->
-                val copy = copies[slot]
-                getString(title) + "\n" + if (copy == null) {
-                    getString(R.string.recovery_copy_none)
-                } else {
-                    getString(R.string.recovery_copy_detail, copy.manifest.items, DateFormat.getDateFormat(this).format(Date(copy.seconds * 1000)) + " " + DateFormat.getTimeFormat(this).format(Date(copy.seconds * 1000)))
-                }
+        for ((slot, row) in rows) {
+            val copy = copies[slot]
+            row.summary.text = if (copy == null) {
+                getString(R.string.recovery_copy_none)
+            } else {
+                val saved = Date(copy.seconds * 1000)
+                getString(
+                    R.string.recovery_copy_detail,
+                    copy.manifest.items,
+                    DateFormat.getDateFormat(this).format(saved) + " " + DateFormat.getTimeFormat(this).format(saved),
+                )
             }
-        buttons[0].isEnabled = SLOT_BEFORE in copies
-        buttons[1].isEnabled = SLOT_LATEST in copies
+            row.button.isEnabled = copy != null
+        }
     }
 
     private fun confirm(slot: String, message: Int) {
@@ -129,8 +121,8 @@ class RecoveryActivity : Activity() {
      * stops the launcher; Android starts it again and it puts the copy back first.
      */
     private fun restore(slot: String) {
-        buttons.forEach { it.isEnabled = false }
-        status.setText(R.string.recovery_restoring)
+        rows.values.forEach { it.button.isEnabled = false }
+        say(R.string.recovery_restoring)
         worker.execute {
             val result = shell.run(
                 "D=$folder; [ -f \$D/$slot.db ] && [ -f \$D/$slot.properties ] || exit 3; " +
@@ -140,31 +132,21 @@ class RecoveryActivity : Activity() {
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
                 if (result is RootResult.Output) {
-                    status.setText(R.string.recovery_done)
+                    say(R.string.recovery_done)
                 } else {
-                    status.setText(R.string.recovery_failed)
                     refresh()
+                    say(R.string.recovery_failed)
                 }
             }
         }
     }
 
-    private fun text(value: String) = TextView(this).apply {
-        text = value
-        setTextAppearance(android.R.style.TextAppearance_DeviceDefault_Medium)
-        setPadding(0, 0, 0, dp(16))
+    /** Shows what the page is doing now in its banner. */
+    private fun say(message: Int) {
+        this.message = message
+        status.setText(message)
+        status.visibility = View.VISIBLE
     }
-
-    private fun button(title: Int, onClick: () -> Unit) = Button(this).apply {
-        setText(title)
-        isEnabled = false
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            .apply { bottomMargin = dp(12) }
-        setOnClickListener { onClick() }
-    }
-
-    private fun dp(value: Int): Int =
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics).toInt()
 
     internal class Copy(val seconds: Long, val manifest: Manifest)
 
@@ -173,6 +155,12 @@ class RecoveryActivity : Activity() {
         const val SLOT_BEFORE = "before"
         const val SLOT_LATEST = "latest"
         const val MARK = "@@"
+
+        /** Each copy's row: its slot, its title and what restoring it asks to confirm. */
+        val SLOTS = listOf(
+            Triple(SLOT_BEFORE, R.string.recovery_copy_before, R.string.recovery_confirm_before),
+            Triple(SLOT_LATEST, R.string.recovery_copy_latest, R.string.recovery_confirm_latest),
+        )
 
         /** `UserHandle.PER_USER_RANGE`: a uid divided by it is its user. */
         const val PER_USER_RANGE = 100_000
