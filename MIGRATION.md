@@ -12,7 +12,7 @@ this release adds lives under new keys whose absence reads as the old behaviour.
   first page when its top row is free, instead of disappearing.
 - **Unreleased, At a Glance content (new state):** `glance_source_<id>` (bool, absent = off) and
   `glance_when_<id>` (text, absent = always) per source, and `glance_order` (ids, comma-separated).
-  Backed up under `glance` (`on`, `when`, `order`, by source id); an older backup without it reads as
+  Options are `glance_option_<id>_<name>` (text). Backed up under `glance` (`on`, `when`, `order`, `options`, by source id); an older backup without it reads as
   no content. The module app now asks for `READ_CALENDAR`, only when **Calendar access** is tapped. A missing key changes
   nothing, so an upgrade shows no new content until a source is switched on.
 - **0.1.7:** no setting, key or backup format changes. Two caches change shape and rebuild by

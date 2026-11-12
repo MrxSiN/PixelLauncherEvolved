@@ -288,3 +288,5 @@ earlier-generation fallbacks (HOOK_NOTES, "Two launcher generations").
 - The test switches were removed again afterwards; the module keeps the Calendar permission.
 - When to show, Battery level: while on Wi-Fi it showed 45% (phone on Wi-Fi); while on mobile data
   it was gone. While headphones are connected: not tested on device.
+- Options: Greeting with name Tester showed "Good night, Tester" live; the calendar choice listed the
+  phone's calendars (read off the main thread through the module app). Hide after: not timed on device.

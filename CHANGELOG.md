@@ -33,6 +33,9 @@
   which sources are on, when each shows and their order.
 - **When to show** also offers while on Wi-Fi, while on mobile data and while headphones are
   connected (wired, USB or Bluetooth).
+- **Options** for each source: **Hide after** 5 to 60 minutes once its content last changed
+  (Smartspacer issue 394), a name for the Greeting card, and one calendar or all for the calendar
+  card and extra. Options are backed up with the rest.
 
 ## 0.1.7
 
