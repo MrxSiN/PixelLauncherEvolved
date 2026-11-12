@@ -219,6 +219,9 @@ internal object GlanceWhenRows : SettingsRow {
     private fun label(value: String): Int = when (value) {
         GlanceWhen.MUSIC -> R.string.glance_when_music
         GlanceWhen.CHARGING -> R.string.glance_when_charging
+        GlanceWhen.WIFI -> R.string.glance_when_wifi
+        GlanceWhen.MOBILE -> R.string.glance_when_mobile
+        GlanceWhen.HEADPHONES -> R.string.glance_when_headphones
         GlanceWhen.MORNING -> R.string.glance_when_morning
         GlanceWhen.AFTERNOON -> R.string.glance_when_afternoon
         GlanceWhen.EVENING -> R.string.glance_when_evening

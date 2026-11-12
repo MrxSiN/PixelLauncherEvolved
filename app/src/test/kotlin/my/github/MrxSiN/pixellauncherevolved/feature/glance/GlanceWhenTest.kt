@@ -37,6 +37,15 @@ class GlanceWhenTest {
     }
 
     @Test
+    fun networkAndHeadphonesFollowTheirState() {
+        assertTrue(GlanceWhen.holds(GlanceWhen.WIFI, 0, false, false, onWifi = true))
+        assertFalse(GlanceWhen.holds(GlanceWhen.WIFI, 0, false, false, onMobile = true))
+        assertTrue(GlanceWhen.holds(GlanceWhen.MOBILE, 0, false, false, onMobile = true))
+        assertTrue(GlanceWhen.holds(GlanceWhen.HEADPHONES, 0, false, false, headphones = true))
+        assertNull(GlanceWhen.minutesToNextBoundary(listOf(GlanceWhen.WIFI, GlanceWhen.HEADPHONES), 0))
+    }
+
+    @Test
     fun nextBoundaryIsTheNearestStartOrEnd() {
         assertEquals(60, GlanceWhen.minutesToNextBoundary(listOf(GlanceWhen.MORNING), 11 * 60))
         assertEquals(7 * 60, GlanceWhen.minutesToNextBoundary(listOf(GlanceWhen.NIGHT), 22 * 60))

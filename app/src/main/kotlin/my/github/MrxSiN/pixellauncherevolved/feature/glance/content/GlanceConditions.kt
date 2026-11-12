@@ -5,8 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioAttributes
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.AudioPlaybackConfiguration
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Handler
 import android.os.SystemClock
@@ -34,7 +39,53 @@ internal class GlanceConditions(
     var charging = false
         private set
 
+    @Volatile
+    var onWifi = false
+        private set
+
+    @Volatile
+    var onMobile = false
+        private set
+
+    @Volatile
+    var headphones = false
+        private set
+
     private var used: Set<String> = emptySet()
+    private var connectivity: ConnectivityManager? = null
+    private var deviceAudio: AudioManager? = null
+
+    private val network = object : ConnectivityManager.NetworkCallback() {
+        override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+            setNetwork(
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI),
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR),
+            )
+        }
+
+        override fun onLost(network: Network) = setNetwork(wifi = false, mobile = false)
+    }
+
+    /** Runs on the main thread: the callback is registered with [main]. */
+    private fun setNetwork(wifi: Boolean, mobile: Boolean) {
+        if (wifi == onWifi && mobile == onMobile) return
+        onWifi = wifi
+        onMobile = mobile
+        onChange()
+    }
+
+    private val devices = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(added: Array<out AudioDeviceInfo>) = readHeadphones()
+        override fun onAudioDevicesRemoved(removed: Array<out AudioDeviceInfo>) = readHeadphones()
+    }
+
+    private fun readHeadphones() {
+        val now = deviceAudio?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)?.any { it.type in HEADPHONE_TYPES } == true
+        if (now != headphones) {
+            headphones = now
+            onChange()
+        }
+    }
     private var audio: AudioManager? = null
     private var watchingBattery = false
 
@@ -98,7 +149,27 @@ internal class GlanceConditions(
             charging = false
         }
 
-        val wantClock = used.any { it != GlanceWhen.MUSIC && it != GlanceWhen.CHARGING }
+        val wantNetwork = GlanceWhen.WIFI in used || GlanceWhen.MOBILE in used
+        if (wantNetwork && connectivity == null) {
+            connectivity = context.getSystemService(ConnectivityManager::class.java)?.also { it.registerDefaultNetworkCallback(network, main) }
+        } else if (!wantNetwork && connectivity != null) {
+            runCatching { connectivity?.unregisterNetworkCallback(network) }
+            connectivity = null
+            onWifi = false
+            onMobile = false
+        }
+
+        val wantHeadphones = GlanceWhen.HEADPHONES in used
+        if (wantHeadphones && deviceAudio == null) {
+            deviceAudio = context.getSystemService(AudioManager::class.java)?.also { it.registerAudioDeviceCallback(devices, main) }
+            readHeadphones()
+        } else if (!wantHeadphones && deviceAudio != null) {
+            deviceAudio?.unregisterAudioDeviceCallback(devices)
+            deviceAudio = null
+            headphones = false
+        }
+
+        val wantClock = used.any { it !in GlanceWhen.stateValues }
         if (wantClock && !watchingClock) {
             watchingClock = true
             // Screen on as well: the scheduled callback runs on uptime, which stops while asleep.
@@ -114,7 +185,7 @@ internal class GlanceConditions(
         schedule()
     }
 
-    fun holds(value: String?): Boolean = GlanceWhen.holds(value, minuteOfDay(), musicPlaying, charging)
+    fun holds(value: String?): Boolean = GlanceWhen.holds(value, minuteOfDay(), musicPlaying, charging, onWifi, onMobile, headphones)
 
     private fun schedule() {
         main.removeCallbacks(boundary)
@@ -122,6 +193,17 @@ internal class GlanceConditions(
         val now = Calendar.getInstance()
         val intoMinute = now.get(Calendar.SECOND) * 1000L + now.get(Calendar.MILLISECOND)
         main.postAtTime(boundary, SystemClock.uptimeMillis() + minutes * 60_000L - intoMinute)
+    }
+
+    private companion object {
+        /** Output devices that count as headphones: wired, USB and Bluetooth listening devices. */
+        val HEADPHONE_TYPES = intArrayOf(
+            AudioDeviceInfo.TYPE_WIRED_HEADSET,
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+            AudioDeviceInfo.TYPE_USB_HEADSET,
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+            AudioDeviceInfo.TYPE_BLE_HEADSET,
+        )
     }
 
     private fun minuteOfDay(): Int = Calendar.getInstance().let { it.get(Calendar.HOUR_OF_DAY) * 60 + it.get(Calendar.MINUTE) }
