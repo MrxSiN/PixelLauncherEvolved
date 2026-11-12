@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glance_widget_title">Widget</string>
+    <string name="glance_widget_description">One app widget of your choice inside At a Glance. Pick it under Options</string>
+    <string name="glance_widget_option_title">Widget</string>
+    <string name="glance_widget_none">None</string>
+    <string name="glance_widget_choice">%1$s (%2$s)</string>
+</resources>

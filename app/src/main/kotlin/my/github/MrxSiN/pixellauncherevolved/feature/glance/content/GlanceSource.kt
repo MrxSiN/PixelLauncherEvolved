@@ -71,6 +71,8 @@ data class GlanceItem(
     val feature: String = "FEATURE_UNDEFINED",
     /** Whether the icon takes the At a Glance text colour; false keeps a coloured icon as drawn. */
     val tintIcon: Boolean = true,
+    /** A card only: remote views the launcher draws instead of the text template (a hosted app widget). */
+    val remoteViews: android.widget.RemoteViews? = null,
 )
 
 /** What a running source may use. */
