@@ -280,3 +280,9 @@ earlier-generation fallbacks (HOOK_NOTES, "Two launcher generations").
 - Calendar sources: greyed out with "Unavailable", as Pixel Launcher lacks `READ_CALENDAR`.
 - Afterwards every `glance_source_*` and `glance_when_*` key was removed again, which is stock.
 - Not tested on device: Date card, Date and Time extras, While music plays / While charging.
+- Change order (extras): Time moved above Next alarm and Battery level took the one free slot beside
+  the weather, live.
+- Screen time card: "0m screen time" just after midnight with the apps used since then.
+- Calendar access: the module asked for the Calendar permission (granted by the owner); both calendar
+  sources then started without errors. No event fell in the card's window during the test.
+- The test switches were removed again afterwards; the module keeps the Calendar permission.

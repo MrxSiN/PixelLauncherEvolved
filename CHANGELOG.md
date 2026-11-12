@@ -24,7 +24,13 @@
   cards Torch, Calendar, Date, Clock and Greeting; extras Next alarm, Battery level, Date, Time and
   Next calendar event. Each has a switch and a **When to show** choice (always, while music plays,
   while charging, or a part of the day). A card the system already shows (Pixel's own torch card)
-  is not shown twice. The calendar sources are greyed out: Pixel Launcher has no calendar access.
+  is not shown twice.
+- **Screen time** as a card (total and the three apps used most) and as a short extra, from usage
+  access Pixel Launcher already holds.
+- **Calendar access**: the calendar card and extra read events through this module's own app, which
+  asks for the Calendar permission once; Pixel Launcher itself still has none.
+- **Change order** for information cards and for extra information. Backups and reset now carry
+  which sources are on, when each shows and their order.
 
 ## 0.1.7
 

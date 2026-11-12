@@ -3339,3 +3339,10 @@ label "Page 1 of N" lags behind the pager after a refresh; the page dots are rig
 Smartspacer add-ons check `callingPackage == "com.kieronquinn.app.smartspacer"`
 (`sdk-plugin` `BaseProvider.verifySecurity`), and their providers need signature permissions
 Smartspacer defines, so no other package can host them unchanged.
+
+Calendar: Pixel Launcher holds neither `READ_CALENDAR` nor the right to observe the calendar
+provider (`registerContentObserver` on `CalendarContract.CONTENT_URI` from the launcher threw
+"Permission Denial: opening provider ... CalendarProvider2", measured on CP4A). Events come from the
+module app's `glance.CalendarProvider` (launcher-only caller check, today and tomorrow, at most 512
+rows); the launcher reads again on screen on and unlock. Pixel Launcher does hold
+`PACKAGE_USAGE_STATS`, which the screen-time sources use in its own process.
