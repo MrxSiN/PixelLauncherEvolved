@@ -52,21 +52,22 @@ Build-time Gradle Kotlin DSL, shell, Python and generator tooling may remain.
 ## New-code language rule (owner decision, 2026-11-11)
 
 - Existing Kotlin/Java stays as it is.
-- New code is written in Brainfuck and XAX. That includes code that replaces removed or rewritten
-  Kotlin/Java. Use the latest local checkouts: BBC `D:\GitHub\BBC` (Brainfuck compiler),
-  XAX `D:\GitHub\XAX`, and XAX-MCP `D:\GitHub\XAX-MCP`.
-- This rule overrides the language lock above for new code only, and only where BF/XAX can reach the
-  target. As of 2026-11-11, BBC builds only standalone Windows x86-64 and Android ARM64 executables
-  that do byte I/O. XAX-MCP 0.5.0 builds only linux-x86_64. The XAX compiler can emit DEX/APK, but
-  there is no route yet for it to link into this Kotlin + R8 module or call the launcher's classes
-  in-process.
-- If a change needs new code where BF/XAX cannot run, such as libxposed hooks or reflection into
+- Kotlin is kept. New code is written in XAX where XAX can reach the target. That includes code that
+  replaces removed or rewritten Java, shell or Python. Use the latest local checkouts: XAX
+  `D:\GitHub\XAX` and XAX-MCP `D:\GitHub\XAX-MCP`. (Brainfuck was dropped on 2026-11-12.)
+- Where XAX reaches, as of 2026-11-12: standalone executables for Windows x86-64 (build-host tooling)
+  and Linux AArch64 (on-device root helpers), and separate DEX/APK/libxposed artifacts. There is no
+  route yet for XAX to link into this Kotlin + R8 module or call the launcher's classes in-process.
+- If a change needs new code where XAX cannot run, such as libxposed hooks or reflection into
   launcher/SystemUI classes, stop. Report what is blocked and ask the owner. Never fall back to
   Kotlin/Java silently.
-- Exceptions the owner granted are listed here. 2026-11-11: Kotlin/Java for the CP4A fix (`MinSpans`,
-  the `HostDex` recorder and self-test, the compatibility report key, and latest-first contracts and
-  lookups).
-- Every other rule in this file still applies to BF/XAX code: behavior parity, failure isolation,
+- Exceptions the owner granted are listed here.
+  - 2026-11-11: Kotlin/Java for the CP4A fix (`MinSpans`, the `HostDex` recorder and self-test, the
+    compatibility report key, and latest-first contracts and lookups).
+  - 2026-11-12: Kotlin for the Modes dump source (CP4A `contextual_mode`), for routing direct
+    reflection through `Reflect`/`Host` so DexKit covers it, and for the Layout Recovery page redesign.
+- Device tools: adb is at `D:\Android\platform-tools`.
+- Every other rule in this file still applies to XAX code: behavior parity, failure isolation,
   hot-path invariants and measurement.
 
 ## Engineering principles
