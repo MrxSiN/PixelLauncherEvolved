@@ -2,7 +2,9 @@ package my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.ext
 
 import android.content.ContentUris
 import android.content.Intent
-import android.database.ContentObserver
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.SystemClock
@@ -24,9 +26,10 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.Cale
  * The launcher process holds no Calendar permission, so the events come from this module's app
  * ([CalendarBridge]), which the person lets read the calendar from the At a Glance settings; without
  * that the source shows nothing. The read runs on one `HandlerThread` owned by the source (started in
- * [start], quit in [stop]), never the main thread. It reruns when the calendar provider changes
- * (`ContentObserver`, which needs no read permission), when the next event starts, and at midnight when no event is in the window;
- * there is no polling. All-day events are skipped.
+ * [start], quit in [stop]), never the main thread. It reruns when the screen comes on or the phone is
+ * unlocked, when the next event starts, and at midnight when no event is in the window; there is no
+ * polling. The calendar provider cannot be watched from here: registering an observer on it needs the
+ * Calendar permission too (measured on CP4A). All-day events are skipped.
  */
 class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.glance_extra_calendar_title, R.string.glance_extra_calendar_description) {
 
@@ -38,8 +41,8 @@ class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.gla
 
     private val query = Runnable { load() }
 
-    private val observer = object : ContentObserver(null) {
-        override fun onChange(selfChange: Boolean) {
+    private val looked = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
             worker?.let { it.removeCallbacks(query); it.post(query) }
         }
     }
@@ -48,11 +51,12 @@ class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.gla
         val started = HandlerThread("ple-glance-calendar").also { it.start() }
         thread = started
         worker = Handler(started.looper).also { it.post(query) }
-        host.context.contentResolver.registerContentObserver(CalendarContract.CONTENT_URI, true, observer)
+        val filter = IntentFilter(Intent.ACTION_SCREEN_ON).apply { addAction(Intent.ACTION_USER_PRESENT) }
+        host.context.registerReceiver(looked, filter, Context.RECEIVER_NOT_EXPORTED)
     }
 
     override fun stop() {
-        runCatching { host.context.contentResolver.unregisterContentObserver(observer) }
+        runCatching { host.context.unregisterReceiver(looked) }
         worker?.removeCallbacks(query)
         worker = null
         thread?.quitSafely()

@@ -5,7 +5,6 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.database.ContentObserver
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.SystemClock
@@ -29,12 +28,12 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.Cale
  *
  * The launcher's process holds no Calendar permission, so the events come from this module's app
  * ([CalendarBridge]), which the person lets read the calendar from the At a Glance settings; without
- * that the card shows nothing. The launcher still watches the calendar provider itself: observers
- * need no read permission.
+ * that the card shows nothing. The calendar provider cannot be watched from the launcher (an observer on
+ * it needs the Calendar permission too, measured on CP4A), so the card reads again when the screen
+ * comes on or the phone is unlocked.
  *
  * The events are read on one background thread owned by the card, for today and
- * tomorrow, whenever the calendar provider changes (a [ContentObserver], debounced), the time or
- * zone changes, or the day turns. The events are kept in `@Volatile` arrays; [content] only picks
+ * tomorrow, on screen on and unlock (debounced), when the time or zone changes, or the day turns. The events are kept in `@Volatile` arrays; [content] only picks
  * from them. A callback is scheduled for the next moment the card can differ (an event coming
  * within 15 minutes, starting or ending, and each minute while its countdown shows); there is no
  * polling.
@@ -52,10 +51,6 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
     @Volatile private var events: Events? = null
     private var thread: HandlerThread? = null
     @Volatile private var worker: Handler? = null
-
-    private val observer = object : ContentObserver(null) {
-        override fun onChange(selfChange: Boolean) = reload()
-    }
 
     private val timeChanged = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = reload()
@@ -77,8 +72,11 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
         val looper = HandlerThread("ple-glance-calendar").also { it.start() }
         thread = looper
         worker = Handler(looper.looper)
-        context.contentResolver.registerContentObserver(CalendarContract.CONTENT_URI, true, observer)
-        val filter = IntentFilter(Intent.ACTION_TIME_CHANGED).apply { addAction(Intent.ACTION_TIMEZONE_CHANGED) }
+        val filter = IntentFilter(Intent.ACTION_TIME_CHANGED).apply {
+            addAction(Intent.ACTION_TIMEZONE_CHANGED)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
         context.registerReceiver(timeChanged, filter, Context.RECEIVER_NOT_EXPORTED)
         reload()
     }
@@ -86,7 +84,6 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
     override fun stop() {
         val looper = thread ?: return
         host.main.removeCallbacks(recheck)
-        host.context.contentResolver.unregisterContentObserver(observer)
         runCatching { host.context.unregisterReceiver(timeChanged) }
         worker?.removeCallbacksAndMessages(null)
         looper.quitSafely()
