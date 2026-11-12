@@ -92,6 +92,7 @@ internal object SettingsPages {
             SettingsGroup(null, listOf(ToggleRow(FeatureCatalog.GLANCE_ALL_SCREENS, CompatibilityFeature.AT_A_GLANCE))),
             SettingsGroup(R.string.settings_group_glance_cards, listOf(GlanceSourceRows(GlanceSource.Kind.CARD))),
             SettingsGroup(R.string.settings_group_glance_extras, listOf(GlanceSourceRows(GlanceSource.Kind.EXTRA))),
+            SettingsGroup(R.string.settings_group_glance_when, listOf(GlanceWhenRows)),
         ),
     )
 

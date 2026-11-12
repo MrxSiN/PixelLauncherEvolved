@@ -53,6 +53,12 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
     @Volatile
     private var active: List<GlanceSource> = emptyList()
 
+    /** Each running source's "When to show" value ([GlanceWhen]); absent is always. */
+    @Volatile
+    private var whenOf: Map<String, String> = emptyMap()
+
+    private lateinit var conditions: GlanceConditions
+
     /** The list each live view was last handed by the launcher. Guarded by itself. */
     private val handed = WeakHashMap<View, List<*>>()
 
@@ -75,6 +81,7 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
         targets = GlanceTargets(ComponentName(context.appContext.packageName, COMPONENT))
         preferences = LauncherSettings.preferences(context.appContext)
         host = Host(context.appContext, context.moduleResources, context.xposed.moduleApplicationInfo.packageName, main, context.logger)
+        conditions = GlanceConditions(context.appContext, main, ::refresh)
 
         context.xposed.hook(updated).intercept { chain ->
             val owner = chain.thisObject as? View
@@ -93,7 +100,7 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
     }
 
     override fun onSharedPreferenceChanged(preferences: SharedPreferences, key: String?) {
-        if (key != null && key.startsWith(GlanceSources.KEY_PREFIX)) main.post { sync() }
+        if (key != null && (key.startsWith(GlanceSources.KEY_PREFIX) || key.startsWith(GlanceWhen.KEY_PREFIX))) main.post { sync() }
     }
 
     /** Starts the sources switched on and stops the ones switched off, then refreshes. */
@@ -112,13 +119,17 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
             }
         }
         active = running.values.toList()
+        whenOf = running.values.mapNotNull { source -> preferences.getString(GlanceWhen.key(source), null)?.let { source.id to it } }.toMap()
+        conditions.update(whenOf.values)
         refresh()
     }
 
     private fun merge(given: List<*>): List<*> {
         val cards = ArrayList<SmartspaceTarget>()
         val extras = ArrayList<Pair<String, GlanceItem>>()
+        val whens = whenOf
         for (source in active) {
+            if (!conditions.holds(whens[source.id])) continue
             val item = runCatching { source.content() }
                 .onFailure { host.logger.warn("At a Glance source ${source.id} failed", it) }
                 .getOrNull() ?: continue

@@ -442,7 +442,7 @@ internal object FocusPagesDialog {
      * [current] already chosen. A tap is the choice; the dialog closes once the
      * radio has had a moment to answer, as the web results picker does.
      */
-    private fun choose(
+    internal fun choose(
         context: Context,
         resources: Resources,
         title: CharSequence,

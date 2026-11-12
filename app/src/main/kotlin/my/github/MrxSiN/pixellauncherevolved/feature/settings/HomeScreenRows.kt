@@ -7,6 +7,7 @@ import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagesDialog
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSources
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceWhen
 import my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusPagePreviewSource
 import my.github.MrxSiN.pixellauncherevolved.feature.pages.ReorganizePagesScreen
 import my.github.MrxSiN.pixellauncherevolved.focus.FocusMode
@@ -78,6 +79,41 @@ internal class GlanceSourceRows(private val kind: GlanceSource.Kind) : SettingsR
             scope.api.add(group, row)
             scope.requires(CompatibilityFeature.AT_A_GLANCE, row)
         }
+    }
+}
+
+/**
+ * "When to show" for every At a Glance source: one row each, its summary the current choice, a tap
+ * picks another. Stored as `glance_when_<id>` ([GlanceWhen]); absent is always.
+ */
+internal object GlanceWhenRows : SettingsRow {
+
+    override fun addTo(group: Any, scope: RowScope) {
+        val preferences = LauncherSettings.preferences(scope.context)
+        val choices = listOf<Pair<String?, CharSequence>>(null to scope.string(R.string.glance_when_always)) +
+            GlanceWhen.values.map { it to scope.string(label(it)) }
+        for (source in GlanceSources.all) {
+            val key = GlanceWhen.key(source)
+            fun summary() = preferences.getString(key, null).let { current -> choices.firstOrNull { it.first == current }?.second ?: choices[0].second }
+            lateinit var row: Any
+            row = scope.link(key = SettingsKeys.row(key), title = source.titleRes, summary = summary()) {
+                FocusPagesDialog.choose(scope.context, scope.resources, scope.string(source.titleRes), choices, preferences.getString(key, null)) { value, label ->
+                    preferences.edit().apply { if (value == null) remove(key) else putString(key, value) }.apply()
+                    scope.api.setSummary(row, label)
+                }
+            }
+            scope.api.add(group, row)
+            scope.requires(CompatibilityFeature.AT_A_GLANCE, row)
+        }
+    }
+
+    private fun label(value: String): Int = when (value) {
+        GlanceWhen.MUSIC -> R.string.glance_when_music
+        GlanceWhen.CHARGING -> R.string.glance_when_charging
+        GlanceWhen.MORNING -> R.string.glance_when_morning
+        GlanceWhen.AFTERNOON -> R.string.glance_when_afternoon
+        GlanceWhen.EVENING -> R.string.glance_when_evening
+        else -> R.string.glance_when_night
     }
 }
 

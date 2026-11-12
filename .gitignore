@@ -11,3 +11,4 @@ local.properties
 # Shared prompt kit, kept outside version control
 MASTER_PROMPT.md
 ROADMAP.md
+.claude/worktrees/

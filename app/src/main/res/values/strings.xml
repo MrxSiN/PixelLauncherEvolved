@@ -120,6 +120,14 @@
     <string name="feature_glance_all_screens_summary">Off: only the main home screen, which is the first page of the home screens a Mode shows while it is on. On: also every other home screen whose top row is free.</string>
     <string name="settings_group_glance_cards">Information cards</string>
     <string name="settings_group_glance_extras">Extra information</string>
+    <string name="settings_group_glance_when">When to show</string>
+    <string name="glance_when_always">Always</string>
+    <string name="glance_when_music">While music plays</string>
+    <string name="glance_when_charging">While charging</string>
+    <string name="glance_when_morning">Mornings, 5 AM to noon</string>
+    <string name="glance_when_afternoon">Afternoons, noon to 5 PM</string>
+    <string name="glance_when_evening">Evenings, 5 PM to 10 PM</string>
+    <string name="glance_when_night">Nights, 10 PM to 5 AM</string>
     <string name="glance_source_torch_title">Torch</string>
     <string name="glance_source_torch_description">A card while the torch is on, to turn it off</string>
     <string name="glance_source_torch_on">Torch on</string>
