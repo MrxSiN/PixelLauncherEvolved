@@ -34,7 +34,7 @@ class CalendarNextExtra : GlanceSource("calendar_next", Kind.EXTRA, R.string.gla
     @Volatile private var text = ""
 
     private var thread: HandlerThread? = null
-    private var worker: Handler? = null
+    @Volatile private var worker: Handler? = null
 
     private val query = Runnable { load() }
 
