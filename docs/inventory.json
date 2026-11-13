@@ -26,7 +26,26 @@
    "name": ".recovery.RecoveryActivity",
    "exported": "true",
    "label": "@string/recovery_title",
-   "theme": "@android:style/Theme.DeviceDefault.DayNight"
+   "theme": "@style/Theme.Recovery"
+  },
+  {
+   "kind": "provider",
+   "name": ".glance.CalendarProvider",
+   "authorities": "${applicationId}.calendar",
+   "exported": "true"
+  },
+  {
+   "kind": "activity",
+   "name": ".glance.CalendarAccessActivity",
+   "exported": "true",
+   "excludeFromRecents": "true",
+   "theme": "@android:style/Theme.Translucent.NoTitleBar"
+  },
+  {
+   "kind": "provider",
+   "name": ".update.UpdateProvider",
+   "authorities": "${applicationId}.update",
+   "exported": "true"
   },
   {
    "kind": "provider",
@@ -199,6 +218,18 @@
    "default": "false"
   },
   {
+   "name": "UPDATE_CHECK",
+   "type": "Bool",
+   "key": "update_check",
+   "default": "true"
+  },
+  {
+   "name": "HOME_GLANCE_ALL_SCREENS",
+   "type": "Bool",
+   "key": "home_glance_all_screens",
+   "default": "false"
+  },
+  {
    "name": "WIDGET_STACKS",
    "type": "Bool",
    "key": "home_widget_stacks",
@@ -300,6 +331,16 @@
    "id": "home_double_tap_to_sleep",
    "file": "feature/gesture/DoubleTapToSleepFeature.kt",
    "compatibility": "DOUBLE_TAP_TO_SLEEP"
+  },
+  {
+   "id": "home_glance_all_screens",
+   "file": "feature/glance/GlanceFeature.kt",
+   "compatibility": "AT_A_GLANCE"
+  },
+  {
+   "id": "glance_content",
+   "file": "feature/glance/content/GlanceContentFeature.kt",
+   "compatibility": "AT_A_GLANCE"
   },
   {
    "id": "home_grid",
@@ -410,6 +451,11 @@
    "id": "home_blur_wallpaper",
    "file": "feature/wallpaper/HomeWallpaperBlurFeature.kt",
    "compatibility": "BLUR_WALLPAPER"
+  },
+  {
+   "id": "update_check",
+   "file": "update/UpdateCheckFeature.kt",
+   "compatibility": null
   }
  ],
  "files": {
@@ -531,9 +577,12 @@
     "com.android.launcher3.model.data.ItemInfo",
     "com.android.launcher3.model.data.ItemInfoWithIcon",
     "com.android.launcher3.model.data.WorkspaceData\\$MutableWorkspaceData",
+    "com.android.launcher3.notification.NotificationListener",
     "com.android.launcher3.popup.PopupCategory",
     "com.android.launcher3.popup.PopupContainer",
     "com.android.launcher3.popup.PopupContainerWithArrow",
+    "com.android.launcher3.popup.PopupContainer\\$Companion",
+    "com.android.launcher3.popup.PopupData",
     "com.android.launcher3.popup.WorkspaceLongPressOptions",
     "com.android.launcher3.popup.ui.PopupItem",
     "com.android.launcher3.popup.ui.StringContainer\\$ResourceString",
@@ -585,7 +634,8 @@
     "com.android.quickstep.views.RecentsViewContainer",
     "com.android.quickstep.views.TaskView",
     "com.android.wm.shell.shared.bubbles.BubbleBarLocation",
-    "com.android.wm.shell.shared.bubbles.logging.EntryPoint"
+    "com.android.wm.shell.shared.bubbles.logging.EntryPoint",
+    "com.google.android.apps.nexuslauncher.smartspace.SmartspaceItemInfo"
    ],
    "host_members": [],
    "hooks": 0,
@@ -861,6 +911,138 @@
    "root": false,
    "binder": [
     "resolver.call"
+   ],
+   "preferences": false
+  },
+  "feature/glance/GlanceFeature.kt": {
+   "host_classes": [
+    "com.android.launcher3.ModelCallbacks",
+    "com.android.launcher3.model.BgDataModel",
+    "com.android.launcher3.model.WorkspaceItemSpaceFinder",
+    "com.android.launcher3.model.data.ItemInfo",
+    "com.android.launcher3.model.data.WorkspaceData\\$MutableWorkspaceData",
+    "com.google.android.apps.nexuslauncher.smartspace.SmartspaceItemInfo"
+   ],
+   "host_members": [],
+   "hooks": 4,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/glance/content/GlanceConditions.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "feature/glance/content/GlanceContentFeature.kt": {
+   "host_classes": [
+    "com.google.android.systemui.smartspace.BcSmartspaceView"
+   ],
+   "host_members": [
+    "onSmartspaceTargetsUpdated"
+   ],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/glance/content/GlanceMenu.kt": {
+   "host_classes": [
+    "com.android.launcher3.popup.PopupContainer\\$Companion",
+    "com.android.launcher3.popup.PopupData",
+    "com.android.launcher3.popup.ui.StringContainer\\$FixedString",
+    "com.google.android.apps.nexuslauncher.qsb.SmartspaceViewContainer"
+   ],
+   "host_members": [
+    "category",
+    "eventId",
+    "iconResId",
+    "popupAction",
+    "showForMenuItems",
+    "type"
+   ],
+   "hooks": 1,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/glance/content/GlancePrefs.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
+  "feature/glance/content/sources/AlarmExtra.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "feature/glance/content/sources/CalendarBridge.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "resolver.call"
+   ],
+   "preferences": false
+  },
+  "feature/glance/content/sources/TorchCard.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
+   ],
+   "preferences": false
+  },
+  "feature/glance/content/sources/more/NotificationFeed.kt": {
+   "host_classes": [
+    "com.android.launcher3.notification.NotificationListener"
+   ],
+   "host_members": [
+    "onListenerConnected",
+    "onListenerDisconnected",
+    "onNotificationPosted",
+    "onNotificationRemoved"
+   ],
+   "hooks": 3,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/glance/content/sources/more/WellbeingSources.kt": {
+   "host_classes": [
+    "com.google.android.apps.wellbeing"
+   ],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [
+    "getSystemService"
    ],
    "preferences": false
   },
@@ -1661,6 +1843,15 @@
    "binder": [],
    "preferences": true
   },
+  "feature/settings/GlanceSourceDialog.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": true
+  },
   "feature/settings/HomeScreenRows.kt": {
    "host_classes": [],
    "host_members": [],
@@ -1679,6 +1870,17 @@
     "onCreatePreferences"
    ],
    "hooks": 3,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "feature/settings/PageHost.kt": {
+   "host_classes": [
+    "com.android.launcher3.settings.SettingsActivity"
+   ],
+   "host_members": [],
+   "hooks": 0,
    "threads": 0,
    "root": false,
    "binder": [],
@@ -2064,7 +2266,9 @@
     "com.android.wallpaper.picker.customization.ui.viewmodel.ColorUpdateViewModel",
     "com.android.wallpaper.picker.customization.ui.viewmodel.FloatingToolbarTabViewModel"
    ],
-   "host_members": [],
+   "host_members": [
+    "mAdapter"
+   ],
    "hooks": 4,
    "threads": 0,
    "root": false,
@@ -2112,6 +2316,17 @@
     "com.android.wallpaper.picker.customization.ui.binder.ColorUpdateBinder"
    ],
    "host_members": [],
+   "hooks": 0,
+   "threads": 0,
+   "root": false,
+   "binder": [],
+   "preferences": false
+  },
+  "picker/PickerPage.kt": {
+   "host_classes": [],
+   "host_members": [
+    "icon"
+   ],
    "hooks": 0,
    "threads": 0,
    "root": false,
@@ -2211,6 +2426,17 @@
    "threads": 0,
    "root": false,
    "binder": [],
+   "preferences": false
+  },
+  "update/UpdateCheckFeature.kt": {
+   "host_classes": [],
+   "host_members": [],
+   "hooks": 0,
+   "threads": 1,
+   "root": false,
+   "binder": [
+    "contentResolver.call"
+   ],
    "preferences": false
   },
   "wallpaper/HomeBlurRadius.kt": {
