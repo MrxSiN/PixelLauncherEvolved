@@ -1,5 +1,19 @@
 # Performance
 
+## At a Glance merge with three sources (2026-11-13, 0.1.8)
+
+Release R8 probe builds, Pixel 8 Pro, CP4A.261105.040.A1, launcher 907, Date card + Clock card +
+Battery extra, interleaved base/cand, 3 starts each. A warm merge is about 0.4-0.6 ms and 512 allocations
+after ledger 44 (536 before); the first merge after start about 3 ms and ~10 900 allocations. The
+hook runs only when the system Smartspace session or a source changes. Raw samples: ledger 44 and 45.
+
+## At a Glance content merge (2026-11-13)
+
+Instrumentation build, release R8, Pixel 8 Pro, CP4A.261105.040.A1, launcher 907, Widget card on.
+`merge` per call: 364,339 / 103,190 / 111,206 ns at launcher start (54 / 45 / 45 allocations),
+1,145,955 / 128,743 ns at a Hide after expiry (23 / 22 allocations); median 128,743 ns, n = 5. No
+call in 100 s idle: the hook runs on content changes only. See ledger entry 43 (rejected cache).
+
 ## At a Glance placement (2026-11-12): unmeasured
 
 `GlanceFeature` runs only on a complete workspace bind (launcher start, a Mode change, a setting

@@ -16,6 +16,7 @@ import java.util.TimeZone
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceItem
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceOption
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceOptions
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.CalendarBridge
@@ -50,7 +51,21 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
         val ends: LongArray,
     )
 
-    override val options = listOf(GlanceOptions.calendars)
+    override val options = listOf(
+        GlanceOptions.calendars,
+        GlanceOption(
+            LEAD, R.string.glance_option_lead_title, GlanceOption.Type.CHOICE, R.string.glance_option_lead_default,
+            listOf(
+                GlanceOption.Choice("30", R.string.glance_option_lead_30),
+                GlanceOption.Choice("60", R.string.glance_option_lead_60),
+                GlanceOption.Choice("120", R.string.glance_option_lead_120),
+            ),
+            R.plurals.glance_unit_minutes_before,
+        ),
+    )
+
+    /** How long before an event the card shows it ([LEAD]; 15 minutes by default). */
+    @Volatile private var lead = LEAD_MILLIS
 
     /** The stored calendar ids ([GlanceOptions.CALENDARS]); null reads every calendar. */
     @Volatile private var calendars: String? = null
@@ -75,7 +90,13 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
     }
 
     override fun onOptionsChanged() {
+        val ahead = GlanceOptions.number(option(LEAD), (LEAD_MILLIS / GlanceCardTimes.MINUTE).toInt()) * GlanceCardTimes.MINUTE
         val chosen = option(GlanceOptions.CALENDARS)
+        if (ahead != lead) {
+            lead = ahead
+            reload()
+            return
+        }
         if (chosen == calendars) return
         calendars = chosen
         reload()
@@ -84,6 +105,7 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
     override fun start() {
         val context = host.context
         calendars = option(GlanceOptions.CALENDARS)
+        lead = GlanceOptions.number(option(LEAD), (LEAD_MILLIS / GlanceCardTimes.MINUTE).toInt()) * GlanceCardTimes.MINUTE
         val looper = HandlerThread("ple-glance-calendar").also { it.start() }
         thread = looper
         worker = Handler(looper.looper)
@@ -135,7 +157,7 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
         if (loaded != null) {
             val now = System.currentTimeMillis()
             val at = GlanceCardTimes.nextCalendarChange(
-                loaded.starts, loaded.ends, now, LEAD_MILLIS, GlanceCardTimes.nextMidnight(now, TimeZone.getDefault()),
+                loaded.starts, loaded.ends, now, lead, GlanceCardTimes.nextMidnight(now, TimeZone.getDefault()),
             )
             host.main.postAtTime(recheck, SystemClock.uptimeMillis() + (at - now))
         }
@@ -149,7 +171,7 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
         for (i in loaded.starts.indices) {
             val start = loaded.starts[i]
             val end = loaded.ends[i]
-            if (!GlanceCardTimes.shows(start, end, now, LEAD_MILLIS)) continue
+            if (!GlanceCardTimes.shows(start, end, now, lead)) continue
             val time = DateFormat.getTimeFormat(host.context)
             val title = loaded.titles[i].ifBlank { host.string(R.string.glance_card_calendar_untitled) }
             val minutes = GlanceCardTimes.countdown(start, now)
@@ -159,6 +181,8 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
                 icon = host.icon(R.drawable.ic_glance_card_calendar),
                 tapIntent = Intent(Intent.ACTION_VIEW, ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, loaded.ids[i]))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                // Left out while Pixel's own calendar card shows, as the torch card is.
+                feature = "FEATURE_CALENDAR",
             )
         }
         return null
@@ -184,6 +208,7 @@ class CalendarCard : GlanceSource("calendar", Kind.CARD, R.string.glance_card_ca
 
     private companion object {
         const val LEAD_MILLIS = 15 * GlanceCardTimes.MINUTE
+        const val LEAD = "lead"
         const val DEBOUNCE_MILLIS = 250L
         const val TITLE_LENGTH = 30
     }

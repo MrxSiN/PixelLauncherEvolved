@@ -134,6 +134,9 @@ object Settings {
      */
     val FOCUS_HOME_SCREENS = BoolSetting("focus_home_screens", default = false)
 
+    /** Once per launcher start, ask GitHub (through this module's app) whether a newer release exists. On by default. */
+    val UPDATE_CHECK = BoolSetting("update_check", default = true)
+
     /** At a Glance on every home screen with a free top row, not only the first. */
     val HOME_GLANCE_ALL_SCREENS = BoolSetting("home_glance_all_screens", default = false)
 

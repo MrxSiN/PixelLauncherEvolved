@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="settings_group_glance_options">Options</string>
-    <string name="glance_option_summary_default">Default</string>
-    <string name="glance_option_summary_entry">%1$s: %2$s</string>
     <string name="glance_option_hide_after_title">Hide after</string>
     <string name="glance_option_hide_after_never">Never</string>
     <string name="glance_option_hide_after_5">5 minutes</string>
@@ -17,4 +14,40 @@
     <string name="glance_option_calendars_one">One calendar</string>
     <string name="glance_option_calendars_choice">%1$s (%2$s)</string>
     <string name="glance_option_calendars_many">%1$d calendars</string>
+    <string name="glance_option_lead_title">Show it</string>
+    <string name="glance_option_lead_default">15 minutes before</string>
+    <string name="glance_option_lead_30">30 minutes before</string>
+    <string name="glance_option_lead_60">1 hour before</string>
+    <string name="glance_option_lead_120">2 hours before</string>
+    <string name="glance_option_alarm_title">Show it</string>
+    <string name="glance_option_alarm_default">12 hours before</string>
+    <string name="glance_option_alarm_1">1 hour before</string>
+    <string name="glance_option_alarm_6">6 hours before</string>
+    <string name="glance_option_alarm_24">24 hours before</string>
+    <string name="glance_option_battery_title">Show</string>
+    <string name="glance_option_battery_always">Always</string>
+    <string name="glance_option_battery_50">At 50% or less</string>
+    <string name="glance_option_battery_30">At 30% or less</string>
+    <string name="glance_option_battery_20">At 20% or less</string>
+    <string name="glance_option_message_title">Message</string>
+    <string name="glance_option_message_shown">Shown</string>
+    <string name="glance_option_message_hidden">Hidden, title only</string>
+    <string name="glance_option_custom">Custom…</string>
+    <string name="glance_option_custom_hint">Number</string>
+    <plurals name="glance_unit_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="glance_unit_minutes_before">
+        <item quantity="one">%d minute before</item>
+        <item quantity="other">%d minutes before</item>
+    </plurals>
+    <plurals name="glance_unit_hours_before">
+        <item quantity="one">%d hour before</item>
+        <item quantity="other">%d hours before</item>
+    </plurals>
+    <plurals name="glance_unit_percent_below">
+        <item quantity="one">At %d%% or less</item>
+        <item quantity="other">At %d%% or less</item>
+    </plurals>
 </resources>

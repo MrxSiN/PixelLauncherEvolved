@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Widget card's frame: holds the hosted widget's views above At a Glance's page dots. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/glance_widget_frame"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />

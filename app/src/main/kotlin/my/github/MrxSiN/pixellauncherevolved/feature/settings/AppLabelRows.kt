@@ -29,7 +29,9 @@ internal object AppLabelRows : SettingsRow {
         }
 
         edit = scope.link(SettingsKeys.row("app_labels"), R.string.app_labels_per_app_title, summary(scope, store)) {
-            AppLabelsScreen(scope.context, scope.resources, store, scope.environment.logger, ::refresh).show()
+            PageHost.open(scope.context, scope.string(R.string.settings_page_app_labels)) { screen ->
+                AppLabelsScreen(screen, scope.resources, store, scope.environment.logger, ::refresh).show()
+            }
         }
         reset = scope.link(
             SettingsKeys.row("app_labels_reset"),

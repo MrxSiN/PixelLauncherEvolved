@@ -3,6 +3,8 @@ package android.app.smartspace.uitemplatedata;
 /** Compile-only stub of the {@code @SystemApi} class; the framework's own class is used at runtime. */
 public final class Icon {
     private Icon() { throw new RuntimeException("Stub"); }
+    public android.graphics.drawable.Icon getIcon() { throw new RuntimeException("Stub"); }
+    public boolean shouldTint() { throw new RuntimeException("Stub"); }
 
     public static final class Builder {
         public Builder(android.graphics.drawable.Icon icon) { throw new RuntimeException("Stub"); }

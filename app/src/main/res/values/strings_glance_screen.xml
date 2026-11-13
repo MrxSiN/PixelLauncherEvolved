@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glance_screen_description">Choose what shows above your apps.</string>
+    <string name="glance_section_where">Where it shows</string>
+    <string name="glance_section_cards">Cards</string>
+    <string name="glance_section_extras">Extras</string>
+    <string name="glance_reorder">Reorder</string>
+    <string name="glance_count_none">None on</string>
+    <plurals name="glance_count_on">
+        <item quantity="one">%d on</item>
+        <item quantity="other">%d on</item>
+    </plurals>
+    <string name="glance_tile_unavailable">Unavailable</string>
+    <string name="glance_tile_settings">%1$s settings</string>
+    <string name="glance_where_all_title">Every home screen</string>
+    <string name="glance_where_all_summary">Also on pages with a free top row</string>
+    <string name="glance_calendar_note_title">Allow calendar access</string>
+    <string name="glance_calendar_note_summary">Tap so calendar cards can read your events</string>
+
+    <string name="glance_preview_page">At a Glance preview, page %1$d of %2$d</string>
+    <string name="glance_preview_live">Live</string>
+    <string name="glance_preview_try">Demo</string>
+    <string name="glance_preview_badge_live">Live</string>
+    <string name="glance_preview_badge_try">Demo</string>
+    <string name="glance_try_time">Time of day</string>
+    <string name="glance_try_state">Phone</string>
+    <string name="glance_try_now">Now</string>
+
+    <string name="glance_sheet_on">On</string>
+    <string name="glance_sheet_off">Off</string>
+    <string name="glance_sheet_when">When to show</string>
+    <string name="glance_sheet_options">Options</string>
+
+    <string name="glance_short_always">Always</string>
+    <string name="glance_short_music">Music</string>
+    <string name="glance_short_headphones">Headphones</string>
+    <string name="glance_short_charging">Charging</string>
+    <string name="glance_short_wifi">Wi-Fi</string>
+    <string name="glance_short_mobile">Mobile data</string>
+    <string name="glance_short_morning">Morning</string>
+    <string name="glance_short_afternoon">Afternoon</string>
+    <string name="glance_short_evening">Evening</string>
+    <string name="glance_short_night">Night</string>
+    <string name="glance_short_hide">Hides after %1$s</string>
+
+    <string name="glance_menu_settings">Customize</string>
+    <string name="glance_when_custom">Custom time…</string>
+    <string name="glance_when_custom_title">Custom time</string>
+    <string name="glance_custom_from">From</string>
+    <string name="glance_custom_to">To</string>
+    <string name="glance_custom_range">%1$s–%2$s</string>
+    <string name="glance_custom_range_days">%1$s · %2$s</string>
+    <string name="glance_days_every">Every day</string>
+    <string name="glance_days_weekdays">Weekdays</string>
+    <string name="glance_days_weekends">Weekends</string>
+    <string name="glance_try_pick">Pick a time…</string>
+    <string name="glance_reorder_hint">Drag by the handle to change which shows first</string>
+    <string name="glance_reset">Reset At a Glance</string>
+    <string name="glance_reset_title">Reset At a Glance?</string>
+    <string name="glance_reset_message">Every card and extra turns off, and every choice goes back to its default. Where it shows stays as it is.</string>
+    <string name="glance_reset_confirm">Reset</string>
+</resources>

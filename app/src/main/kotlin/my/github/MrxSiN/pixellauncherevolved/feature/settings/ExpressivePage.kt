@@ -50,6 +50,11 @@ import my.github.MrxSiN.pixellauncherevolved.core.ExpressiveMotion
  * and rounds its corners as the finger moves, springs back if the swipe is let
  * go, and finishes leaving if it is not.
  */
+/** A shown page, to close from code: the Settings screen it fills, or its own window. */
+fun interface PageHandle {
+    fun dismiss()
+}
+
 class ExpressivePage(private val context: Context) {
 
     private var title: CharSequence = ""
@@ -70,7 +75,63 @@ class ExpressivePage(private val context: Context) {
     /** Runs once, however the screen is left. */
     fun onClose(action: () -> Unit) = apply { onClose = action }
 
-    fun show(): Dialog {
+    /**
+     * Shows the page: inside the Settings screen [PageHost] opened for it, as every Settings page is
+     * shown, or, opened any other way, in a window of its own over [context].
+     */
+    fun show(): PageHandle {
+        PageHost.isHosting(context)?.let { screen -> return fill(screen) }
+        val dialog = showWindow()
+        return PageHandle { dialog.dismiss() }
+    }
+
+    /**
+     * Puts the page where the Settings screen's own rows would be, under its own title bar, and
+     * saves through [onClose] as the screen closes. The rows' list stays in place, hidden, so the
+     * screen keeps its own layout and insets; the page scrolls with the title bar as rows do.
+     */
+    private fun fill(screen: android.app.Activity): PageHandle {
+        PageHost.filled(screen)
+        screen.title = title
+        val holder = screen.findViewById<ViewGroup>(android.R.id.list_container)
+        val list = holder?.getChildAt(0)
+        if (holder == null || list == null) {
+            // Not the layout this was written against: the page still opens, in its own window.
+            val dialog = showWindow()
+            return PageHandle { dialog.dismiss() }
+        }
+        list.visibility = View.GONE
+        val column = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            description?.let { text ->
+                addView(TextView(context).apply {
+                    this.text = text
+                    ExpressiveType.BODY_LARGE.applyTo(this, ExpressiveRole.ON_SURFACE)
+                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    marginStart = dp(EDGE_DP)
+                    marginEnd = dp(EDGE_DP)
+                    topMargin = dp(8f)
+                    bottomMargin = dp(24f)
+                })
+            }
+            content?.let { addView(it) }
+        }
+        val scroll = ScrollView(context).apply {
+            isVerticalScrollBarEnabled = false
+            clipToPadding = false
+            // The title bar collapses as the page scrolls, as it does over rows.
+            isNestedScrollingEnabled = true
+            // Top and bottom as the rows' list has them (insets); the sides are the page's own, as
+            // every page here lays out its own margins, the same as in a window of its own.
+            setPadding(0, list.paddingTop, 0, list.paddingBottom + dp(24f))
+            addView(column)
+        }
+        holder.addView(scroll, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        PageHost.onLeave(screen, onClose)
+        return PageHandle { screen.finish() }
+    }
+
+    private fun showWindow(): Dialog {
         val dialog = Dialog(context, android.R.style.Theme_DeviceDefault_NoActionBar)
         val scrim = ColorDrawable(ExpressiveRole.SURFACE_CONTAINER.of(context))
         val motion = PageMotion(dialog, scrim)
@@ -87,7 +148,10 @@ class ExpressivePage(private val context: Context) {
             val light = if (isNight()) 0 else APPEARANCE_LIGHT_BARS
             insetsController?.setSystemBarsAppearance(light, APPEARANCE_LIGHT_BARS)
         }
-        dialog.setOnDismissListener { onClose() }
+        dialog.setOnDismissListener {
+            motion.release()
+            onClose()
+        }
         dialog.show()
         dialog.onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, motion)
         motion.enter()
@@ -111,7 +175,10 @@ class ExpressivePage(private val context: Context) {
             }
             content?.let { addView(it) }
         }
-        return ScrollView(context).apply {
+        // The status bar keeps the page's colour: content scrolling up passes under this strip, not
+        // under the clock and icons. The navigation bar side stays see-through, as Settings draws it.
+        val statusScrim = View(context).apply { background = ColorDrawable(ExpressiveRole.SURFACE_CONTAINER.of(context)) }
+        val scroll = ScrollView(context).apply {
             isVerticalScrollBarEnabled = false
             clipToPadding = false
             background = ColorDrawable(ExpressiveRole.SURFACE_CONTAINER.of(context))
@@ -121,8 +188,13 @@ class ExpressivePage(private val context: Context) {
                 // A text field on the page brings the keyboard up over its lower part.
                 val keyboard = insets.getInsets(WindowInsets.Type.ime()).bottom
                 view.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, keyboard) + dp(24f))
+                statusScrim.layoutParams = statusScrim.layoutParams.apply { height = bars.top }
                 insets
             }
+        }
+        return FrameLayout(context).apply {
+            addView(scroll, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(statusScrim, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, android.view.Gravity.TOP))
         }
     }
 
@@ -165,6 +237,23 @@ class ExpressivePage(private val context: Context) {
         private var animator: ValueAnimator? = null
         private var leaving = false
 
+        /**
+         * The screen this page opens over, moved as Settings moves the page under a sub-page: out to
+         * the start as this one comes in, back in from the start as this one closes. Left alone over
+         * the home screen (opened from a long press there), whose views are the launcher's own.
+         */
+        private val under: View? = context.activityOrNull()
+            ?.takeUnless { it.intent?.hasCategory(android.content.Intent.CATEGORY_HOME) == true }
+            ?.findViewById(android.R.id.content)
+
+        /** Puts [under] back exactly as it was; also when the page goes some other way than [leave]. */
+        fun release() {
+            under?.apply {
+                translationX = 0f
+                alpha = 1f
+            }
+        }
+
         /** Where the page stands: [presence] on the shared axis, [back] how far a back swipe has taken it. */
         private var presence = 0f
         private var back = 0f
@@ -183,7 +272,8 @@ class ExpressivePage(private val context: Context) {
         fun leave() {
             if (leaving) return
             leaving = true
-            run(from = presence, to = 0f, EXIT_MS, ExpressiveMotion.EMPHASIZED_ACCELERATE, then = dialog::dismiss) {
+            // As Settings closes a sub-page: quick off the mark and settled long before the end.
+            run(from = presence, to = 0f, EXIT_MS, ExpressiveMotion.EMPHASIZED_DECELERATE, then = { release(); dialog.dismiss() }) {
                 presence = it
             }
         }
@@ -236,18 +326,25 @@ class ExpressivePage(private val context: Context) {
         }
 
         /**
-         * One frame. Presence 0 is 30dp towards the end and transparent, 1 is in
-         * place; a back swipe shrinks the page towards the edge it started from
-         * and rounds its corners on top of that.
+         * One frame of the shared axis, as Pixel Launcher's own settings pages move. Presence 1 is the
+         * page in place over a screen that has moved out to the start; 0 is the page gone towards the
+         * end and the screen under it back in place. The page fades in the half nearest to it and
+         * the screen under it in the other part, so the two never blend into a double image. A back
+         * swipe shrinks the page towards the edge it started from and rounds its corners on top.
          */
         private fun draw() {
             val end = if (page.layoutDirection == View.LAYOUT_DIRECTION_RTL) -1f else 1f
             val scale = 1f - (1f - BACK_SCALE) * back
-            page.alpha = presence
+            val shown = ((presence - PAGE_FADE_FROM) / (1f - PAGE_FADE_FROM)).coerceIn(0f, 1f)
+            page.alpha = shown
             page.translationX = end * dp(SHARED_AXIS_DP) * (1f - presence) + backDirection * dp(BACK_SHIFT_DP) * back
             page.scaleX = scale
             page.scaleY = scale
-            scrim.alpha = (presence * OPAQUE).roundToInt()
+            scrim.alpha = (shown * OPAQUE).roundToInt()
+            under?.apply {
+                alpha = ((UNDER_FADE_TO - presence) / UNDER_FADE_TO).coerceIn(0f, 1f)
+                translationX = -end * dp(UNDER_AXIS_DP) * presence
+            }
             page.invalidateOutline()
         }
     }
@@ -258,10 +355,18 @@ class ExpressivePage(private val context: Context) {
     private fun dp(value: Float): Int = (value * context.resources.displayMetrics.density).roundToInt()
 
     private companion object {
-        /** Material 3 shared axis: the incoming page travels 30dp. */
-        const val SHARED_AXIS_DP = 30f
-        const val ENTER_MS = 450L
-        const val EXIT_MS = 250L
+        /**
+         * Measured off Pixel Launcher's own sub-page close (Home settings, CP4A, 1x animation scales):
+         * the page going travels about 50dp towards the end and is gone by the halfway mark; the page
+         * underneath comes in from about 80dp towards the start; the movement is done in roughly a
+         * third of the duration.
+         */
+        const val SHARED_AXIS_DP = 50f
+        const val UNDER_AXIS_DP = 80f
+        const val PAGE_FADE_FROM = 0.5f
+        const val UNDER_FADE_TO = 0.6f
+        const val ENTER_MS = 350L
+        const val EXIT_MS = 350L
         const val SETTLE_MS = 350L
 
         /** Material 3 predictive back: 90% of full size, 8dp towards the swipe, 32dp corners. */

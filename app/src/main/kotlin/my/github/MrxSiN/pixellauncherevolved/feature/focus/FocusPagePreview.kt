@@ -72,6 +72,9 @@ private data class PreviewRecord(
     val widget: AppWidgetProviderInfo?,
 )
 
+/** The home wallpaper as last recorded for page previews, sharp; null until one was read. Main thread. */
+internal fun recordedWallpaper(): Bitmap? = FocusPreviewModel.wallpaper
+
 private object FocusPreviewModel {
     /** The model's items, kept for the page drawn by hand when the launcher's preview cannot draw one. */
     @Volatile var records: List<PreviewRecord> = emptyList()

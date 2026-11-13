@@ -182,6 +182,8 @@ object LauncherContracts {
         optional("com.android.launcher3.notification.NotificationListener", Member.Method("onListenerDisconnected"), AT_A_GLANCE),
         optional("com.android.launcher3.notification.NotificationListener", Member.Method("onNotificationPosted"), AT_A_GLANCE),
         optional("com.android.launcher3.notification.NotificationListener", Member.Method("onNotificationRemoved"), AT_A_GLANCE),
+        optional("com.android.launcher3.popup.PopupContainer\$Companion", Member.Method("showForMenuItems"), AT_A_GLANCE),
+        optional("com.android.launcher3.popup.PopupData", Member.Field("popupAction"), AT_A_GLANCE),
 
         // Widget stacks
         contract(WIDGET_HOST, method("onInterceptTouchEvent", MOTION_EVENT), WIDGET_STACKS),

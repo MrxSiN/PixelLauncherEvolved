@@ -3,18 +3,27 @@
 Upgrading to 0.1.7 from any earlier release keeps everything: identity is unchanged, and the state
 this release adds lives under new keys whose absence reads as the old behaviour.
 
-- **Unreleased, At a Glance (new state):** `home_glance_all_screens` (bool, default false, backed up as
+- **0.1.8, At a Glance (new state):** `home_glance_all_screens` (bool, default false, backed up as
   `glanceAllScreens`) and the per-Mode `focus_glance_<mode>` (`all`, or the id of the selected screen; absent = Use
   main setting; an older `main` reads as the Mode's first page; device-bound like the other per-Mode keys, not in backups). A missing key reads as before:
   At a Glance only on the first page. Nothing is written to the launcher database; At a Glance copies
   live only in the bound model, so removing or disabling the module leaves the stock home screen.
   One visible change on upgrade: while a Mode hides screen 0, At a Glance now shows on that Mode's
   first page when its top row is free, instead of disappearing.
-- **Unreleased, At a Glance content (new state):** `glance_source_<id>` (bool, absent = off) and
+- **0.1.8, At a Glance content (new state):** `glance_source_<id>` (bool, absent = off) and
   `glance_when_<id>` (text, absent = always) per source, and `glance_order` (ids, comma-separated).
-  Options are `glance_option_<id>_<name>` (text). Backed up under `glance` (`on`, `when`, `order`, `options`, by source id); an older backup without it reads as
+  Options are `glance_option_<id>_<name>` (text). New values, all read as before when absent:
+  `glance_when_<id>` may be `time:<start>-<end>:<days>` (minutes of the day, a day-of-week bit mask,
+  0 every day; an older build reads it as "always"), Hide after and the new numeric options
+  (`glance_option_calendar_lead`, `glance_option_alarm_window`, `glance_option_battery_below`) may hold any
+  whole number, and
+  `glance_option_notifications_text` = `hidden`. Hide after's clock is `glance_seen_<id>` (text, state
+  only: not backed up, cleared by reset and when Hide after is off; absent starts the clock anew). Backed up under `glance` (`on`, `when`, `order`, `options`, by source id); an older backup without it reads as
   no content. The module app now asks for `READ_CALENDAR`, only when **Calendar access** is tapped. A missing key changes
   nothing, so an upgrade shows no new content until a source is switched on.
+- **0.1.8, update check:** `update_check` (bool, default **true**, backed up as `updateCheck`). The
+  module app gains the `INTERNET` permission and an exported `.update` provider that answers only the
+  launcher. Nothing is stored about what was found.
 - **0.1.7:** no setting, key or backup format changes. Two caches change shape and rebuild by
   themselves: `compatibility_analyzed_launcher_version` now holds `<versionCode>@<system build>`, so
   the compatibility report is written once more after the upgrade; and the DexKit symbol cache

@@ -8,6 +8,7 @@ import java.lang.reflect.Modifier
 import io.github.libxposed.api.XposedInterface
 
 import my.github.MrxSiN.pixellauncherevolved.core.Host
+import my.github.MrxSiN.pixellauncherevolved.core.Invoke
 import my.github.MrxSiN.pixellauncherevolved.core.Reflect
 
 /**
@@ -95,10 +96,10 @@ internal object DeviceProfiles {
         val propertiesOf = part(loader, PROPERTIES, "deviceProperties", "mDeviceProperties")
         propertiesOf?.let { Reflect.method(it.type, VERTICAL_BAR) }
             ?.takeIf { it.returnType == BOOLEAN }
-            ?.let { method -> return { method.invoke(propertiesOf.get(it)) as Boolean } }
+            ?.let { method -> return { Invoke.noArgs(method, propertiesOf.get(it)) as Boolean } }
         Reflect.exactMethod(profile, VERTICAL_BAR)
             ?.takeIf { it.returnType == BOOLEAN }
-            ?.let { method -> return { method.invoke(it) as Boolean } }
+            ?.let { method -> return { Invoke.noArgs(method, it) as Boolean } }
         return null
     }
 

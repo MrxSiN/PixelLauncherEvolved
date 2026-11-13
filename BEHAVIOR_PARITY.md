@@ -296,3 +296,70 @@ earlier-generation fallbacks (HOOK_NOTES, "Two launcher generations").
   overlap the widget's bottom edge (size is an estimate). Switching it off released the widget id.
 - Notification card: not tested; notification dots are off on the test phone.
 - Several calendars: builds; the checkbox dialog was not opened on the device.
+- 2026-11-13, measured card size: the pager is 1218 x 312 px (406 x 104 dp) at density 3. With the
+  Battery widget the frame now ends 48 px (16 dp, the dots' height) above the pager's bottom; the
+  dots sit below the widget and the widget chose its one-device layout for the smaller height.
+- 2026-11-13, Hide after across restarts: Widget card at 5 minutes, start stored at 19:17:14; the
+  launcher was force-stopped and restarted twice (about 19:17:30 and 19:19:08, the second an install), and
+  the stored start was unchanged. The card was gone at 19:22:14, exactly 5 minutes after the start.
+- 2026-11-13, While charging (Widget card): absent unplugged, shown with `dumpsys battery set ac 1`,
+  gone again after `dumpsys battery unplug`; `dumpsys battery reset` afterwards.
+- 2026-11-13, owner consent, notification dots on for the test and off again afterwards:
+  - Notification card: a shell notification (`cmd notification post`) showed as the card; snoozed,
+    the card went away, and it came back when the snooze ended (posted and removed hooks both fire).
+    Apps option `com.android.chrome`: no card; `com.android.chrome,com.android.shell`: card back.
+    Tap: MX Player's media notification led the card, and tapping the card opened MX Player.
+    Media notifications that are not ONGOING_EVENT (MX's is NO_CLEAR|FOREGROUND_SERVICE) do show.
+  - Calendar: a local-only test calendar with one event 8 minutes ahead. Before the fix neither
+    source showed it: its `STATUS` is NULL and the provider's `STATUS != 2` filter dropped it.
+    After: the card "PLE test event in 5m", "now" from the start; the extra "7:47 PM" until the start.
+    Pixel's own calendar card (ASI read the same event) shows beside ours, and as it comes first the
+    extras sit on it. The calendar choice dialog listed all seven calendars; with only Work chosen
+    our card went away. The test calendar and event were deleted afterwards.
+  - While music plays (Battery level extra): shown while MX Player played a system ringtone, gone
+    when playback ended.
+  - While headphones are connected: not tested; no headphones were connected.
+  - Calendar card dedupe (owner's choice): with `FEATURE_CALENDAR` set, a local test event 7 minutes
+    ahead showed only Pixel's own card; ours was left out. Test calendar deleted afterwards.
+- 2026-11-13, At a Glance screen: opened from Home settings, Home screen, At a Glance. The preview
+  showed the home screen's two pages over the wallpaper; switching Date on made it three at once.
+  The Date dialog set When to show to While charging: the row read "While charging" and the preview
+  went back to two pages (not charging). Touch and hold on At a Glance: the menu listed Dismiss,
+  Settings, About this content and At a Glance settings (palette icon); that item opened the screen
+  over the home screen, and Back left a clean home screen. Prefs restored afterwards (md5 equal).
+- 2026-11-13, Expressive redesign: the menu item reads Customize and opens the screen. The first
+  build crashed the launcher on opening (the pager cast its dots' layout params to its own type);
+  fixed, and the pager's layout pass now catches its own failures. Then: the preview showed Live
+  with a pulsing badge; a tap on the Date tile turned it on (count 1 to 2); Try it opened the time
+  and phone chips, starting with Wi-Fi ticked (the phone was on Wi-Fi); the Date sheet set When to
+  show to Charging; in Try, ticking Charging made the preview 3 pages and unticking it 2; swipes
+  moved page 1 to 2 to 3 and back to 2. Prefs restored afterwards (md5 equal).
+- 2026-11-13, custom options and layout: scrolling down pinned the preview under the status bar
+  with the tiles passing beneath, and nothing scrolled under the status bar. Date's Custom time:
+  Weekdays, 9:00 AM to 11:00 PM (picked in the clock dialog) stored `time:540-1380:62`, and the chip
+  read "9:00 AM–11:00 PM · Weekdays". Hide after, Custom…, 45 read "45 minutes". Reorder: dragging
+  Torch by its handle two rows down stored calendar,date,torch,... Demo, Pick a time…, 7 PM showed
+  the chip as 7:08 PM. During the session a few switches were found flipped that no step set
+  (Torch on, Calendar and Date off); a clean run (open from the menu, scroll, open and close a
+  sheet) changed nothing, so it was most likely the test's text-matched taps landing on moving
+  tiles; not reproduced. Prefs restored afterwards (md5 equal).
+- 2026-11-13, layout wipe (my install race; see the incident note in the next session's memory):
+  the launcher restarted without the module 0.5 s after an install and emptied `launcher_4_by_6.db`.
+  Restored from a copy taken a minute earlier: 37 of 41 items back cell for cell; four widgets
+  (Spotify, Maps, Calendar, Tasks) lost their ids and need re-adding; the launcher's own prefs
+  (themed icons) were reset. Installs since wait for Vector's "module updated" notice first.
+- 2026-11-13, Mode placement (Work active, its page 6 has a free top row): Use main setting with
+  Every home screen off: no At a Glance on page 6; All home screens: shown; Selected Home screen 3
+  (screen 6): shown; Use main setting again: gone; Every home screen on: shown, off: gone. All live,
+  no restart.
+- 2026-11-13, widgets back: the 21:19 layout copy restored again with `restored = 1` on its four widget
+  rows; the loader bound new ids 139-142 (Maps, Spotify, Calendar; Tasks asks to be set up), all 41
+  items present, Calendar showing events on Work's page.
+- 2026-11-13, update check: with 0.1.7 installed the log read "newest v0.1.7, installed 0.1.7" and
+  nothing was offered; a build labelled 0.1.6 offered "Pixel Launcher Evolved 0.1.7 is out. You have
+  0.1.6." on the next home screen, and Update opened the release page (the GitHub app took the link).
+  The real 0.1.7 was reinstalled afterwards.
+- 2026-11-13, Settings screens: At a Glance, Reorder home screens, Assign home screens to Modes and
+  Work's page open as SettingsActivity screens with the stock collapsing title; Back plays Settings'
+  own close (frames match Dock's); Customize from the home screen opens At a Glance the same way and
+  Back returns home. The pinned band takes the collapsed bar's colour (#474747 on the test phone).

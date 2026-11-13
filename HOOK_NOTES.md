@@ -3356,3 +3356,48 @@ once from `GlanceContentFeature`; the system binds that listener only while noti
 Widget card: a module `AppWidgetHost` with id `0x40000000 | (module package hash & 0xFFFFFF)` (never
 Launcher3's 1024) captures each `updateAppWidget(RemoteViews)`; the card hands it to the framework
 through `SmartspaceTarget.setRemoteViews`, which the card adapter keeps as its own page.
+The adapter stretches those views over the whole pager page (`smartspace_card_pager`, 104 dp high on
+CP4A, layout `smartspace_enhanced2`), and `BcSmartspaceView`, a `FrameLayout`, lays the page dots
+(`smartspace_page_indicator`, inflated from a `ViewStub`, gravity bottom|start, 16 dp high on the
+test phone) over the pager's bottom. So the card measures a live view on each of its layouts (ids by
+name, once): it tells the provider the pager's width and height less the dots, and wraps the
+widget's views in the module layout `glance_widget_frame` with that bottom padding. A launcher without
+those ids measures the whole view and pads nothing.
+
+Long-press menu (CP4A): `SmartspaceViewContainer` builds its menu (Dismiss, Settings, About this
+content) as `PopupData` items and calls the static `PopupContainer$Companion.showForMenuItems(
+ActivityContext, View, List, Rect)` with the page shown (a card inside the container) as the view.
+`GlanceMenu` hooks that call, and only when the view sits inside the container adds one item ("Customize") built
+with `PopupData(int id, int icon, StringContainer, PopupCategory, EventEnum, String, action)`: label
+a `StringContainer$FixedString`, category, event and type copied from the menu's first item, icon the
+launcher's `ic_palette` by name, id from `View.generateViewId()`. The action type is the declared type
+of `PopupData.popupAction` (an obfuscated Kotlin `Function3`, `pd.f` on CP4A), implemented with a
+`Proxy`; the launcher calls it as `invoke(activityContext, itemInfo, view)`, ignores the answer and
+closes the menu itself. Settings preview: `GlanceContentFeature` publishes each list it hands a view
+(`GlancePreview`, one identity check and a volatile write per call; a post only while the screen is
+open), and `GlancePreviewView` draws it in the settings process, which is the launcher's. Its Try
+mode asks the feature for the list at a chosen `GlanceMoment` (`GlancePreview.at`): the system's last
+list merged with the sources whose When to show holds at that moment, without Hide after, built on
+the main thread only while the preview is open; the home screen's views and state are untouched.
+
+Update check (no hook): `UpdateCheckFeature` waits 15 s after the launcher installs it, then on one
+daemon thread calls the module app's `content://<module>.update` (`latest`). `UpdateProvider` sends
+`HEAD https://github.com/MrxSiN/PixelLauncherEvolved/releases/latest` with redirects off and answers
+the `Location` (`.../releases/tag/vX.Y.Z`). A newer tag registers one activity-lifecycle callback and
+shows the dialog on the next resume of the home activity (`CATEGORY_HOME`), then unregisters.
+
+Full-screen pages as Settings screens: `PageHost` starts `com.android.launcher3.settings.SettingsActivity`
+with `:settings:fragment_args` = { `androidx.preference.PreferenceFragmentCompat.PREFERENCE_ROOT`:
+`ple_host_<n>` } (as `SettingsActivity.onPreferenceStartScreen` / `startPreference` do on CP4A). The
+`onCreatePreferences` hook answers that key with an empty screen titled for the page and runs the
+page's builder with the new screen's context; `ExpressivePage.show()` then hides the fragment's list
+(`android:id/list_container`'s child) and adds a nested-scrolling `ScrollView` in its place, so the
+collapsing title bar, transitions and predictive back are the launcher's. A screen whose builder is
+gone (process restarted under it) finishes itself. The page saves on finishing (activity lifecycle).
+Measured before the switch (screenrecord frames): the dialog page's exit showed a frozen frame for
+its whole duration on both key and gesture back, although its animator ran (probe log), while
+Settings' own sub-page close is a ~120 ms shared-axis move.
+
+Hide after stores each source's start as `glance_seen_<id>` = `<wall-clock ms>:<fingerprint hash>`,
+written only when the start changes or clears, never per list; only a hash of the shown text is
+written. It is read back on the next start, so a restart keeps the clock.

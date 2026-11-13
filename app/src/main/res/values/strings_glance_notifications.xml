@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="glance_notification_title">Notification</string>
-    <string name="glance_notification_description">The newest notification from the apps you pick. Needs notification dots on, which lets Pixel Launcher read notifications</string>
+    <string name="glance_notification_description">Your newest notification. Needs notification dots</string>
     <string name="glance_notification_apps_title">Apps</string>
     <string name="glance_notification_apps_all">All apps</string>
     <string name="glance_notification_apps_count">%1$d apps</string>

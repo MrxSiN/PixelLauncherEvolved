@@ -12,6 +12,8 @@ import java.util.Date
 
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceItem
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceOption
+import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceOptions
 import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
 
 /**
@@ -26,6 +28,26 @@ class AlarmExtra : GlanceSource("alarm", Kind.EXTRA, R.string.glance_source_alar
 
     @Volatile private var manager: AlarmManager? = null
 
+    override val options = listOf(
+        GlanceOption(
+            WINDOW, R.string.glance_option_alarm_title, GlanceOption.Type.CHOICE, R.string.glance_option_alarm_default,
+            listOf(
+                GlanceOption.Choice("1", R.string.glance_option_alarm_1),
+                GlanceOption.Choice("6", R.string.glance_option_alarm_6),
+                GlanceOption.Choice("24", R.string.glance_option_alarm_24),
+            ),
+            R.plurals.glance_unit_hours_before,
+        ),
+    )
+
+    /** How long before the alarm it shows ([WINDOW]; 12 hours by default). */
+    @Volatile private var window = WINDOW_MILLIS
+
+    override fun onOptionsChanged() {
+        window = GlanceOptions.number(option(WINDOW), (WINDOW_MILLIS / HOUR).toInt()) * HOUR
+        reschedule()
+    }
+
     private val changed = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = reschedule()
     }
@@ -34,6 +56,7 @@ class AlarmExtra : GlanceSource("alarm", Kind.EXTRA, R.string.glance_source_alar
 
     override fun start() {
         manager = host.context.getSystemService(AlarmManager::class.java)
+        window = GlanceOptions.number(option(WINDOW), (WINDOW_MILLIS / HOUR).toInt()) * HOUR
         val filter = IntentFilter(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED).apply {
             addAction(Intent.ACTION_TIME_CHANGED)
             addAction(Intent.ACTION_TIMEZONE_CHANGED)
@@ -54,7 +77,7 @@ class AlarmExtra : GlanceSource("alarm", Kind.EXTRA, R.string.glance_source_alar
         val next = manager?.nextAlarmClock
         if (next != null) {
             val now = System.currentTimeMillis()
-            val shows = next.triggerTime - WINDOW_MILLIS
+            val shows = next.triggerTime - window
             val at = if (now < shows) shows else next.triggerTime
             if (at > now) host.main.postAtTime(recheck, SystemClock.uptimeMillis() + (at - now))
         }
@@ -64,7 +87,7 @@ class AlarmExtra : GlanceSource("alarm", Kind.EXTRA, R.string.glance_source_alar
     override fun content(): GlanceItem? {
         val next = manager?.nextAlarmClock ?: return null
         val now = System.currentTimeMillis()
-        if (next.showIntent == null || kotlin.math.abs(next.triggerTime - now) > WINDOW_MILLIS) return null
+        if (next.showIntent == null || kotlin.math.abs(next.triggerTime - now) > window) return null
         return GlanceItem(
             title = DateFormat.getTimeFormat(host.context).format(Date(next.triggerTime)),
             icon = host.icon(R.drawable.ic_glance_alarm),
@@ -74,6 +97,8 @@ class AlarmExtra : GlanceSource("alarm", Kind.EXTRA, R.string.glance_source_alar
     }
 
     private companion object {
-        const val WINDOW_MILLIS = 12L * 60 * 60 * 1000
+        const val HOUR = 60L * 60 * 1000
+        const val WINDOW_MILLIS = 12 * HOUR
+        const val WINDOW = "window"
     }
 }

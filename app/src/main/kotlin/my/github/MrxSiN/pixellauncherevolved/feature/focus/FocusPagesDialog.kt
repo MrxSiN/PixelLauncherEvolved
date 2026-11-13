@@ -29,6 +29,8 @@ import my.github.MrxSiN.pixellauncherevolved.feature.apps.SharedPreferencesHidde
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveCardList
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveDialog
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressivePage
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.PageHandle
+import my.github.MrxSiN.pixellauncherevolved.feature.settings.PageHost
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRadio
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveRole
 import my.github.MrxSiN.pixellauncherevolved.feature.settings.ExpressiveShapes
@@ -145,7 +147,8 @@ internal object FocusPagesDialog {
                 if (mode.id.startsWith(ORPHAN_ROW) && orphan != null) {
                     giveOrphan(context, resources, store, mode.id.removePrefix(ORPHAN_ROW), orphan, modes, list, previews, ::refill)
                 } else {
-                    choosePages(context, resources, store, mode, previews, ::refill)
+                    // A Mode's page is a Settings screen of its own, opened over the Mode list.
+                    PageHost.open(context, mode.name) { screen -> choosePages(screen, resources, store, mode, previews, ::refill) }
                 }
             })
         }
@@ -187,7 +190,7 @@ internal object FocusPagesDialog {
             selected = assignments[mode.id].orEmpty(),
         )
 
-        lateinit var page: Dialog
+        lateinit var page: PageHandle
         val preferences = LauncherSettings.preferences(context)
 
         // Off keeps the Mode to its own home screens, as before; on keeps the regular ones beside them.

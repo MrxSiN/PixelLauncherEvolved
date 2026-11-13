@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="glance_card_calendar_title">Calendar</string>
-    <string name="glance_card_calendar_description">The current or next event from your calendars. Needs the Calendar permission, which the launcher may not hold</string>
+    <string name="glance_card_calendar_description">Your current or next event</string>
     <string name="glance_card_calendar_untitled">Untitled event</string>
     <string name="glance_card_calendar_in_minutes">%1$s in %2$dm</string>
     <string name="glance_card_calendar_yesterday">Yesterday, %1$s – %2$s</string>
@@ -9,11 +9,11 @@
     <string name="glance_card_calendar_date_for_start">%1$s, %2$s – %3$s</string>
     <string name="glance_card_calendar_date_for_end">%1$s – %2$s, %3$s</string>
     <string name="glance_card_date_title">Date</string>
-    <string name="glance_card_date_description">The date for today, opening the calendar when tapped</string>
+    <string name="glance_card_date_description">Today\'s date</string>
     <string name="glance_card_clock_title">Clock</string>
-    <string name="glance_card_clock_description">The current time, refreshed every minute while on</string>
+    <string name="glance_card_clock_description">The time</string>
     <string name="glance_card_greeting_title">Greeting</string>
-    <string name="glance_card_greeting_description">A short greeting for the time of day</string>
+    <string name="glance_card_greeting_description">Good morning, good evening</string>
     <string name="glance_card_greeting_morning">Good morning</string>
     <string name="glance_card_greeting_afternoon">Good afternoon</string>
     <string name="glance_card_greeting_evening">Good evening</string>

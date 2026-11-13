@@ -44,7 +44,8 @@ import my.github.MrxSiN.pixellauncherevolved.settings.LauncherSettings
  * the launcher's own item; the innermost runs after the Mode filter
  * ([my.github.MrxSiN.pixellauncherevolved.feature.focus.FocusHomeFeature]) and
  * sees only the pages that will show. When a Mode has hidden screen 0, the
- * original is gone from what it sees, and a copy goes to the Mode's first page.
+ * original is gone from what it sees, and a copy goes only where that Mode asks
+ * (all its pages, or one); following Home settings, it shows on none.
  *
  * A copy goes only onto a page whose top row is free under the item's span,
  * the same test the launcher makes before putting the original back on screen
@@ -323,7 +324,9 @@ internal object GlancePlacement {
     fun screens(screens: IntArray, blocked: Set<Int>, originalScreen: Int?, everyScreen: Boolean, selected: Int? = null): IntArray {
         val shown = (screens.toList() + listOfNotNull(originalScreen)).toSortedSet()
         fun free(screen: Int) = screen == originalScreen || screen !in blocked
-        val main = selected?.takeIf { it in shown } ?: originalScreen ?: shown.firstOrNull()
+        // The main home screen is the launcher's own page only: while a Mode hides it, At a Glance
+        // shows where the Mode says (all pages, or one), and nowhere when it follows Home settings.
+        val main = selected?.takeIf { it in shown } ?: originalScreen
         val out = ArrayList<Int>()
         if (main != null && free(main)) out += main
         if (everyScreen) for (screen in shown) if (screen != main && free(screen)) out += screen

@@ -26,6 +26,8 @@ public class BaseTemplateData {
 
     public static final class SubItemInfo {
         SubItemInfo() { throw new RuntimeException("Stub"); }
+        public Text getText() { throw new RuntimeException("Stub"); }
+        public Icon getIcon() { throw new RuntimeException("Stub"); }
 
         public static final class Builder {
             public Builder() { throw new RuntimeException("Stub"); }

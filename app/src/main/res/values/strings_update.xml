@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_group_updates">Updates</string>
+    <string name="feature_update_check_title">Check for updates</string>
+    <string name="feature_update_check_summary">Each time Pixel Launcher starts, ask GitHub whether a newer version exists</string>
+    <string name="update_dialog_title">Update available</string>
+    <string name="update_dialog_message">Pixel Launcher Evolved %1$s is out. You have %2$s.</string>
+    <string name="update_dialog_update">Update</string>
+    <string name="update_dialog_later">Later</string>
+</resources>

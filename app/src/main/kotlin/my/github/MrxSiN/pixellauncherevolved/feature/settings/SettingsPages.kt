@@ -5,7 +5,6 @@ import androidx.annotation.StringRes
 import my.github.MrxSiN.pixellauncherevolved.R
 import my.github.MrxSiN.pixellauncherevolved.catalog.FeatureCatalog
 import my.github.MrxSiN.pixellauncherevolved.diagnostics.CompatibilityFeature
-import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.GlanceSource
 import my.github.MrxSiN.pixellauncherevolved.feature.backup.BackupRows
 import my.github.MrxSiN.pixellauncherevolved.feature.diagnostics.DiagnosticsRows
 
@@ -84,22 +83,6 @@ internal object SettingsPages {
         ),
     )
 
-    private val GLANCE = SettingsPage(
-        key = "glance",
-        titleRes = R.string.settings_page_glance,
-        summaryRes = R.string.settings_page_glance_summary,
-        groups = listOf(
-            SettingsGroup(null, listOf(ToggleRow(FeatureCatalog.GLANCE_ALL_SCREENS, CompatibilityFeature.AT_A_GLANCE))),
-            SettingsGroup(
-                R.string.settings_group_glance_cards,
-                listOf(GlanceSourceRows(GlanceSource.Kind.CARD), GlanceOrderRow(GlanceSource.Kind.CARD), CalendarAccessRow),
-            ),
-            SettingsGroup(R.string.settings_group_glance_extras, listOf(GlanceSourceRows(GlanceSource.Kind.EXTRA), GlanceOrderRow(GlanceSource.Kind.EXTRA))),
-            SettingsGroup(R.string.settings_group_glance_when, listOf(GlanceWhenRows)),
-            SettingsGroup(R.string.settings_group_glance_options, listOf(GlanceOptionsRows)),
-        ),
-    )
-
     private val HOME_SCREEN = SettingsPage(
         key = "home_screen",
         titleRes = R.string.settings_page_home_screen,
@@ -112,7 +95,7 @@ internal object SettingsPages {
             SettingsGroup(R.string.settings_group_dock, listOf(PageLinkRow(DOCK), PageLinkRow(SEARCH_BAR))),
             SettingsGroup(
                 R.string.settings_group_pages,
-                listOf(PageLinkRow(GLANCE), OrganizePagesRow, ToggleRow(FeatureCatalog.FOCUS_HOME_SCREENS, CompatibilityFeature.FOCUS_HOME_SCREENS), FocusPagesRow),
+                listOf(GlanceLinkRow, OrganizePagesRow, ToggleRow(FeatureCatalog.FOCUS_HOME_SCREENS, CompatibilityFeature.FOCUS_HOME_SCREENS), FocusPagesRow),
             ),
             SettingsGroup(
                 R.string.settings_group_widgets,
@@ -183,13 +166,14 @@ internal object SettingsPages {
             SettingsGroup(R.string.settings_group_backup, listOf(BackupRows)),
             SettingsGroup(R.string.settings_group_launcher, listOf(RefreshIconsRow, RestartRow)),
             SettingsGroup(R.string.settings_group_diagnostics, listOf(PageLinkRow(DIAGNOSTICS))),
+            SettingsGroup(R.string.settings_group_updates, listOf(ToggleRow(FeatureCatalog.UPDATE_CHECK))),
         ),
     )
 
     /** The pages listed under this module's heading in Home settings. */
     val topLevel: List<SettingsPage> = listOf(HOME_SCREEN, APP_DRAWER, OVERVIEW, LAYOUT_AND_TASKBAR, ADVANCED)
 
-    private val all: List<SettingsPage> = topLevel + SEARCH_BAR + DOCK + APP_LABELS + DIAGNOSTICS + WIDGET_STACKS + GLANCE
+    private val all: List<SettingsPage> = topLevel + SEARCH_BAR + DOCK + APP_LABELS + DIAGNOSTICS + WIDGET_STACKS
 
     /** The page the launcher is opening under [rootKey], or null for one of its own. */
     fun byRootKey(rootKey: String?): SettingsPage? = all.firstOrNull { SettingsKeys.page(it) == rootKey }

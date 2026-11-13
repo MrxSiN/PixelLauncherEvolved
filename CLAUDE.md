@@ -68,6 +68,12 @@ Build-time Gradle Kotlin DSL, shell, Python and generator tooling may remain.
     reflection through `Reflect`/`Host` so DexKit covers it, and for the Layout Recovery page redesign.
   - 2026-11-12: Kotlin for the At a Glance / Smartspacer integration (launcher hooks for At a Glance
     placement on home screens and Mode pages, and its settings page).
+  - 2026-11-13: Kotlin for opening the module's full-screen pages (At a Glance, Reorder home screens,
+    Assign home screens to Modes and each Mode's page, App labels) as real Pixel Launcher Settings
+    screens (`PageHost`), which fixed their exit transitions.
+  - 2026-11-13: Kotlin for the update check: the module app holds the Internet permission and sends one
+    `HEAD` to the GitHub `releases/latest` redirect when the launcher asks, once per launcher start; the
+    launcher shows a dialog for a newer release. On by default, with a switch in settings.
 - Device tools: adb is at `D:\Android\platform-tools`.
 - Every other rule in this file still applies to XAX code: behavior parity, failure isolation,
   hot-path invariants and measurement.

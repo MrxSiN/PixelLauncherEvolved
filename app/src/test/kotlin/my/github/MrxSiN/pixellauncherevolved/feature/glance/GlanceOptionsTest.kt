@@ -48,16 +48,40 @@ class GlanceOptionsTest {
     fun contentExpiresAfterItsLastChangeAndAChangeRestartsIt() {
         val clock = GlanceHideAfter()
         val minute = GlanceHideAfter.MINUTE
-        assertEquals(5 * minute, clock.check("a", "one", 0, 5))
+        assertEquals(5 * minute, clock.check("a", 1, 0, 5))
         // Seen again later: the clock does not move.
-        assertEquals(5 * minute, clock.check("a", "one", 4 * minute, 5))
+        assertEquals(5 * minute, clock.check("a", 1, 4 * minute, 5))
         // New content starts over.
-        assertEquals(9 * minute, clock.check("a", "two", 4 * minute, 5))
+        assertEquals(9 * minute, clock.check("a", 2, 4 * minute, 5))
         // Nothing set: no expiry and nothing kept.
-        assertEquals(GlanceHideAfter.NEVER, clock.check("a", "two", 5 * minute, 0))
-        assertEquals(10 * minute, clock.check("a", "two", 5 * minute, 5))
+        assertEquals(GlanceHideAfter.NEVER, clock.check("a", 2, 5 * minute, 0))
+        assertEquals(10 * minute, clock.check("a", 2, 5 * minute, 5))
         clock.retain(emptySet())
-        assertEquals(20 * minute, clock.check("a", "two", 15 * minute, 5))
+        assertEquals(20 * minute, clock.check("a", 2, 15 * minute, 5))
+    }
+
+    @Test
+    fun aStoredStartSurvivesARestartAndIsWrittenOnlyOnChange() {
+        val minute = GlanceHideAfter.MINUTE
+        val disk = HashMap<String, String>()
+        var writes = 0
+        val persist: (String, String?) -> Unit = { id, value -> writes++; if (value == null) disk.remove(id) else disk[id] = value }
+        val first = GlanceHideAfter(persist)
+        first.check("a", 7, minute, 5)
+        first.check("a", 7, 2 * minute, 5)
+        assertEquals(1, writes)
+        // A new launcher process reads the stored start back: the same content keeps its old clock.
+        val second = GlanceHideAfter(persist)
+        second.restore("a", disk["a"])
+        assertEquals(6 * minute, second.check("a", 7, 3 * minute, 5))
+        assertEquals(1, writes)
+        // Nothing shown clears what is stored; clearing again writes nothing.
+        second.forget("a")
+        second.forget("a")
+        assertEquals(2, writes)
+        assertEquals(null, disk["a"])
+        second.restore("b", "junk")
+        assertEquals(GlanceHideAfter.NEVER, second.check("b", 1, 0, 0))
     }
 
     @Test

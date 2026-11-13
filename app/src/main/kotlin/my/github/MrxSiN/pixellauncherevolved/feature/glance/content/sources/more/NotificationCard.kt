@@ -24,6 +24,10 @@ class NotificationCard : GlanceSource("notifications", Kind.CARD, R.string.glanc
 
     override val options = listOf(
         GlanceOption(APPS, R.string.glance_notification_apps_title, GlanceOption.Type.APPS, R.string.glance_notification_apps_all),
+        GlanceOption(
+            TEXT, R.string.glance_option_message_title, GlanceOption.Type.CHOICE, R.string.glance_option_message_shown,
+            listOf(GlanceOption.Choice(HIDDEN, R.string.glance_option_message_hidden)),
+        ),
     )
 
     @Volatile private var item: GlanceItem? = null
@@ -36,6 +40,7 @@ class NotificationCard : GlanceSource("notifications", Kind.CARD, R.string.glanc
     private val read = Runnable { recompute() }
 
     override fun start() {
+        hideText = option(TEXT) == HIDDEN
         apps = NotificationPick.apps(option(APPS))
         val handlerThread = HandlerThread("ple-glance-notifications").apply { start() }
         thread = handlerThread
@@ -53,7 +58,12 @@ class NotificationCard : GlanceSource("notifications", Kind.CARD, R.string.glanc
         shown = null
     }
 
+    /** Whether the card leaves the message text out, showing only who or what it is from. */
+    @Volatile private var hideText = false
+
     override fun onOptionsChanged() {
+        hideText = option(TEXT) == HIDDEN
+        shown = null
         apps = NotificationPick.apps(option(APPS))
         schedule()
     }
@@ -92,7 +102,7 @@ class NotificationCard : GlanceSource("notifications", Kind.CARD, R.string.glanc
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.takeIf { it.isNotEmpty() } ?: return null
         return GlanceItem(
             title = title,
-            subtitle = extras.getCharSequence(Notification.EXTRA_TEXT)?.takeIf { it.isNotEmpty() },
+            subtitle = if (hideText) null else extras.getCharSequence(Notification.EXTRA_TEXT)?.takeIf { it.isNotEmpty() },
             icon = n.smallIcon,
             tap = n.contentIntent,
         )
@@ -100,5 +110,7 @@ class NotificationCard : GlanceSource("notifications", Kind.CARD, R.string.glanc
 
     companion object {
         const val APPS = "apps"
+        const val TEXT = "text"
+        const val HIDDEN = "hidden"
     }
 }

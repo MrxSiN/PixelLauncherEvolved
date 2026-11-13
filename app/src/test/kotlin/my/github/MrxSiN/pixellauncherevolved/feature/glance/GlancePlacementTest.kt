@@ -15,8 +15,10 @@ class GlancePlacementTest {
     }
 
     @Test
-    fun aModeThatHidesScreenZeroGetsItOnItsFirstPage() {
-        assertArrayEquals(intArrayOf(6), screens(7, 6))
+    fun aModeThatHidesScreenZeroShowsItOnlyWhereTheModeSaysSo() {
+        // "Use main setting" with only the main home screen: the main one is hidden, so none.
+        assertArrayEquals(intArrayOf(), screens(7, 6))
+        assertArrayEquals(intArrayOf(6, 7), screens(7, 6, every = true))
     }
 
     @Test
@@ -38,8 +40,8 @@ class GlancePlacementTest {
     }
 
     @Test
-    fun aSelectedScreenThatIsNotShownFallsBackToTheFirst() {
-        assertArrayEquals(intArrayOf(6), screens(6, 7, selected = 9))
+    fun aSelectedScreenThatIsNotShownFallsBackToTheMainOne() {
+        assertArrayEquals(intArrayOf(), screens(6, 7, selected = 9))
         assertArrayEquals(intArrayOf(0), screens(1, original = 0, selected = 9))
     }
 

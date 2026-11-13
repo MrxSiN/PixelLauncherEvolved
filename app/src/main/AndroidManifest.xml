@@ -10,6 +10,8 @@
         At a Glance calendar sources read the calendar here and ask this app (CalendarProvider).
     -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Only for the update check: Pixel Launcher has no Internet access, so this app asks GitHub for it. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
         Every tweak is in the launcher's own Home settings, beside the launcher
@@ -72,6 +74,12 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- Answers only the launcher, with the newest release's page on GitHub. -->
+        <provider
+            android:name=".update.UpdateProvider"
+            android:authorities="${applicationId}.update"
+            android:exported="true" />
 
         <!-- Double tap is recognised by the launcher; this root-backed endpoint locks it. -->
         <provider

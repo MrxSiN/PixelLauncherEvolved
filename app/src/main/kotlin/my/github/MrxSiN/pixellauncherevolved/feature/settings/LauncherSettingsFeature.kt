@@ -80,6 +80,13 @@ class LauncherSettingsFeature : LauncherFeature {
 
         context.xposed.hook(createPreferences).intercept { chain ->
             val rootKey = chain.args.getOrNull(ROOT_KEY_ARGUMENT) as? String
+            if (rootKey != null && rootKey.startsWith(PageHost.KEY_PREFIX)) {
+                // A full-screen page opened as its own Settings screen: an empty screen under its
+                // title, which the page then fills.
+                runCatching { section.showHosted(requireNotNull(chain.thisObject), rootKey) }
+                    .onFailure { context.logger.warn("Unable to open a page as a Settings screen", it) }
+                return@intercept null
+            }
             val page = SettingsPages.byRootKey(rootKey)
 
             if (page != null) {
@@ -224,6 +231,14 @@ private class SettingsSection(
         val context = api.showRootScreen(fragment, SettingsKeys.page(page), title) { root -> populate(root, page) }
 
         context.activityOrNull()?.title = title
+    }
+
+    /** An empty screen titled as the page [PageHost] opened under [key] asks, handed to that page. */
+    fun showHosted(fragment: Any, key: String) {
+        val title = PageHost.titleOf(key)
+        val context = api.showRootScreen(fragment, key, title) {}
+        context.activityOrNull()?.title = title
+        PageHost.begin(context, key)
     }
 
     fun accessoryOf(row: Any): RowAccessory? = accessories.of(api.keyOf(row))

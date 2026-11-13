@@ -68,6 +68,7 @@ object FeatureRegistry {
         FocusHomeFeature(),
         GlanceFeature(),
         GlanceContentFeature(),
+        my.github.MrxSiN.pixellauncherevolved.update.UpdateCheckFeature(),
         WidgetStacksFeature(),
         OverviewBubbleFeature(),
         OverviewSplitButtonFeature(),

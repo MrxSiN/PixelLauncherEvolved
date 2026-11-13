@@ -7,7 +7,6 @@ import android.content.SharedPreferences
 import android.content.res.Resources
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.view.View
 
 import java.lang.reflect.Method
@@ -63,9 +62,14 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
     @Volatile
     private var hideOf: Map<String, Int> = emptyMap()
 
-    private val hideAfter = GlanceHideAfter()
+    /** Each start is stored as `glance_seen_<id>`, so a launcher restart keeps the clock. */
+    private val hideAfter = GlanceHideAfter { id, value ->
+        val editor = preferences.edit()
+        if (value == null) editor.remove(GlanceOptions.SEEN_PREFIX + id) else editor.putString(GlanceOptions.SEEN_PREFIX + id, value)
+        editor.apply()
+    }
 
-    /** Main thread: when the one pending Hide after callback fires (elapsed realtime), or 0. */
+    /** Main thread: when the one pending Hide after callback fires (wall-clock time), or 0. */
     private var expiryAt = 0L
 
     private val expire = Runnable {
@@ -85,6 +89,20 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
 
     private var refreshPosted = false
 
+    /** [GlanceHost.cardSize] as last measured (main thread writes), and the pager and dots view ids (-1 not looked up, 0 absent). */
+    @Volatile
+    private var cardSize: android.util.Size? = null
+    @Volatile
+    private var cardInset = 0
+    private var pagerId = -1
+    private var dotsId = -1
+
+    /** Every layout of an At a Glance view; only a changed size reaches the sources. */
+    private val measurer = View.OnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+        // Runs inside the launcher's layout pass: a failure here must stay here.
+        runCatching { measure(view) }.onFailure { host.logger.warn("At a Glance could not be measured", it) }
+    }
+
     override fun install(context: FeatureContext) {
         val view = context.findClass(SMARTSPACE_VIEW)
         val updated = view?.let { Reflect.declared(it, UPDATED) { m -> m.parameterTypes.size == 2 && m.parameterTypes[0] == List::class.java } }
@@ -102,17 +120,29 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
         context.xposed.hook(updated).intercept { chain ->
             val owner = chain.thisObject as? View
             val given = chain.args[0] as? List<*>
-            if (owner != null && given != null) synchronized(handed) { handed[owner] = given }
-            if (owner == null || given == null || active.isEmpty()) return@intercept chain.proceed()
+            if (owner != null && given != null) {
+                val seen = synchronized(handed) { handed.put(owner, given) != null }
+                if (!seen) main.post { owner.addOnLayoutChangeListener(measurer) }
+            }
+            if (owner == null || given == null) return@intercept chain.proceed()
+            if (active.isEmpty()) {
+                GlancePreview.publish(given, given)
+                return@intercept chain.proceed()
+            }
             val merged = runCatching { merge(given) }
                 .onFailure { context.logger.warn("At a Glance content could not be added", it) }
                 .getOrNull() ?: given
+            GlancePreview.publish(given, merged)
             chain.proceed(chain.args.toTypedArray().also { it[0] = merged })
         }
 
         // The notification card's source of notifications; hooked once, whether or not the card is on.
         context.part { NotificationFeed.install(context) }?.let { context.logger.warn("The notification feed could not be hooked", it) }
+        // "At a Glance settings" in the menu a long press on At a Glance opens.
+        context.part { GlanceMenu.install(context) }?.let { context.logger.warn("The At a Glance menu could not be hooked", it) }
 
+        GlancePreview.simulator = ::preview
+        GlancePreview.reader = conditions::moment
         main.post { sync() }
         preferences.registerOnSharedPreferenceChangeListener(this)
         context.logger.info("At a Glance content ready")
@@ -155,13 +185,17 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
             GlanceOptions.hideMinutes(preferences.getString(GlanceOptions.key(source.id, GlanceOptions.HIDE_AFTER), null))
                 .takeIf { it > 0 }?.let { source.id to it }
         }.toMap()
+        for (id in hideOf.keys) hideAfter.restore(id, preferences.getString(GlanceOptions.SEEN_PREFIX + id, null))
         hideAfter.retain(hideOf.keys)
+        // A start stored while Hide after was on, for a source since switched off or set to never.
+        val stale = preferences.all.keys.filter { it.startsWith(GlanceOptions.SEEN_PREFIX) && it.removePrefix(GlanceOptions.SEEN_PREFIX) !in hideOf }
+        if (stale.isNotEmpty()) preferences.edit().apply { stale.forEach(::remove) }.apply()
         refresh()
     }
 
-    /** Main thread: one callback for the soonest [at] (elapsed realtime) unless an earlier one is already pending. */
+    /** Main thread: one callback for the soonest [at] (wall-clock time) unless an earlier one is already pending. */
     private fun armExpiry(at: Long) {
-        val now = SystemClock.elapsedRealtime()
+        val now = System.currentTimeMillis()
         if (expiryAt > now && expiryAt <= at) return
         main.removeCallbacks(expire)
         expiryAt = at
@@ -173,7 +207,7 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
         val extras = ArrayList<Pair<String, GlanceItem>>()
         val whens = whenOf
         val hides = hideOf
-        val now = SystemClock.elapsedRealtime()
+        val now = System.currentTimeMillis()
         var soonest = GlanceHideAfter.NEVER
         for (source in active) {
             if (!conditions.holds(whens[source.id])) continue
@@ -198,6 +232,53 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
         return targets.merge(given, cards, extras)
     }
 
+    /**
+     * Main thread: the room a card has in [view], in dp: its pager's size less the page dots, which the
+     * launcher lays over the pager's bottom. Ids are looked up by name once; a launcher without them
+     * measures the whole view.
+     */
+    private fun measure(view: View) {
+        if (pagerId < 0) {
+            val res = view.resources
+            pagerId = res.getIdentifier(PAGER, "id", view.context.packageName)
+            dotsId = res.getIdentifier(DOTS, "id", view.context.packageName)
+        }
+        val pager = (if (pagerId != 0) view.findViewById<View>(pagerId) else null) ?: view
+        val dots = if (dotsId != 0) view.findViewById<View>(dotsId) else null
+        val density = view.resources.displayMetrics.density
+        val width = (pager.width / density).toInt()
+        val inset = if (dots != null && dots.visibility == View.VISIBLE) dots.height else 0
+        val height = ((pager.height - inset) / density).toInt()
+        if (width <= 0 || height <= 0) return
+        val known = cardSize
+        if (known != null && known.width == width && known.height == height && inset == cardInset) return
+        cardInset = inset
+        cardSize = android.util.Size(width, height)
+        for (source in running.values) {
+            runCatching { source.onCardSizeChanged() }.onFailure { host.logger.warn("At a Glance source ${source.id} failed on a size", it) }
+        }
+    }
+
+    /**
+     * The settings preview's list for [moment]: as [merge], with "When to show" read at [moment] and
+     * no Hide after (a preview shows what a source has, however long it has shown it). Runs on the
+     * main thread, only while the preview is open, and never touches the home screen's state.
+     */
+    private fun preview(given: List<*>, moment: GlanceMoment): List<*> {
+        val cards = ArrayList<SmartspaceTarget>()
+        val extras = ArrayList<Pair<String, GlanceItem>>()
+        val whens = whenOf
+        for (source in active) {
+            if (!moment.holds(whens[source.id])) continue
+            runCatching {
+                val item = source.content() ?: return@runCatching
+                val id = ID_PREFIX + source.id
+                if (source.kind == GlanceSource.Kind.CARD) cards += targets.card(id, item) else extras += id to item
+            }
+        }
+        return targets.merge(given, cards, extras)
+    }
+
     /** Hands every live At a Glance view its last list again, once per burst of changes. */
     private fun refresh() {
         if (refreshPosted) return
@@ -219,6 +300,10 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
         override val main: Handler,
         override val logger: Logger,
     ) : GlanceHost {
+        override val cardSize: android.util.Size? get() = this@GlanceContentFeature.cardSize
+
+        override val cardInset: Int get() = this@GlanceContentFeature.cardInset
+
         override fun changed() = refreshLater()
 
         override fun option(source: String, name: String): String? = preferences.getString(GlanceOptions.key(source, name), null)
@@ -231,6 +316,8 @@ class GlanceContentFeature : LauncherFeature, SharedPreferences.OnSharedPreferen
     private companion object {
         const val SMARTSPACE_VIEW = "com.google.android.systemui.smartspace.BcSmartspaceView"
         const val UPDATED = "onSmartspaceTargetsUpdated"
+        const val PAGER = "smartspace_card_pager"
+        const val DOTS = "smartspace_page_indicator"
         const val COMPONENT = "my.github.MrxSiN.pixellauncherevolved.glance"
         /** Prefixes every id this module adds, so none can equal a system target's. */
         const val ID_PREFIX = "ple_glance_"

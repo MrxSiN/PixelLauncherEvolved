@@ -34,7 +34,7 @@ class GlancePrefs(
         val editor = preferences.edit()
         for (key in preferences.all.keys) {
             if (key.startsWith(GlanceSources.KEY_PREFIX) || key.startsWith(GlanceWhen.KEY_PREFIX) ||
-                key.startsWith(GlanceOptions.KEY_PREFIX) || key == ORDER
+                key.startsWith(GlanceOptions.KEY_PREFIX) || key.startsWith(GlanceOptions.SEEN_PREFIX) || key == ORDER
             ) editor.remove(key)
         }
         for (id in choices.on) editor.putBoolean(GlanceSources.KEY_PREFIX + id, true)

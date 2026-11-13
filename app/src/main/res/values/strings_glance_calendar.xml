@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="glance_calendar_access_title">Calendar access</string>
-    <string name="glance_calendar_access_granted">Allowed: the calendar cards can read your events</string>
-    <string name="glance_calendar_access_denied">Not allowed: tap to let the calendar cards read your events</string>
-</resources>

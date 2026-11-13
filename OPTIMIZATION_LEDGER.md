@@ -739,3 +739,87 @@ entries 1–6 together as one candidate, not one change at a time.
 |---|---|---|---|
 | APK | 1,275,356 B | 1,275,356 B | 0 (page-aligned) |
 | classes.dex | 672,408 B | 672,708 B | +300 B |
+
+## 43. At a Glance merge: skip a repeated list — REJECTED (measured, not worth it)
+
+- **Hypothesis:** `GlanceContentFeature`'s hook on `BcSmartspaceView.onSmartspaceTargetsUpdated`
+  builds every switched-on source's content and merges it on every call, and the launcher hands the
+  same list to the same view more than once, so a cache keyed by the list and a change counter could
+  skip the repeats.
+- **Path:** `feature/glance/content/GlanceContentFeature.kt` (`merge`), `GlanceTargets.merge`.
+- **Measured:** a separate instrumentation build (`System.nanoTime` and
+  `Debug.getThreadAllocCount` around `merge`, logged per call) on the Pixel 8 Pro, CP4A.261105.040.A1,
+  launcher 907, release R8 build, Widget card on, November 13, 2026. Samples (n = 5):
+
+  | When | Thread | ns | Allocations |
+  |---|---|---|---|
+  | launcher start | background | 364,339 | 54 |
+  | launcher start | main | 103,190 | 45 |
+  | launcher start | main | 111,206 | 45 |
+  | Hide after expiry | main | 1,145,955 | 23 |
+  | Hide after expiry | main | 128,743 | 22 |
+
+  Median 128,743 ns. In 100 s idle on the home screen after start there were no other calls: the hook
+  runs only when the system Smartspace session or a source changes, never per frame.
+- **Result:** rejected, nothing changed. A repeat of the same list costs about 0.1 ms on a path that
+  runs a few times per content change; a cache would add a source of stale content (sources whose
+  answer depends on the time) for no frame-path gain. Revisit if a source starts changing every few
+  seconds.
+
+## 44. "When to show" reads the clock only for a time-based choice — ACCEPTED (measured: allocations)
+
+- **Baseline:** the code since v0.1.6 (the last pass was ledger 38-42, before the v0.1.6 tag); this
+  is the first pass over v0.1.7 and the 0.1.8 work.
+- **Hypothesis:** `GlanceConditions.holds` built a `Calendar` for every source on every At a Glance
+  list, although most sources show always and the rest mostly on a state.
+- **Path:** `feature/glance/content/GlanceConditions.kt` (`holds`).
+- **Mechanism:** null and state values (`GlanceWhen.stateValues`) are answered without the clock;
+  only a period or custom time builds the `Calendar`.
+- **Correctness:** same answer for every value: `GlanceWhenTest` passes unchanged, the minute and day
+  are read only where `GlanceWhen.holds` uses them.
+- **Measured:** release R8 builds with a probe around `merge` (`System.nanoTime`,
+  `Debug.getThreadAllocCount`), Pixel 8 Pro, CP4A.261105.040.A1, launcher 907, three always-on
+  sources (Date card, Clock card, Battery extra), interleaved base/cand/base/cand, 3 launcher starts
+  each, November 13, 2026. Warm merges (the first, cold one after start excluded):
+
+  | Build | n | Allocations per merge | Raw ns (sorted) | Median |
+  |---|---|---|---|---|
+  | base | 8 | 536 (one 542) | 371338, 453858, 562052, 563761, 586426, 626384, 2498128, 2649537 | 575 µs |
+  | cand | 9 | 512 | 270548, 340088, 371663, 410686, 490478, 491170, 2245687, 4101522, 5116862 | 490 µs |
+
+  Cold merges: 10 933-10 939 to 10 909-10 911 allocations. Time: no significant change (tails of
+  2-5 ms in both, from the main thread being busy at start); only the allocation drop is claimed:
+  -24 per merge (-4.5%), 8 objects per source.
+
+## 45. Reuse a card's built target while its content is unchanged — REJECTED (measured)
+
+- **Hypothesis:** every list rebuilds each card's `SmartspaceTarget`, actions, template, texts and
+  icons; keeping the last target per card id while the content is the same (`GlanceItem.sameAs`, with
+  icons cached per drawable so they compare by identity) would remove most of a merge's work.
+- **Path:** `GlanceTargets.card`, `GlanceSource.kt`, the content host's `icon`.
+- **Measured:** same setup as 44, base = before 44, cand = 44 plus this.
+
+  | Build | n | Allocations per merge | Raw ns (sorted) | Median |
+  |---|---|---|---|---|
+  | base | 8 | 536 (one 542) | 373780, 387085, 465007, 513875, 529867, 646362, 4636108, 5042196 | 522 µs |
+  | cand | 9 | 492 (487-521) | 466674, 481242, 485107, 582764, 640177, 767253, 1944336, 2024007, 2293742 | 640 µs |
+
+- **Result:** rejected and reverted. Only 20 allocations beyond 44's saving, and no time gain: the
+  card objects are a small part of a merge; the sources' own formatting and the extras' rebuild of
+  the system target dominate. Not worth a cache that must know when content is "the same".
+
+## 46. At a Glance long-press menu resolves its item builder on first use — ACCEPTED (not measured)
+
+- **Path:** `feature/glance/content/GlanceMenu.kt`.
+- **Mechanism:** launcher start resolves only the hook target (`PopupContainer$Companion
+  .showForMenuItems`); `PopupData`'s constructor scan, `FixedString`'s constructor and four fields are
+  looked up (`lazy`) the first time a menu opens on At a Glance. A failure there leaves that menu as
+  stock and is tried again next time, as before.
+- **Correctness:** device: Customize appears and opens At a Glance as before (BEHAVIOR_PARITY).
+- **Measured:** no; it removes reflection from launcher start without adding work elsewhere.
+
+## 47. `DeviceProfiles.verticalBar` without an argument array per call — ACCEPTED (not measured)
+
+- **Path:** `feature/layout/DeviceProfiles.kt`.
+- **Mechanism:** `Invoke.noArgs` (one shared empty array) instead of Kotlin's `method.invoke(x)`,
+  which allocates an empty varargs array per call. Runs per device profile build with the dock hidden.

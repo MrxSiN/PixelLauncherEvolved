@@ -44,6 +44,7 @@ object SettingsBackupFormat {
         "blur" to Settings.HOME_BLUR_WALLPAPER,
         "modesHomeScreens" to Settings.FOCUS_HOME_SCREENS,
         "glanceAllScreens" to Settings.HOME_GLANCE_ALL_SCREENS,
+        "updateCheck" to Settings.UPDATE_CHECK,
         "widgetStacks" to Settings.WIDGET_STACKS,
         "widgetStacksSideways" to Settings.WIDGET_STACKS_SIDEWAYS,
         "widgetStacksRemember" to Settings.WIDGET_STACKS_REMEMBER,

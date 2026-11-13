@@ -52,4 +52,28 @@ class GlanceWhenTest {
         assertEquals(7 * 60, GlanceWhen.minutesToNextBoundary(listOf(GlanceWhen.MORNING), 5 * 60))
         assertNull(GlanceWhen.minutesToNextBoundary(listOf(GlanceWhen.MUSIC), 0))
     }
+
+    @Test
+    fun customTimesHoldInsideTheirRangeAndDays() {
+        val nineToFive = GlanceWhen.custom(9 * 60, 17 * 60, 0)
+        assertTrue(GlanceWhen.holds(nineToFive, 9 * 60, false, false, dayOfWeek = 3))
+        assertFalse(GlanceWhen.holds(nineToFive, 17 * 60, false, false, dayOfWeek = 3))
+        // Weekdays only (Monday to Friday): not on Sunday.
+        val weekdays = GlanceWhen.custom(9 * 60, 17 * 60, 0b0111110)
+        assertTrue(GlanceWhen.holds(weekdays, 10 * 60, false, false, dayOfWeek = 1))
+        assertFalse(GlanceWhen.holds(weekdays, 10 * 60, false, false, dayOfWeek = 0))
+        // Past midnight counts as the day it started: Friday 23:00 to 02:00 holds early Saturday.
+        val lateFriday = GlanceWhen.custom(23 * 60, 2 * 60, 1 shl 5)
+        assertTrue(GlanceWhen.holds(lateFriday, 60, false, false, dayOfWeek = 6))
+        assertFalse(GlanceWhen.holds(lateFriday, 60, false, false, dayOfWeek = 5))
+        // Unreadable custom values read as always, like any unknown value.
+        assertTrue(GlanceWhen.holds("time:9-x:0", 0, false, false))
+        assertEquals(-1, GlanceWhen.parseCustom("time:1500-60:0"))
+    }
+
+    @Test
+    fun customTimesScheduleTheirEdgesAndMidnightWhenDaysMatter() {
+        assertEquals(60, GlanceWhen.minutesToNextBoundary(listOf(GlanceWhen.custom(9 * 60, 17 * 60, 0)), 8 * 60))
+        assertEquals(60, GlanceWhen.minutesToNextBoundary(listOf(GlanceWhen.custom(9 * 60, 17 * 60, 0b0111110)), 23 * 60))
+    }
 }

@@ -185,7 +185,39 @@ internal class GlanceConditions(
         schedule()
     }
 
-    fun holds(value: String?): Boolean = GlanceWhen.holds(value, minuteOfDay(), musicPlaying, charging, onWifi, onMobile, headphones)
+    /**
+     * The phone's state now, read afresh for the settings preview: conditions no source uses are not
+     * watched, so their fields would read false. A few Binder calls on the main thread, only when the
+     * person opens Try on the preview; never on a launcher path.
+     */
+    fun moment(): GlanceMoment {
+        val audioManager = context.getSystemService(AudioManager::class.java)
+        val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+        val capabilities = connectivityManager?.let { manager -> manager.activeNetwork?.let { manager.getNetworkCapabilities(it) } }
+        val battery = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        return GlanceMoment(
+            minuteOfDay = minuteOfDay(),
+            dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY,
+            music = audioManager?.isMusicActive == true,
+            headphones = audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)?.any { it.type in HEADPHONE_TYPES } == true,
+            charging = (battery?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0) != 0,
+            wifi = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true,
+            mobile = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true,
+        )
+    }
+
+    fun holds(value: String?): Boolean {
+        // Most sources show always, and the rest mostly on a state: neither needs the clock, which
+        // costs a Calendar (several objects) per source per At a Glance update.
+        if (value == null || value in GlanceWhen.stateValues) {
+            return GlanceWhen.holds(value, 0, musicPlaying, charging, onWifi, onMobile, headphones)
+        }
+        val now = Calendar.getInstance()
+        return GlanceWhen.holds(
+            value, now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE), musicPlaying, charging, onWifi, onMobile, headphones,
+            now.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY,
+        )
+    }
 
     private fun schedule() {
         main.removeCallbacks(boundary)

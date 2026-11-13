@@ -26,6 +26,22 @@ enum class ExpressiveRole(private val light: Int, private val dark: Int) {
         android.R.color.system_on_primary_container_dark,
     ),
     SECONDARY(android.R.color.system_secondary_light, android.R.color.system_secondary_dark),
+    SECONDARY_CONTAINER(
+        android.R.color.system_secondary_container_light,
+        android.R.color.system_secondary_container_dark,
+    ),
+    ON_SECONDARY_CONTAINER(
+        android.R.color.system_on_secondary_container_light,
+        android.R.color.system_on_secondary_container_dark,
+    ),
+    TERTIARY_CONTAINER(
+        android.R.color.system_tertiary_container_light,
+        android.R.color.system_tertiary_container_dark,
+    ),
+    ON_TERTIARY_CONTAINER(
+        android.R.color.system_on_tertiary_container_light,
+        android.R.color.system_on_tertiary_container_dark,
+    ),
     TERTIARY(android.R.color.system_tertiary_light, android.R.color.system_tertiary_dark),
     ERROR(android.R.color.system_error_light, android.R.color.system_error_dark),
     ON_SURFACE(android.R.color.system_on_surface_light, android.R.color.system_on_surface_dark),
@@ -55,6 +71,10 @@ enum class ExpressiveRole(private val light: Int, private val dark: Int) {
     SURFACE_CONTAINER_HIGH(
         android.R.color.system_surface_container_high_light,
         android.R.color.system_surface_container_high_dark,
+    ),
+    SURFACE_CONTAINER_HIGHEST(
+        android.R.color.system_surface_container_highest_light,
+        android.R.color.system_surface_container_highest_dark,
     );
 
     fun of(context: Context): Int {

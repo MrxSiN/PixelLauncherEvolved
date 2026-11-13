@@ -51,6 +51,9 @@ abstract class GlanceSource(
     /** Main thread: one of the `glance_option_` values changed. Cache what is needed in `@Volatile` fields. */
     open fun onOptionsChanged() {}
 
+    /** Main thread: [GlanceHost.cardSize] changed. */
+    open fun onCardSizeChanged() {}
+
     /** This source's stored value for option [name], or null for the default. */
     protected fun option(name: String): String? = host.option(id, name)
 }
@@ -89,6 +92,15 @@ interface GlanceHost {
     val main: Handler
 
     val logger: Logger
+
+    /**
+     * The room a card has, in dp, as measured on a live At a Glance view: its pager's width, and its
+     * height less the page dots drawn over the pager's bottom. Null until a view has been laid out.
+     */
+    val cardSize: android.util.Size?
+
+    /** In pixels, the page dots' height at the bottom of a card, which a card drawing to its edge should keep clear; 0 when no dots show. */
+    val cardInset: Int
 
     /** Tells At a Glance this source's [GlanceSource.content] may have changed. Main thread or not. */
     fun changed()

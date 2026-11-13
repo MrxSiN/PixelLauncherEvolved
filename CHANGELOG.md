@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.8
 
 ### Fixed
 
@@ -41,6 +41,68 @@
 - **Widget** card: one app widget of your choice drawn inside At a Glance (Smartspacer's widget
   target), hosted by this module with its own widget host; switching it off releases the widget.
 - The calendar sources can read several chosen calendars at once.
+- **Hide after** keeps its clock across a launcher restart: content that was already showing hides at
+  the same time as before the restart, instead of starting over.
+- The **Widget** card asks the widget for the size At a Glance really gives it, measured on the home
+  screen, and keeps it clear of At a Glance's page dots.
+- The calendar card and Next calendar event skipped every event without a status (events made on
+  the phone, and some synced ones); they now show them.
+- The calendar card is left out while Pixel's own calendar card shows, as the torch card already was.
+- **At a Glance** settings redesigned in Material 3 Expressive:
+  - a live preview at the top, over your wallpaper: swipe or tap through its pages, which slide
+    with the wallpaper drifting behind them; changes slide in as soon as the home screen has them;
+  - **Demo** shows At a Glance for a moment you pick (a time of day or any exact time, music,
+    headphones, charging, Wi-Fi, mobile data), starting from the phone as it is, so each When to
+    show choice can be checked without waiting for it. Demo never changes the home screen;
+  - the preview stays pinned at the top while you scroll, so every change can be watched;
+  - **Cards** and **Extras** as toggle tiles with a short state ("Off", "On", "Charging"); a tap
+    turns one on or off, its sliders button opens a sheet with a main switch, When to show as chips,
+    and its options; a long press opens the sheet too. **Reorder** sits beside each heading and
+    opens a list you put in order by dragging (TalkBack offers Move up and Move down);
+  - **Every home screen** as its own card, and a calendar note only while it is needed;
+  - shorter names and descriptions throughout, haptic ticks on toggles and drags, and
+    **Reset At a Glance** at the bottom (asks first).
+- **When to show** takes a **custom time**: from and to (past midnight too) and the days of the week,
+  with Weekdays and Weekends as shortcuts. **Hide after** takes any number of minutes.
+- New options: the calendar card can show events 30 minutes to 2 hours ahead (or any number of
+  minutes); the next alarm 1 to 24 hours ahead; battery level only at or below a level; the
+  notification card can hide the message text.
+- Module pages no longer scroll under the status bar.
+- **At a Glance**, **Reorder home screens**, **Assign home screens to Modes** (and each Mode's
+  page) and **App labels** now open as real Pixel Launcher Settings screens, with the stock title bar
+  and the stock open, close and back-swipe animation, the same as Dock. **Customize** on the home
+  screen opens At a Glance the same way.
+- **Check for updates** (Advanced, on by default): each time Pixel Launcher starts, the module's app
+  sends one bodiless request to this project's GitHub `releases/latest` page and reads the newest
+  version from where it points; a newer one is offered the next time the home screen shows, with
+  **Update** (opens the release page) and **Later**. Pixel Launcher has no Internet access, so the
+  module app now holds the Internet permission, used for this and nothing else.
+- The pinned At a Glance preview hangs from the title bar: a full-width band in the bar's own colour,
+  with large rounded corners and a soft shadow over the rows passing under it.
+
+### Changed
+
+- At a Glance "Show on every home screen" off now means only your first home screen. While a Mode
+  hides it, At a Glance shows on that Mode's pages only when the Mode says so (All home screens, or a
+  selected one); "Use main setting" no longer puts it on the Mode's first page.
+- Touch and hold At a Glance on the home screen: the menu now has **Customize**, which opens that
+  screen over the home screen.
+- The README is a short overview with four current screenshots and a **Sponsor** button; GitHub
+  shows a Sponsor button on the repository too (`.github/FUNDING.yml`). Details stay in the other
+  documents it links to.
+
+### Performance
+
+- At a Glance's "When to show" reads the clock only for a time-based choice: 24 fewer allocations
+  per At a Glance update with three always-on sources (536 to 512, measured), no change in time.
+- The long-press menu hook looks up what builds its **Customize** item on the first At a Glance
+  menu instead of at launcher start.
+- `DeviceProfiles.verticalBar` calls through `Invoke.noArgs` (no argument array per call).
+
+### Removed
+
+- 23 strings and 2 drawables nothing used any more, two emptied string files, and 22 screenshots
+  the README no longer shows.
 
 ## 0.1.7
 

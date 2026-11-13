@@ -10,6 +10,9 @@ public final class SmartspaceAction {
     private SmartspaceAction() { throw new RuntimeException("Stub"); }
 
     public String getId() { throw new RuntimeException("Stub"); }
+    public CharSequence getTitle() { throw new RuntimeException("Stub"); }
+    public CharSequence getSubtitle() { throw new RuntimeException("Stub"); }
+    public Icon getIcon() { throw new RuntimeException("Stub"); }
 
     public static final class Builder {
         public Builder(String id, String title) { throw new RuntimeException("Stub"); }

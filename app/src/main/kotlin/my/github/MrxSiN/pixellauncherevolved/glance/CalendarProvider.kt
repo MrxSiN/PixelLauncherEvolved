@@ -22,7 +22,8 @@ import my.github.MrxSiN.pixellauncherevolved.feature.glance.content.sources.card
  * Pixel Launcher does not hold the Calendar permission and a module cannot give it one, so this
  * app holds it (granted once, from the At a Glance settings) and reads here. Exported, so every
  * call is checked against the one caller with any business asking: a calendar is personal.
- * Changes are not announced from here; the launcher watches the calendar provider itself.
+ * Changes are not announced from here, and the launcher cannot watch the calendar provider either
+ * (that needs the permission too); the sources read again on screen on, unlock and event times.
  */
 class CalendarProvider : ContentProvider() {
 
@@ -73,7 +74,8 @@ class CalendarProvider : ContentProvider() {
             context.contentResolver.query(
                 uri, PROJECTION,
                 "${CalendarContract.Instances.VISIBLE}=1 AND ${CalendarContract.Instances.ALL_DAY}=0 AND " +
-                    "${CalendarContract.Instances.STATUS}!=${CalendarContract.Events.STATUS_CANCELED}" +
+                    // An event with no status (one made on the phone, say) is not cancelled; SQL's NULL != 2 is not true.
+                    "(${CalendarContract.Instances.STATUS} IS NULL OR ${CalendarContract.Instances.STATUS}!=${CalendarContract.Events.STATUS_CANCELED})" +
                     // Longs only, so inlining them cannot inject anything.
                     if (calendars.isEmpty()) "" else " AND ${CalendarContract.Instances.CALENDAR_ID} IN (${calendars.joinToString(",")})",
                 null, "${CalendarContract.Instances.BEGIN} ASC",

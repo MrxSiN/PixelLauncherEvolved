@@ -30,6 +30,9 @@ class WidgetCard : GlanceSource("widget", Kind.CARD, R.string.glance_widget_titl
     override val options = listOf(GlanceOption(WidgetChoice.OPTION, R.string.glance_widget_option_title, GlanceOption.Type.WIDGET, R.string.glance_widget_none))
 
     @Volatile private var views: RemoteViews? = null
+
+    /** [views] inside this module's frame, padded clear of the page dots; built when either changes, not per list. */
+    @Volatile private var framed: RemoteViews? = null
     @Volatile private var widgetId = -1
 
     // Main thread only.
@@ -41,6 +44,7 @@ class WidgetCard : GlanceSource("widget", Kind.CARD, R.string.glance_widget_titl
         override fun updateAppWidget(remoteViews: RemoteViews?) {
             if (remoteViews == null || appWidgetId != widgetId) return
             views = remoteViews
+            frame()
             host.changed()
         }
     }
@@ -61,6 +65,7 @@ class WidgetCard : GlanceSource("widget", Kind.CARD, R.string.glance_widget_titl
         if (value == bound) return
         bound = value
         views = null
+        framed = null
         widgetId = -1
         val id = WidgetChoice.decode(value)?.second
         val hosted = appHost
@@ -70,20 +75,35 @@ class WidgetCard : GlanceSource("widget", Kind.CARD, R.string.glance_widget_titl
                 val manager = AppWidgetManager.getInstance(context)
                 val info = manager.getAppWidgetInfo(id) ?: return@runCatching
                 widgetId = id
-                val metrics = context.resources.displayMetrics
-                val (width, height) = WidgetChoice.cardSize(metrics.widthPixels, metrics.density)
-                manager.updateAppWidgetOptions(id, Bundle().apply {
-                    putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, width)
-                    putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, width)
-                    putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, height)
-                    putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, height)
-                    putParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES, arrayListOf(SizeF(width.toFloat(), height.toFloat())))
-                })
+                size(manager, id)
                 // Delivers what the service already holds for it; later updates arrive through startListening.
                 hosted.createView(context, id, info)
             }.onFailure { host.logger.warn("The At a Glance widget could not be hosted", it) }
         }
         host.changed()
+    }
+
+    /** The card's measured size changed: tell the provider, which answers with views for it. */
+    override fun onCardSizeChanged() {
+        frame()
+        host.changed()
+        val id = widgetId
+        if (id < 0) return
+        runCatching { size(AppWidgetManager.getInstance(host.context), id) }.onFailure { host.logger.warn("The At a Glance widget could not be resized", it) }
+    }
+
+    /** Asks the provider for the card's size: measured on a live view, or estimated before one is laid out. */
+    private fun size(manager: AppWidgetManager, id: Int) {
+        val measured = host.cardSize
+        val metrics = host.context.resources.displayMetrics
+        val (width, height) = if (measured != null) measured.width to measured.height else WidgetChoice.cardSize(metrics.widthPixels, metrics.density)
+        manager.updateAppWidgetOptions(id, Bundle().apply {
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, width)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, width)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, height)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, height)
+            putParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES, arrayListOf(SizeF(width.toFloat(), height.toFloat())))
+        })
     }
 
     override fun stop() {
@@ -97,10 +117,25 @@ class WidgetCard : GlanceSource("widget", Kind.CARD, R.string.glance_widget_titl
         bound = null
         widgetId = -1
         views = null
+        framed = null
+    }
+
+    /**
+     * The launcher stretches a card's remote views over the whole page, under the page dots, so the
+     * widget goes inside a frame of this module's whose bottom padding is the dots' height.
+     */
+    private fun frame() {
+        val shown = views
+        framed = if (shown == null) null else runCatching {
+            RemoteViews(host.modulePackage, R.layout.glance_widget_frame).apply {
+                addView(R.id.glance_widget_frame, shown)
+                setViewPadding(R.id.glance_widget_frame, 0, 0, 0, host.cardInset)
+            }
+        }.onFailure { host.logger.warn("The At a Glance widget could not be framed", it) }.getOrNull() ?: shown
     }
 
     override fun content(): GlanceItem? {
-        val shown = views ?: return null
+        val shown = framed ?: views ?: return null
         return GlanceItem(title = host.string(R.string.glance_widget_title), remoteViews = shown)
     }
 }

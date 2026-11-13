@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="glance_extra_battery_title">Battery level</string>
-    <string name="glance_extra_battery_description">The battery percentage, with a bolt while charging</string>
+    <string name="glance_extra_battery_description">Battery level</string>
     <string name="glance_extra_date_title">Date</string>
-    <string name="glance_extra_date_description">Today as a short date, beside the date line</string>
+    <string name="glance_extra_date_description">A short date</string>
     <string name="glance_extra_time_title">Time</string>
-    <string name="glance_extra_time_description">The current time, beside the date line</string>
+    <string name="glance_extra_time_description">The time</string>
     <string name="glance_extra_calendar_title">Next calendar event</string>
-    <string name="glance_extra_calendar_description">The start time of the next event in the next 24 hours. Needs the launcher to hold calendar access, which it usually does not</string>
+    <string name="glance_extra_calendar_description">When your next event starts</string>
 </resources>
